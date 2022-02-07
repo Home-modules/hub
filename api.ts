@@ -8,24 +8,30 @@ export namespace HMApi {
     };
 
     export type RequestLogin = {
-        type: "login",
+        type: "account.login",
         username: string,
         password: string
     };
 
     export type RequestLogout = {
-        type: "logout"
+        type: "account.logout"
     };
 
     export type RequestLogoutOtherSessions = {
-        type: "logoutOtherSessions"
+        type: "account.logoutOtherSessions"
     };
 
     export type RequestGetSessionsCount = {
-        type: "getSessionsCount"
+        type: "account.getSessionsCount"
     }
 
-    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount;
+    export type RequestChangePassword = {
+        type: "account.changePassword",
+        oldPassword: string,
+        newPassword: string
+    }
+
+    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestChangePassword;
 
 
     export type ResponseEmpty = Record<string, never>;
@@ -49,6 +55,7 @@ export namespace HMApi {
         R extends RequestLogout ? ResponseEmpty :
         R extends RequestLogoutOtherSessions ? ResponseSessionCount :
         R extends RequestGetSessionsCount ? ResponseSessionCount :
+        R extends RequestChangePassword ? ResponseEmpty :
         never;
 
 

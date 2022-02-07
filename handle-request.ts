@@ -1,5 +1,5 @@
 import { HMApi } from "./api.js";
-import { checkAuthToken, getSessionsCount, loginUser, logOutOtherSessions, logOutSession } from "./auth.js";
+import { changePassword, checkAuthToken, getSessionsCount, loginUser, logOutOtherSessions, logOutSession } from "./auth.js";
 
 type ParamType = 'string' | 'number' | 'boolean' | { [key: string|number]: ParamType } /*| `[]${ParamType}`*/;
 
@@ -56,7 +56,7 @@ function checkType(req: any, type: ParamType, path=""): HMApi.RequestError<HMApi
 
 export default function handleRequest(token: string, req: HMApi.Request): HMApi.Response<HMApi.Request> {
     let user: string;
-    if(req.type!=="login") {
+    if(req.type!=="account.login") {
         user = checkAuthToken(token)!;
         if(!user) {
             return {
@@ -67,6 +67,8 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                 }
             };
         }
+    } else {
+        [user]= token.split(':');
     }
     switch( req.type ) {
         case "empty":
@@ -83,7 +85,7 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                 }
             };
 
-        case "login":
+        case "account.login": {
             const err= checkType(req, {
                 username: 'string',
                 password: 'string'
@@ -126,15 +128,16 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                     throw e;
                 }
             }
+        }
 
-        case 'logout':
+        case 'account.logout':
             logOutSession(token);
             return {
                 type: "ok",
                 data: {}
             };
 
-        case 'logoutOtherSessions':
+        case 'account.logoutOtherSessions':
             return {
                 type: "ok",
                 data: {
@@ -142,13 +145,36 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                 }
             };
 
-        case 'getSessionsCount':
+        case 'account.getSessionsCount':
             return {
                 type: "ok",
                 data: {
                     sessions: getSessionsCount(token)
                 }
             };
+
+        case 'account.changePassword': {
+            const err= checkType(req, {
+                oldPassword: 'string',
+                newPassword: 'string'
+            });
+            if(err) { return { type: "error", error: err }; }
+            if(changePassword(user, req.oldPassword, req.newPassword)) {
+                return {
+                    type: "ok",
+                    data: {}
+                };
+            }
+            else {
+                return {
+                    type: "error",
+                    error: {
+                        code: 401,
+                        message: "LOGIN_PASSWORD_INCORRECT"
+                    }
+                };
+            }
+        }
 
         default:
             return {

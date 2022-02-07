@@ -77,3 +77,19 @@ export function getSessionsCount(token: string): number {
     const [username] = token.split(':');
     return loginTokens[username]?.length || 0;
 }
+
+/**
+ * Changes the password of a user
+ * @param username The username of the user
+ * @param oldP The old password, used to verify the user
+ * @param newP The new password
+ * @returns True if oldP is valid and password was changed
+ */
+export function changePassword(username: string, oldP: string, newP: string): boolean {
+    if(users[username] !== crypto.createHash('sha256').update(oldP).digest('hex')) {
+        return false;
+    }
+    users[username]= crypto.createHash('sha256').update(newP).digest('hex');
+    saveUsers();
+    return true;
+}
