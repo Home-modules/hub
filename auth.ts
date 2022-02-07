@@ -93,3 +93,26 @@ export function changePassword(username: string, oldP: string, newP: string): bo
     saveUsers();
     return true;
 }
+
+/**
+ * Changes the user's username
+ * @param username The username of the user
+ * @param newUsername New username for the user
+ * @returns A new token with changed username, or false if the username is already taken
+ */
+export function changeUsername(token: string, newUsername: string): string|false {
+    const [username, tk] = token.split(':');
+    if(!users[username] || users[newUsername]) {
+        return false;
+    }
+    users[newUsername]= users[username];
+    delete users[username];
+    saveUsers();
+    loginTokens[newUsername]= [tk];
+    delete loginTokens[username];
+    return `${newUsername}:${tk}`;
+}
+
+export function usernameExists(username: string): boolean {
+    return !!users[username];
+}

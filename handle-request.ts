@@ -1,5 +1,5 @@
 import { HMApi } from "./api.js";
-import { changePassword, checkAuthToken, getSessionsCount, loginUser, logOutOtherSessions, logOutSession } from "./auth.js";
+import { changePassword, changeUsername, checkAuthToken, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, usernameExists } from "./auth.js";
 
 type ParamType = 'string' | 'number' | 'boolean' | { [key: string|number]: ParamType } /*| `[]${ParamType}`*/;
 
@@ -174,6 +174,42 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                     }
                 };
             }
+        }
+
+        case 'account.changeUsername': {
+            const err= checkType(req, {
+                username: 'string'
+            });
+            if(err) { return { type: "error", error: err }; }
+            const newTk= changeUsername(token, req.username);
+            if(!newTk) {
+                return {
+                    type: "error",
+                    error: {
+                        code: 400,
+                        message: "USERNAME_ALREADY_TAKEN"
+                    }
+                };
+            }
+            return {
+                type: "ok",
+                data: {
+                    token: newTk
+                }
+            };
+        }
+
+        case 'account.checkUsernameAvailable': {
+            const err= checkType(req, {
+                username: 'string'
+            });
+            if(err) { return { type: "error", error: err }; }
+            return {
+                type: "ok",
+                data: {
+                    available: !usernameExists(req.username)
+                }
+            };
         }
 
         default:

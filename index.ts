@@ -99,5 +99,5 @@ http.createServer(function (req, res) {
     } else {
         invalidRequest();
     }
-    }, 5000);
+    }, 1000);
 }).listen(703);

@@ -31,7 +31,17 @@ export namespace HMApi {
         newPassword: string
     }
 
-    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestChangePassword;
+    export type RequestChangeUsername = {
+        type: "account.changeUsername",
+        username: string
+    }
+    
+    export type RequestCheckUsernameAvailable = {
+        type: "account.checkUsernameAvailable",
+        username: string
+    }
+
+    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable;
 
 
     export type ResponseEmpty = Record<string, never>;
@@ -48,6 +58,10 @@ export namespace HMApi {
         sessions: number
     };
 
+    export type ResponseCheckUsernameAvailable = {
+        available: boolean
+    };
+
     export type ResponseData<R extends Request> = 
         R extends RequestEmpty ? ResponseEmpty :
         R extends RequestGetVersion ? ResponseGetVersion :
@@ -56,6 +70,8 @@ export namespace HMApi {
         R extends RequestLogoutOtherSessions ? ResponseSessionCount :
         R extends RequestGetSessionsCount ? ResponseSessionCount :
         R extends RequestChangePassword ? ResponseEmpty :
+        R extends RequestChangeUsername ? ResponseEmpty :
+        R extends RequestCheckUsernameAvailable ? ResponseCheckUsernameAvailable :
         never;
 
 
@@ -127,6 +143,11 @@ export namespace HMApi {
         message: "LOGIN_PASSWORD_INCORRECT"
     };
 
+    export type RequestErrorUsernameAlreadyTaken = {
+        code: 400,
+        message: "USERNAME_ALREADY_TAKEN"
+    };
+
     export type RequestError<R extends Request> =
         RequestErrorTokenInvalid |
         RequestErrorInvalidRequest |
@@ -136,7 +157,8 @@ export namespace HMApi {
         RequestErrorInvalidParameter<R> |
         RequestErrorInternalServerError |
         RequestErrorLoginUserNotFound |
-        RequestErrorLoginPasswordIncorrect;
+        RequestErrorLoginPasswordIncorrect |
+        RequestErrorUsernameAlreadyTaken;
 
     export type Response<R extends Request> = {
         type: "ok",
