@@ -1,5 +1,5 @@
 import { HMApi } from "./api.js";
-import { checkAuthToken, loginUser, logOutOtherSessions, logOutSession } from "./auth.js";
+import { checkAuthToken, getSessionsCount, loginUser, logOutOtherSessions, logOutSession } from "./auth.js";
 
 type ParamType = 'string' | 'number' | 'boolean' | { [key: string|number]: ParamType } /*| `[]${ParamType}`*/;
 
@@ -139,6 +139,14 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                 type: "ok",
                 data: {
                     sessions: logOutOtherSessions(token)
+                }
+            };
+
+        case 'getSessionsCount':
+            return {
+                type: "ok",
+                data: {
+                    sessions: getSessionsCount(token)
                 }
             };
 
