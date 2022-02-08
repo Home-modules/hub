@@ -45,11 +45,14 @@ export namespace HMApi {
     /** Changes the username of the current account. A new token will be returned for future requests and the previous one will be invalidated. WARNING: This causes all other sessions to be logged out, because there is no way the new token can be sent to other sessions. */
     export type RequestChangeUsername = {
         type: "account.changeUsername",
-        /** The new username. Should not be already taken or else the error USERNAME_ALREADY_TAKEN will be returned. Use `account.checkUsernameAvailable` to check if a username is available or taken. */
+        /** The new username. 
+         * Should not be already taken or else the error USERNAME_ALREADY_TAKEN will be returned. 
+         * Use `account.checkUsernameAvailable` to check if a username is available or taken.
+         * Should be 3 or more characters, or else the error USERNAME_TOO_SHORT will be returned. */
         username: string
     }
     
-    /** Checks if a username is available or already taken. Useful for changing username. */
+    /** Checks if a username is available or already taken. Useful for changing username. Note: This does NOT check for too short usernames. You must check yourself. */
     export type RequestCheckUsernameAvailable = {
         type: "account.checkUsernameAvailable",
         /** The username to check. */
@@ -177,6 +180,14 @@ export namespace HMApi {
         message: "USERNAME_ALREADY_TAKEN"
     };
 
+    /**
+     * The username is too short. (i.e. less than 3 characters)
+     */
+    export type RequestErrorUsernameTooShort = {
+        code: 400,
+        message: "USERNAME_TOO_SHORT"
+    };
+
     export type RequestError<R extends Request> =
         RequestErrorTokenInvalid |
         RequestErrorInvalidRequest |
@@ -187,7 +198,8 @@ export namespace HMApi {
         RequestErrorInternalServerError |
         RequestErrorLoginUserNotFound |
         RequestErrorLoginPasswordIncorrect |
-        RequestErrorUsernameAlreadyTaken;
+        RequestErrorUsernameAlreadyTaken |
+        RequestErrorUsernameTooShort;
 
     export type Response<R extends Request> = {
         type: "ok",

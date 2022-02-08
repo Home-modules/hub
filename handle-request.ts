@@ -181,6 +181,16 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                 username: 'string'
             });
             if(err) { return { type: "error", error: err }; }
+
+            if(req.username.length < 3) {
+                return {
+                    type: "error",
+                    error: {
+                        code: 400,
+                        message: "USERNAME_TOO_SHORT"
+                    }
+                };
+            }
             const newTk= changeUsername(token, req.username);
             if(!newTk) {
                 return {
