@@ -50,7 +50,7 @@ function checkType(req: any, type: ParamType, path=""): HMApi.RequestError<HMApi
         }
     } else if (type.type === 'object') {
         const missingProps= [];
-        for (const key in type) {
+        for (const key in type.properties) {
             // Check for missing properties
             if (!(key in req)) {
                 missingProps.push([path, String(key)].filter(Boolean).join('.'));

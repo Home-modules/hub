@@ -1,15 +1,25 @@
 export namespace HMApi {
-    /** Just an empty request, useful as a heartbeat request */
+    /** 
+     * Just an empty request, useful as a heartbeat request 
+     */
     export type RequestEmpty = {
         type: "empty"
     };
 
-    /** Gets the hub software version. */
+    /** 
+     * Gets the hub software version. 
+     */
     export type RequestGetVersion = {
         type: "getVersion"
     };
 
-    /** Logs in to a hub account. A token is returned which must be passed to all future requests. (this is the only request that doesn't require an auth token, you can pass any value for it) */
+    /** 
+     * Logs in to a hub account. 
+     * A token is returned which must be passed to all future requests. 
+     * (this is the only request that doesn't require an auth token, you can pass any value for it) 
+     * @throws `LOGIN_USER_NOT_FOUND` if the user doesn't exist
+     * @throws `LOGIN_PASSWORD_INCORRECT` if the password is incorrect
+     */
     export type RequestLogin = {
         type: "account.login",
         /** The username. If it doesn't exist, the error LOGIN_USER_NOT_FOUND will be returned. */
@@ -18,22 +28,32 @@ export namespace HMApi {
         password: string
     };
 
-    /** Logs out from the hub account. App state should be updated to show the login screen. */
+    /** 
+     * Logs out from the hub account. 
+     * App state should be updated to show the login screen. 
+     */
     export type RequestLogout = {
         type: "account.logout"
     };
 
-    /** Terminates all sessions for this account except the one from which the request was made. */
+    /** 
+     * Terminates all sessions for this account except the one from which the request was made. 
+     */
     export type RequestLogoutOtherSessions = {
         type: "account.logoutOtherSessions"
     };
 
-    /** Counts the number of sessions for this account, including this one. */
+    /** 
+     * Counts the number of sessions for this account, including this one. 
+     */
     export type RequestGetSessionsCount = {
         type: "account.getSessionsCount"
     }
 
-    /** Changes the password of the current account. */
+    /** 
+     * Changes the password of the current account. 
+     * @throws LOGIN_PASSWORD_INCORRECT if the current password is incorrect.
+     */
     export type RequestChangePassword = {
         type: "account.changePassword",
         /** The password currently in use in the account. If wrong, the error LOGIN_PASSWORD_INCORRECT will be returned with a 1 second delay. */
@@ -42,7 +62,13 @@ export namespace HMApi {
         newPassword: string
     }
 
-    /** Changes the username of the current account. A new token will be returned for future requests and the previous one will be invalidated. WARNING: This causes all other sessions to be logged out, because there is no way the new token can be sent to other sessions. */
+    /** 
+     * Changes the username of the current account. 
+     * A new token will be returned for future requests and the previous one will be invalidated. 
+     * WARNING: This causes all other sessions to be logged out, because there is no way the new token can be sent to other sessions. 
+     * @throws USERNAME_ALREADY_TAKEN if the username is already taken.
+     * @throws USERNAME_TOO_SHORT if the username is shorter than 3 characters.
+     */
     export type RequestChangeUsername = {
         type: "account.changeUsername",
         /** The new username. 
@@ -52,14 +78,20 @@ export namespace HMApi {
         username: string
     }
     
-    /** Checks if a username is available or already taken. Useful for changing username. Note: This does NOT check for too short usernames. You must check yourself. */
+    /** 
+     * Checks if a username is available or already taken. 
+     * Useful for changing username. 
+     * Note: This does NOT check for too short usernames. You must check yourself. 
+     */
     export type RequestCheckUsernameAvailable = {
         type: "account.checkUsernameAvailable",
         /** The username to check. */
         username: string
     }
 
-    /** Gets the registered rooms in the house */
+    /** 
+     * Gets the registered rooms in the house 
+     */
     export type RequestGetRooms = {
         type: "rooms.getRooms",
     }
@@ -199,18 +231,28 @@ export namespace HMApi {
         message: "USERNAME_TOO_SHORT"
     };
 
-    export type RequestError<R extends Request> =
-        RequestErrorTokenInvalid |
+    export type RequestError<R extends Request> = (
+        R extends RequestEmpty ? never :
+        R extends RequestGetVersion ? never :
+        R extends RequestLogin ? RequestErrorLoginPasswordIncorrect | RequestErrorLoginUserNotFound :
+        R extends RequestLogout ? never :
+        R extends RequestLogoutOtherSessions ? never :
+        R extends RequestGetSessionsCount ? never :
+        R extends RequestChangePassword ? RequestErrorLoginPasswordIncorrect :
+        R extends RequestChangeUsername ? RequestErrorUsernameAlreadyTaken | RequestErrorUsernameTooShort :
+        R extends RequestCheckUsernameAvailable ? never :
+        R extends RequestGetRooms ? never :
+        never
+    ) | (
+        [R extends R ? keyof Omit<R, 'type'>: never ][0] extends never ? never : (RequestErrorMissingParameter<R> | RequestErrorInvalidParameter<R>)
+    ) | 
         RequestErrorInvalidRequest |
         RequestErrorInvalidJSON |
         RequestErrorInvalidRequestType |
-        RequestErrorMissingParameter<R> |
-        RequestErrorInvalidParameter<R> |
-        RequestErrorInternalServerError |
-        RequestErrorLoginUserNotFound |
-        RequestErrorLoginPasswordIncorrect |
-        RequestErrorUsernameAlreadyTaken |
-        RequestErrorUsernameTooShort;
+        RequestErrorInternalServerError | (
+        R extends RequestLogin ? never : RequestErrorTokenInvalid
+    );
+
 
     export type Response<R extends Request> = {
         type: "ok",
@@ -221,8 +263,11 @@ export namespace HMApi {
     };
 
 
+    /**
+     * Describes a room.
+     */
     export type Room = {
-        /** The room's ID, usually a more machine-friendly version of `name */
+        /** The room's ID, usually a more machine-friendly version of `name` */
         id: string,
         /** The room's name, e.g. "Living Room" */
         name: string,
@@ -232,6 +277,11 @@ export namespace HMApi {
         communication: RoomControllerCommunicationSerial,
     }
 
+    /**
+     * Use a serial port to communicate with the room controller.
+     * 
+     * This method has a high cable length limit, but requires a separate port for each room and devices do not have enough ports most of the time.
+     */
     export type RoomControllerCommunicationSerial = {
         type: "serial",
         /** The serial port to use */
