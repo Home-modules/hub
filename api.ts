@@ -59,7 +59,12 @@ export namespace HMApi {
         username: string
     }
 
-    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable;
+    /** Gets the registered rooms in the house */
+    export type RequestGetRooms = {
+        type: "rooms.getRooms",
+    }
+
+    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms;
 
 
     /** Nothing is returned */
@@ -85,6 +90,11 @@ export namespace HMApi {
         available: boolean
     };
 
+    export type ResponseGetRooms = {
+        /** The rooms in the house */
+        rooms: {[roomId: string]: Room}
+    }
+
     export type ResponseData<R extends Request> = 
         R extends RequestEmpty ? ResponseEmpty :
         R extends RequestGetVersion ? ResponseGetVersion :
@@ -95,6 +105,7 @@ export namespace HMApi {
         R extends RequestChangePassword ? ResponseEmpty :
         R extends RequestChangeUsername ? ResponseEmpty :
         R extends RequestCheckUsernameAvailable ? ResponseCheckUsernameAvailable :
+        R extends RequestGetRooms ? ResponseGetRooms :
         never;
 
 
@@ -208,4 +219,30 @@ export namespace HMApi {
         type: "error",
         error: RequestError<R>
     };
+
+
+    export type Room = {
+        /** The room's ID, usually a more machine-friendly version of `name */
+        id: string,
+        /** The room's name, e.g. "Living Room" */
+        name: string,
+        /** The icon to show for the room */
+        icon: "living-room" | "kitchen" | "bedroom" | "bathroom" | "other",
+        /** The method of communication to the room controller */
+        communication: RoomControllerCommunicationSerial,
+    }
+
+    export type RoomControllerCommunicationSerial = {
+        type: "serial",
+        /** The serial port to use */
+        port: string,
+        /** The baud rate to use. Default is 9600 */
+        baudRate?: number,
+        // /** The serial port's data bits */
+        // dataBits?: 8 | 7 | 6 | 5,
+        // /** The serial port's stop bits */
+        // stopBits?: 1 | 2,
+        // /** The serial port's parity */
+        // parity?: "none" | "even" | "mark" | "odd" | "space"
+    }
 }

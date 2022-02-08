@@ -6,11 +6,13 @@ import handleRequest from './handle-request.js';
 
 http.createServer(function (req, res) {
     // Delay for 5 seconds to simulate a slow server //TODO: remove
-    setTimeout(() => {
+    // setTimeout(() => {
     function respond(data: HMApi.Response<HMApi.Request>): void {
         res.writeHead(data.type=='error' ? data.error.code : 200, {
             'Content-Type': 'text/json',
-            'Access-Control-Allow-Origin': '*'
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept',
+            'Access-Control-Allow-Methods': 'POST, GET'
         });
         res.end(JSON.stringify(data));
     }
@@ -99,5 +101,5 @@ http.createServer(function (req, res) {
     } else {
         invalidRequest();
     }
-    }, 1000);
+    // }, 1000);
 }).listen(703);

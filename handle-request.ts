@@ -1,7 +1,28 @@
 import { HMApi } from "./api.js";
 import { changePassword, changeUsername, checkAuthToken, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, usernameExists } from "./auth.js";
+import { getRooms } from "./rooms.js";
 
-type ParamType = 'string' | 'number' | 'boolean' | { [key: string|number]: ParamType } /*| `[]${ParamType}`*/;
+type ParamType = {
+    type: 'string'
+} | {
+    type: 'number'
+} | {
+    type: 'boolean'
+} | {
+    type: 'object',
+    properties: {
+        [key: string]: ParamType
+    }
+} | {
+    type: 'array',
+    items: ParamType
+} | {
+    type: 'tuple',
+    items: ParamType[]
+} | {
+    type: 'union',
+    items: ParamType[]
+};
 
 /**
  * Checks if a value is of a certain type.
@@ -15,19 +36,19 @@ function checkType(req: any, type: ParamType, path=""): HMApi.RequestError<HMApi
         message: "INVALID_PARAMETER",
         paramName: [path,name].filter(Boolean).join('.') as keyof HMApi.Request
     });
-    if (type==='string') {
+    if (type.type==='string') {
         if (typeof req !== 'string') {
             return invalidTypeError();
         }
-    } else if (type==='number') {
+    } else if (type.type==='number') {
         if (typeof req !== 'number') {
             return invalidTypeError();
         }
-    } else if (type==='boolean') {
+    } else if (type.type==='boolean') {
         if (typeof req !== 'boolean') {
             return invalidTypeError();
         }
-    } else if (typeof type === 'object') {
+    } else if (type.type === 'object') {
         const missingProps= [];
         for (const key in type) {
             // Check for missing properties
@@ -35,7 +56,7 @@ function checkType(req: any, type: ParamType, path=""): HMApi.RequestError<HMApi
                 missingProps.push([path, String(key)].filter(Boolean).join('.'));
                 continue;
             }
-            const err = checkType(req[key], type[key], [path, String(key)].filter(Boolean).join('.'));
+            const err = checkType(req[key], type.properties[key], [path, String(key)].filter(Boolean).join('.'));
             if (err) {
                 return err;
             }
@@ -87,8 +108,11 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
 
         case "account.login": {
             const err= checkType(req, {
-                username: 'string',
-                password: 'string'
+                type: 'object',
+                properties: {
+                    username: { type: 'string' },
+                    password: { type: 'string' }
+                }
             });
             if(err) { return { type: "error", error: err }; }
             try {
@@ -155,8 +179,11 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
 
         case 'account.changePassword': {
             const err= checkType(req, {
-                oldPassword: 'string',
-                newPassword: 'string'
+                type: 'object',
+                properties: {
+                    oldPassword: { type: 'string' },
+                    newPassword: { type: 'string' }
+                }
             });
             if(err) { return { type: "error", error: err }; }
             if(changePassword(user, req.oldPassword, req.newPassword)) {
@@ -178,7 +205,10 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
 
         case 'account.changeUsername': {
             const err= checkType(req, {
-                username: 'string'
+                type: 'object',
+                properties: {
+                    username: { type: 'string' }
+                }
             });
             if(err) { return { type: "error", error: err }; }
 
@@ -211,7 +241,10 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
 
         case 'account.checkUsernameAvailable': {
             const err= checkType(req, {
-                username: 'string'
+                type: 'object',
+                properties: {
+                    username: { type: 'string' }
+                }
             });
             if(err) { return { type: "error", error: err }; }
             return {
@@ -221,6 +254,14 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                 }
             };
         }
+
+        case 'rooms.getRooms': 
+            return {
+                type: "ok",
+                data: {
+                    rooms: getRooms()
+                }
+            };
 
         default:
             return {
