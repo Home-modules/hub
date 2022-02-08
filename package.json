@@ -4,6 +4,9 @@
   "description": "Home_modules smart hub",
   "main": "index.js",
   "type": "module",
+  "scripts": {
+    "start": "node --loader ts-node/esm index.js"
+  },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.10.2",
     "@typescript-eslint/parser": "^5.10.2",
