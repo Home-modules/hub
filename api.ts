@@ -1,3 +1,5 @@
+import { Paths } from "./api-type-to-path-union.js";
+
 export namespace HMApi {
     /** 
      * Just an empty request, useful as a heartbeat request 
@@ -179,7 +181,7 @@ export namespace HMApi {
     export type RequestErrorMissingParameter<R extends Request> = {
         code: 400,
         message: "MISSING_PARAMETER"
-        missingParameters: (keyof R)[];
+        missingParameters: Paths<R>[];
     };
 
     /**
@@ -188,7 +190,16 @@ export namespace HMApi {
     export type RequestErrorInvalidParameter<R extends Request> = {
         code: 400,
         message: "INVALID_PARAMETER"
-        paramName: keyof R;
+        paramName: Paths<R>;
+    };
+
+    /**
+     * A number parameter is out of range, a string or array is too long or too short
+     */
+    export type RequestErrorParameterOutOfRange<R extends Request> = {
+        code: 400,
+        message: "PARAMETER_OUT_OF_RANGE"
+        paramName: Paths<R>;
     };
 
     /**
@@ -244,7 +255,7 @@ export namespace HMApi {
         R extends RequestGetRooms ? never :
         never
     ) | (
-        [R extends R ? keyof Omit<R, 'type'>: never ][0] extends never ? never : (RequestErrorMissingParameter<R> | RequestErrorInvalidParameter<R>)
+        [R extends R ? keyof Omit<R, 'type'>: never ][0] extends never ? never : (RequestErrorMissingParameter<R> | RequestErrorInvalidParameter<R> | RequestErrorParameterOutOfRange<R>)
     ) | 
         RequestErrorInvalidRequest |
         RequestErrorInvalidJSON |

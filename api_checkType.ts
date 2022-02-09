@@ -5,32 +5,38 @@ import { HMApi } from "./api.js";
 // It looks like I reinvented the wheel, but TypeScript doesn't support dynamic type checking.
 
 export type ParamType = {
-    type: 'any'
+    type: 'any' // Any value / type is valid
 } | {
-    type: 'exactValue'
+    type: 'exactValue' // The value must be exactly as specified
     value: any
 } | {
-    type: 'string'
+    type: 'string', // The value must be a string
+    minLength?: number, // The minimum length of the string
+    maxLength?: number, // The maximum length of the string
 } | {
-    type: 'number'
+    type: 'number', // The value must be a number
+    min?: number, // The minimum value of the number
+    max?: number, // The maximum value of the number
 } | {
-    type: 'boolean'
+    type: 'boolean' // The value must be a boolean (true/false)
 } | {
-    type: 'object',
+    type: 'object', // The value must be an object with the specified properties
     properties: {
-        [key: string]: ParamType
+        [key: string]: ParamType & {optional?: boolean} // Optional properties' types will be checked but not their existence
     }
 } | {
-    type: 'array',
-    items: ParamType
+    type: 'array', // The value must be an array of the specified type
+    items: ParamType,
+    minItems?: number, // The minimum number of items in the array
+    maxItems?: number, // The maximum number of items in the array
 } | {
-    type: 'tuple',
+    type: 'tuple', // The value must be an array of a fixed length with the specified element types
     items: ParamType[]
 } | {
-    type: 'union',
+    type: 'union', // The value must be one of the specified types
     types: ParamType[]
 } | {
-    type: 'lazyType',
+    type: 'lazyType', // A function will be called to get the type, useful for types that depend on other types (objects cannot reference their own properties while being defined)
     value: () => ParamType
 };
 
@@ -41,36 +47,44 @@ export type ParamType = {
  * @param path An object path to prepend to keys in case of an error
  */
 export function checkType(req: any, type: ParamType, path=""): HMApi.RequestError<HMApi.Request> | null {
-    const invalidTypeError = (name=""): HMApi.RequestError<HMApi.Request> => ({
+    function invalidParamError(name="", message: "INVALID_PARAMETER"|"PARAMETER_OUT_OF_RANGE" ="INVALID_PARAMETER"): HMApi.RequestError<HMApi.Request> {
+        return {
         code: 400,
-        message: "INVALID_PARAMETER",
+            message,
         paramName: [path,name].filter(Boolean).join('.') as keyof HMApi.Request
-    });
+        };
+    }
     switch(type.type) {
         case 'any':
             return null;
 
         case 'exactValue':
             if(req !== type.value) {
-                return invalidTypeError();
+                return invalidParamError();
             }
             break;
 
         case 'string':
             if(typeof req !== 'string') {
-                return invalidTypeError();
+                return invalidParamError();
+            }
+            if((type.minLength && req.length < type.minLength) || (type.maxLength && req.length > type.maxLength)) {
+                return invalidParamError("", "PARAMETER_OUT_OF_RANGE");
             }
             break;
 
         case 'number':
             if(typeof req !== 'number') {
-                return invalidTypeError();
+                return invalidParamError();
+            }
+            if((type.min && req < type.min) || (type.max && req > type.max)) {
+                return invalidParamError("", "PARAMETER_OUT_OF_RANGE");
             }
             break;
 
         case 'boolean':
             if(typeof req !== 'boolean') {
-                return invalidTypeError();
+                return invalidParamError();
             }
             break;
 
@@ -78,8 +92,10 @@ export function checkType(req: any, type: ParamType, path=""): HMApi.RequestErro
             const missingProps= [];
             for (const key in type.properties) {
                 // Check for missing properties
-                if (!(key in req)) {
+                if ((!(key in req))) {
+                    if(!type.properties[key].optional) {
                     missingProps.push([path, String(key)].filter(Boolean).join('.'));
+                    }
                     continue;
                 }
                 const err = checkType(req[key], type.properties[key], [path, String(key)].filter(Boolean).join('.'));
@@ -99,7 +115,10 @@ export function checkType(req: any, type: ParamType, path=""): HMApi.RequestErro
 
         case 'array': {
             if (!Array.isArray(req)) {
-                return invalidTypeError();
+                return invalidParamError();
+            }
+            if ((type.minItems && req.length < type.minItems) || (type.maxItems && req.length > type.maxItems)) {
+                return invalidParamError("", "PARAMETER_OUT_OF_RANGE");
             }
             for (let i = 0; i < req.length; i++) {
                 const err = checkType(req[i], type.items, [path, String(i)].filter(Boolean).join('.'));
@@ -112,10 +131,10 @@ export function checkType(req: any, type: ParamType, path=""): HMApi.RequestErro
 
         case 'tuple': {
             if (!Array.isArray(req)) {
-                return invalidTypeError();
+                return invalidParamError();
             }
             if (req.length !== type.items.length) {
-                return invalidTypeError('<length>');
+                return invalidParamError('length');
             }
             for (let i = 0; i < req.length; i++) {
                 const err = checkType(req[i], type.items[i], [path, String(i)].filter(Boolean).join('.'));
@@ -133,7 +152,7 @@ export function checkType(req: any, type: ParamType, path=""): HMApi.RequestErro
                     return null;
                 }
             }
-            return invalidTypeError();
+            return invalidParamError();
         }
 
         case 'lazyType': {
@@ -145,7 +164,11 @@ export function checkType(req: any, type: ParamType, path=""): HMApi.RequestErro
 }
 
 export const HMApi_Types: {
-    requests: Record<HMApi.Request['type'], ParamType>
+    requests: Record<HMApi.Request['type'], ParamType>,
+    objects: {
+        Room: ParamType,
+        RoomControllerTypeStandardSerial: ParamType,
+    }
 } = { 
     requests: {
         "empty": {
