@@ -40,7 +40,13 @@ type Paths_Object<T extends Record<string, any>, P extends string=""> =
 // This one gets the sub-paths in an object
 // There is not much to say about this one because it just merges ObjectKeys and ObjectPaths.
 
+type IsAny<X> =
+    (<T>() => T extends X ? 1 : 2) extends
+    (<T>() => T extends any ? 1 : 2) ? true : false;
+// Slightly modified version of https://github.com/Microsoft/TypeScript/issues/27024#issuecomment-421529650
+
 export type Paths<T, P extends string="">= 
+    IsAny<T> extends true ? `${P}${string}` : // If T is any
     T extends any[] ? (                       // If it is array/tuple
         IsTuple<T> extends false ?     
             Paths_Array<T, P> :               // If it is array
