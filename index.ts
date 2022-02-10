@@ -44,6 +44,7 @@ http.createServer(function (req, res) {
         }
         try {
             const result=handleRequest(token, json);
+            function handleResult(result: HMApi.Response<HMApi.Request>){ 
             if(result.type=='error' && (result.error.message=='LOGIN_PASSWORD_INCORRECT' || result.error.message=='TOKEN_INVALID')) {
                 // Delay a bit to prevent brute force attacks
                 setTimeout(() => {
@@ -51,6 +52,12 @@ http.createServer(function (req, res) {
                 }, 1000);
             } else {
                 respond(result);
+                }
+            }
+            if(result instanceof Promise) {
+                result.then(handleResult);
+            } else {
+                handleResult(result);
             }
         } catch (e) {
             console.log(e);

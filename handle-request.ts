@@ -1,9 +1,10 @@
 import { HMApi } from "./api.js";
 import { checkType, HMApi_Types } from "./api_checkType.js";
 import { changePassword, changeUsername, checkAuthToken, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, usernameExists } from "./auth.js";
-import { getRooms } from "./rooms.js";
+import { editRoom, getRooms } from "./rooms.js";
+import { getSerialPorts } from "./serialio.js";
 
-export default function handleRequest(token: string, req: HMApi.Request): HMApi.Response<HMApi.Request> {
+export default function handleRequest(token: string, req: HMApi.Request): HMApi.Response<HMApi.Request>|Promise<HMApi.Response<HMApi.Request>> {
     let user: string;
     if(req.type!=="account.login") {
         user = checkAuthToken(token)!;
@@ -168,6 +169,37 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                     rooms: getRooms()
                 }
             };
+
+        case 'rooms.editRoom': {
+            const err= checkType(req, HMApi_Types.requests["rooms.editRoom"]);
+            if(err) { return { type: "error", error: err }; }
+            if(editRoom(req.room)) {
+                return {
+                    type: "ok",
+                    data: {}
+                };
+            } else {
+                return {
+                    type: "error",
+                    error: {
+                        code: 400,
+                        message: "ROOM_NOT_FOUND"
+                    }
+                };
+            }
+        }
+
+        case 'io.getSerialPorts':
+            return new Promise((resolve) => {
+                getSerialPorts().then(ports => {
+                    resolve({
+                        type: "ok",
+                        data: {
+                            ports
+                        }
+                    });
+                });
+            });
 
         default:
             return {
