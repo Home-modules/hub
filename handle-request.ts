@@ -182,8 +182,8 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                 return {
                     type: "error",
                     error: {
-                        code: 400,
-                        message: "ROOM_NOT_FOUND"
+                        code: 404,
+                        message: "NOT_FOUND"
                     }
                 };
             }
