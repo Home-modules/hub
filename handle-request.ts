@@ -1,7 +1,7 @@
 import { HMApi } from "./api.js";
 import { checkType, HMApi_Types } from "./api_checkType.js";
 import { changePassword, changeUsername, checkAuthToken, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, usernameExists } from "./auth.js";
-import { addRoom, editRoom, getRooms } from "./rooms.js";
+import { addRoom, deleteRoom, editRoom, getRooms } from "./rooms.js";
 import { getSerialPorts } from "./serialio.js";
 
 export default function handleRequest(token: string, req: HMApi.Request): HMApi.Response<HMApi.Request>|Promise<HMApi.Response<HMApi.Request>> {
@@ -203,6 +203,25 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                     error: {
                         code: 400,
                         message: "ROOM_ALREADY_EXISTS"
+                    }
+                };
+            }
+        }
+
+        case 'rooms.removeRoom': {
+            const err= checkType(req, HMApi_Types.requests["rooms.removeRoom"]);
+            if(err) { return { type: "error", error: err }; }
+            if(deleteRoom(req.id)) {
+                return {
+                    type: "ok",
+                    data: {}
+                };
+            } else {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND"
                     }
                 };
             }

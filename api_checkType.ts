@@ -257,6 +257,13 @@ export const HMApi_Types: {
                 }
             }
         },
+        "rooms.removeRoom": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "rooms.removeRoom" },
+                "id": { type: "string" }
+            }
+        },
         "io.getSerialPorts": {
             type: "object",
             properties: {

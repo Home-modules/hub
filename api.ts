@@ -126,7 +126,17 @@ export namespace HMApi {
         room: Room
     }
 
-    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestGetSerialPorts | RequestAddRoom;
+    /**
+     * Shuts down and removes a room from the house.
+     * @throws `NOT_FOUND` if the room doesn't exist
+     */
+    export type RequestRemoveRoom = {
+        type: "rooms.removeRoom",
+        /** Room ID */
+        id: string
+    }
+
+    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestGetSerialPorts | RequestAddRoom | RequestRemoveRoom;
 
 
     /** Nothing is returned */
@@ -307,6 +317,7 @@ export namespace HMApi {
         R extends RequestEditRoom ? RequestErrorNotFound :
         R extends RequestGetSerialPorts ? never :
         R extends RequestAddRoom ? RequestErrorRoomAlreadyExists :
+        R extends RequestRemoveRoom ? RequestErrorNotFound :
         never
     ) | (
         [R extends R ? keyof Omit<R, 'type'>: never ][0] extends never ? never : (RequestErrorMissingParameter<R> | RequestErrorInvalidParameter<R> | RequestErrorParameterOutOfRange<R>)

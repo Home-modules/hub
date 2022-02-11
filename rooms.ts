@@ -35,3 +35,12 @@ export function addRoom(room: HMApi.Room): boolean {
     saveRooms();
     return true;
 }
+
+export function deleteRoom(id: string): boolean {
+    if (!rooms[id]) {
+        return false;
+    }
+    delete rooms[id];
+    saveRooms();
+    return true;
+}
