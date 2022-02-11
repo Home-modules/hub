@@ -49,9 +49,9 @@ export type ParamType = {
 export function checkType(req: any, type: ParamType, path=""): HMApi.RequestError<HMApi.Request> | null {
     function invalidParamError(name="", message: "INVALID_PARAMETER"|"PARAMETER_OUT_OF_RANGE" ="INVALID_PARAMETER"): HMApi.RequestError<HMApi.Request> {
         return {
-        code: 400,
+            code: 400,
             message,
-        paramName: [path,name].filter(Boolean).join('.') as keyof HMApi.Request
+            paramName: [path,name].filter(Boolean).join('.') as keyof HMApi.Request
         };
     }
     switch(type.type) {
@@ -94,7 +94,7 @@ export function checkType(req: any, type: ParamType, path=""): HMApi.RequestErro
                 // Check for missing properties
                 if ((!(key in req))) {
                     if(!type.properties[key].optional) {
-                    missingProps.push([path, String(key)].filter(Boolean).join('.'));
+                        missingProps.push([path, String(key)].filter(Boolean).join('.'));
                     }
                     continue;
                 }
@@ -236,7 +236,64 @@ export const HMApi_Types: {
             properties: {
                 "type": { type: "exactValue", value: "rooms.getRooms" }
             }
+        },
+        "rooms.editRoom": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "rooms.editRoom" },
+                "room": {
+                    type: "lazyType",
+                    value: () => HMApi_Types.objects.Room
+                }
+            }
+        },
+        "rooms.addRoom": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "rooms.addRoom" },
+                "room": {
+                    type: "lazyType",
+                    value: () => HMApi_Types.objects.Room
+                }
+            }
+        },
+        "io.getSerialPorts": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "io.getSerialPorts" }
+            }
         }
     },
+    objects: {
+        Room: {
+            type: "object",
+            properties: {
+                "id": { type: "string", minLength: 1, maxLength: 255 },
+                "name": { type: "string", minLength: 1, maxLength: 255 },
+                "icon": {
+                    type: "union",
+                    types: [
+                        { type: "exactValue", value: "living-room" },
+                        { type: "exactValue", value: "kitchen" },
+                        { type: "exactValue", value: "bedroom" },
+                        { type: "exactValue", value: "bathroom" },
+                        { type: "exactValue", value: "other" }
+                    ]
+                },
+                "controllerType": {
+                    type: "lazyType",
+                    value: () => HMApi_Types.objects.RoomControllerTypeStandardSerial
+                }
+            } 
+        },
+        RoomControllerTypeStandardSerial: {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "standard-serial" },
+                "port": { type: "string", minLength: 3, maxLength: 255 },
+                "baudRate": { type: "number", optional: true, min: 300, max: 2_000_000 },
+            }
+        }
+    }
 };
 

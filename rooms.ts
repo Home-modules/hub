@@ -25,3 +25,13 @@ export function editRoom(room: HMApi.Room): boolean {
     saveRooms();
     return true;
 }
+
+export function addRoom(room: HMApi.Room): boolean {
+    const { id } = room;
+    if (rooms[id]) {
+        return false;
+    }
+    rooms[id] = room;
+    saveRooms();
+    return true;
+}

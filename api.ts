@@ -117,7 +117,16 @@ export namespace HMApi {
         type: "io.getSerialPorts"
     }
 
-    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestGetSerialPorts;
+    /**
+     * Adds a new room to the house.
+     */
+    export type RequestAddRoom = {
+        type: "rooms.addRoom",
+        /** The new room to add. */
+        room: Room
+    }
+
+    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestGetSerialPorts | RequestAddRoom;
 
 
     /** Nothing is returned */
@@ -276,6 +285,14 @@ export namespace HMApi {
         message: "ROOM_NOT_FOUND"
     };
 
+    /**
+     * A room with the same ID already exists.
+     */
+    export type RequestErrorRoomAlreadyExists = {
+        code: 400,
+        message: "ROOM_ALREADY_EXISTS"
+    };
+
     export type RequestError<R extends Request> = (
         R extends RequestEmpty ? never :
         R extends RequestGetVersion ? never :
@@ -288,6 +305,8 @@ export namespace HMApi {
         R extends RequestCheckUsernameAvailable ? never :
         R extends RequestGetRooms ? never :
         R extends RequestEditRoom ? RequestErrorRoomNotFound :
+        R extends RequestGetSerialPorts ? never :
+        R extends RequestAddRoom ? RequestErrorRoomAlreadyExists :
         never
     ) | (
         [R extends R ? keyof Omit<R, 'type'>: never ][0] extends never ? never : (RequestErrorMissingParameter<R> | RequestErrorInvalidParameter<R> | RequestErrorParameterOutOfRange<R>)
