@@ -264,6 +264,16 @@ export const HMApi_Types: {
                 "id": { type: "string" }
             }
         },
+        "rooms.changeRoomOrder": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "rooms.changeRoomOrder" },
+                "ids": {
+                    type: "array",
+                    items: { type: "string" }
+                }
+            }
+        },
         "io.getSerialPorts": {
             type: "object",
             properties: {

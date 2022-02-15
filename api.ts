@@ -136,7 +136,17 @@ export namespace HMApi {
         id: string
     }
 
-    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestGetSerialPorts | RequestAddRoom | RequestRemoveRoom;
+    /**
+     * Changes the order of the rooms. The new ids must not have any new or deleted room IDs.
+     * @throws `ROOMS_NOT_EQUAL` if the passed IDs have new or deleted room IDs.
+     */
+    export type RequestChangeRoomOrder = {
+        type: "rooms.changeRoomOrder",
+        /** The new order of the rooms. */
+        ids: string[]
+    }
+
+    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestGetSerialPorts | RequestAddRoom | RequestRemoveRoom | RequestChangeRoomOrder;
 
 
     /** Nothing is returned */
@@ -184,6 +194,9 @@ export namespace HMApi {
         R extends RequestCheckUsernameAvailable ? ResponseCheckUsernameAvailable :
         R extends RequestGetRooms ? ResponseGetRooms :
         R extends RequestEditRoom ? ResponseEmpty :
+        R extends RequestAddRoom ? ResponseEmpty :
+        R extends RequestRemoveRoom ? ResponseEmpty :
+        R extends RequestChangeRoomOrder ? ResponseEmpty :
         R extends RequestGetSerialPorts ? ResponseGetSerialPorts :
         never;
 
@@ -303,6 +316,14 @@ export namespace HMApi {
         message: "ROOM_ALREADY_EXISTS"
     };
 
+    /**
+     * The passed room IDs have new or deleted room IDs.
+     */
+    export type RequestErrorRoomsNotEqual = {
+        code: 400,
+        message: "ROOMS_NOT_EQUAL"
+    };
+
     export type RequestError<R extends Request> = (
         R extends RequestEmpty ? never :
         R extends RequestGetVersion ? never :
@@ -318,6 +339,7 @@ export namespace HMApi {
         R extends RequestGetSerialPorts ? never :
         R extends RequestAddRoom ? RequestErrorRoomAlreadyExists :
         R extends RequestRemoveRoom ? RequestErrorNotFound :
+        R extends RequestChangeRoomOrder ? RequestErrorRoomsNotEqual :
         never
     ) | (
         [R extends R ? keyof Omit<R, 'type'>: never ][0] extends never ? never : (RequestErrorMissingParameter<R> | RequestErrorInvalidParameter<R> | RequestErrorParameterOutOfRange<R>)
