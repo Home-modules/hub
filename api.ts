@@ -190,7 +190,7 @@ export namespace HMApi {
         R extends RequestLogoutOtherSessions ? ResponseSessionCount :
         R extends RequestGetSessionsCount ? ResponseSessionCount :
         R extends RequestChangePassword ? ResponseEmpty :
-        R extends RequestChangeUsername ? ResponseEmpty :
+        R extends RequestChangeUsername ? ResponseLogin :
         R extends RequestCheckUsernameAvailable ? ResponseCheckUsernameAvailable :
         R extends RequestGetRooms ? ResponseGetRooms :
         R extends RequestEditRoom ? ResponseEmpty :
