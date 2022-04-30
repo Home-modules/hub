@@ -3,15 +3,15 @@ import { HMApi } from './api.js';
 import { DeviceTypeDef, registerDeviceType } from './devices.js';
 import { registerRoomController } from './rooms.js';
 
-if(fs.existsSync('./plugins.json')) {
-    registerPlugins(JSON.parse(fs.readFileSync('./plugins.json', 'utf8')));
+if(fs.existsSync('./data/plugins.json')) {
+    registerPlugins(JSON.parse(fs.readFileSync('./data/plugins.json', 'utf8')));
 } else {
     savePlugins(['builtin']);
     registerPlugins(['builtin']);
 }
 
 function savePlugins(plugins: string[]) {
-    fs.writeFile('./plugins.json', JSON.stringify(plugins), ()=>undefined);
+    fs.writeFile('./data/plugins.json', JSON.stringify(plugins), ()=>undefined);
 }
 
 const deviceTypesToRegister: DeviceTypeDef[] = [];
@@ -20,10 +20,10 @@ async function registerPlugins(plugins: string[]) {
     console.log('Loading plugins...');
     for(const path of plugins) {
         let pluginPath: string;
-        if(fs.existsSync(`./plugins/${path}.js`) || fs.existsSync(`./plugins/${path}.ts`)) {
-            pluginPath = `./plugins/${path}.js`;
-        } else if(fs.existsSync(`./plugins/${path}/${path}.js`) || fs.existsSync(`./plugins/${path}/${path}.ts`)) {
-            pluginPath = `./plugins/${path}/${path}.js`;
+        if(fs.existsSync(`./data/plugins/${path}.js`) || fs.existsSync(`./data/plugins/${path}.ts`)) {
+            pluginPath = `./data/plugins/${path}.js`;
+        } else if(fs.existsSync(`./data/plugins/${path}/${path}.js`) || fs.existsSync(`./data/plugins/${path}/${path}.ts`)) {
+            pluginPath = `./data/plugins/${path}/${path}.js`;
         } else {
             throw new Error(`Failed to load plugin '${path}': Plugin main file not found`);
         }

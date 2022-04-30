@@ -7,12 +7,12 @@ let users: { [username: string]: string } = {
     admin: crypto.createHash('sha256').update('admin').digest('hex')
 };
 
-if(fs.existsSync('./users.json')) {
-    users= JSON.parse(fs.readFileSync('./users.json', {encoding: 'utf-8'}));
+if(fs.existsSync('./data/users.json')) {
+    users= JSON.parse(fs.readFileSync('./data/users.json', {encoding: 'utf-8'}));
 } else saveUsers();
 
 function saveUsers() {
-    fs.writeFile('./users.json', JSON.stringify(users), ()=>undefined);
+    fs.writeFile('./data/users.json', JSON.stringify(users), ()=>undefined);
 }
 
 /**

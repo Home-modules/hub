@@ -1,6 +1,7 @@
 /node_modules/
-users.json
-rooms.json
-plugins.json
-/plugins/*
-!/plugins/builtin.ts
+
+# Data folder (except builtin plugin)
+/data/*
+!/data/plugins
+/data/plugins/*
+!/data/plugins/builtin.ts
