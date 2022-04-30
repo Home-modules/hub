@@ -1,5 +1,5 @@
-import { PluginApi } from "../../plugins.js";
-import { getSerialPorts } from "../../serialio.js";
+import { PluginApi } from "../../src/plugins.js";
+import { getSerialPorts } from "../../src/serialio.js";
 
 export default function (api: PluginApi) {
     api.registerRoomController({

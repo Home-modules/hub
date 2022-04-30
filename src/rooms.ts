@@ -4,12 +4,12 @@ import { SettingsFieldDef } from "./plugins.js";
 
 let rooms: { [key: string]: HMApi.Room } = {};
 
-if(fs.existsSync('./data/rooms.json')) {
-    rooms= JSON.parse(fs.readFileSync('./data/rooms.json', 'utf8'));
+if(fs.existsSync('../data/rooms.json')) {
+    rooms= JSON.parse(fs.readFileSync('../data/rooms.json', 'utf8'));
 } else saveRooms();
 
 function saveRooms() {
-    fs.writeFile('./data/rooms.json', JSON.stringify(rooms), ()=>undefined);
+    fs.writeFile('../data/rooms.json', JSON.stringify(rooms), ()=>undefined);
 }
 
 export function getRooms(): typeof rooms {

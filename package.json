@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node --loader ts-node/esm index.js"
+    "start": "cd src && node --loader ts-node/esm index.js"
   },
   "devDependencies": {
     "@types/serialport": "^8.0.2",
