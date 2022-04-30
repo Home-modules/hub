@@ -1,8 +1,9 @@
 import { HMApi } from "./api.js";
 import { checkType, HMApi_Types } from "./api_checkType.js";
 import { changePassword, changeUsername, checkAuthToken, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, usernameExists } from "./auth.js";
-import { addRoom, deleteRoom, editRoom, getRooms, reorderRooms } from "./rooms.js";
-import { getSerialPorts } from "./serialio.js";
+import { getDevices, registeredDeviceTypes } from "./devices.js";
+import getFlatFields from "./flat-fields.js";
+import { addRoom, deleteRoom, editRoom, getRoomControllerTypes, getRooms, registeredRoomControllers, reorderRooms } from "./rooms.js";
 
 export default function handleRequest(token: string, req: HMApi.Request): HMApi.Response<HMApi.Request>|Promise<HMApi.Response<HMApi.Request>> {
     let user: string;
@@ -246,17 +247,89 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
             }
         }
 
-        case 'io.getSerialPorts':
-            return new Promise((resolve) => {
-                getSerialPorts().then(ports => {
-                    resolve({
+        case 'rooms.controllers.getRoomControllerTypes':
+            return {
+                type: "ok",
+                data: {
+                    types: getRoomControllerTypes()
+                }
+            };
+
+        case 'plugins.fields.getSelectLazyLoadItems': {
+            const err= checkType(req, HMApi_Types.requests["plugins.fields.getSelectLazyLoadItems"]);
+            if(err) { return { type: "error", error: err }; }
+
+            const notFoundError = {
+                type: "error",
+                error: {
+                    code: 404,
+                    message: "NOT_FOUND"
+                }
+            } as const; 
+
+            if((!(req.controller in registeredRoomControllers)) ||
+                (req.for == 'device' && !(req.deviceType in registeredDeviceTypes[req.controller]))) {
+                return notFoundError;
+            }
+
+            const field = req.for == 'device' ?
+                (getFlatFields(registeredDeviceTypes[req.controller][req.deviceType].settingsFields).find(f=>f.id==req.field)) :
+                (getFlatFields(registeredRoomControllers[req.controller].settingsFields).find(f=>f.id==req.field));
+            
+            if(!field) {
+                return notFoundError;
+            }
+            if(field.type!=='select' || field.options instanceof Array || !field.options.isLazy ) {
+                return notFoundError;
+            }
+
+            let res = field.options.callback();
+            if(!(res instanceof Promise)) {
+                res = Promise.resolve(res);
+            }
+            
+            return res.then((result) => {
+                if(result instanceof Array) {
+                    return {
                         type: "ok",
                         data: {
-                            ports
+                            items: result
                         }
-                    });
-                });
+                    };
+                } else {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 400,
+                            message: "CUSTOM_PLUGIN_ERROR",
+                            params: result.params
+                        }
+                    };
+                }
             });
+        }
+
+        case 'devices.getDevices': {
+            const err= checkType(req, HMApi_Types.requests["devices.getDevices"]);
+            if(err) { return { type: "error", error: err }; }
+            
+            const devices= getDevices(req.roomId);
+            if(devices===undefined) {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND"
+                    }
+                };
+            }
+            return {
+                type: "ok",
+                data: {
+                    devices
+                }
+            };
+        }
 
         default:
             return {

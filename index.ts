@@ -2,12 +2,17 @@ import http from 'http';
 import url from 'url';
 import { HMApi } from './api.js';
 import handleRequest from './handle-request.js';
+import './plugins.js';
 
 
 http.createServer(function (req, res) {
     // Delay for 5 seconds to simulate a slow server //TODO: remove
     // setTimeout(() => {
+    
+    console.log("Request received from" + req.socket.remoteAddress);
+
     function respond(data: HMApi.Response<HMApi.Request>): void {
+        console.log("Responding with status", data.type=='error' ? data.error.code : 200);
         res.writeHead(data.type=='error' ? data.error.code : 200, {
             'Content-Type': 'text/json',
             'Access-Control-Allow-Origin': '*',
@@ -45,13 +50,13 @@ http.createServer(function (req, res) {
         try {
             const result=handleRequest(token, json);
             function handleResult(result: HMApi.Response<HMApi.Request>){ 
-            if(result.type=='error' && (result.error.message=='LOGIN_PASSWORD_INCORRECT' || result.error.message=='TOKEN_INVALID')) {
-                // Delay a bit to prevent brute force attacks
-                setTimeout(() => {
+                if(result.type=='error' && (result.error.message=='LOGIN_PASSWORD_INCORRECT' || result.error.message=='TOKEN_INVALID')) {
+                    // Delay a bit to prevent brute force attacks
+                    setTimeout(() => {
+                        respond(result);
+                    }, 1000);
+                } else {
                     respond(result);
-                }, 1000);
-            } else {
-                respond(result);
                 }
             }
             if(result instanceof Promise) {

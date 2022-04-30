@@ -1,5 +1,6 @@
 import { HMApi } from "./api.js";
 import fs from "fs";
+import { SettingsFieldDef } from "./plugins.js";
 
 let rooms: { [key: string]: HMApi.Room } = {};
 
@@ -13,6 +14,10 @@ function saveRooms() {
 
 export function getRooms(): typeof rooms {
     return rooms;
+}
+
+export function getRoom(id: string): HMApi.Room | undefined {
+    return rooms[id];
 }
 
 export function initRoom(id: string) {
@@ -72,4 +77,34 @@ export function reorderRooms(ids: string[]): boolean {
     rooms = newRooms;
     saveRooms();
     return true;
+}
+
+
+export const registeredRoomControllers: Record<string, RoomControllerDef> = {};
+
+export type RoomControllerDef = {
+    id: `${string}:${string}`,
+    name: string,
+    sub_name: string,
+    /** Called when the room starts/restarts (e.g. every time the hub starts and when the room is created) */
+    onInit(room: HMApi.Room): void,
+    /** Called when the room shuts down/restarts (e.g. when hub is turning off and when the room is deleted )  */
+    onBeforeShutdown(room: HMApi.Room): void,
+    /** Called when the rooms settings are saved to validate the room controller options. May return nothing/undefined when there are no errors or an object when there is an error. (object contents are error info, keys and values should be strings) */
+    onValidateSettings(values: Record<string, string|number|boolean>): void | undefined | Record<string, string>,
+    /** A list of fields for the room controller in the room edit page */
+    settingsFields: SettingsFieldDef[],
+}
+
+export function registerRoomController(def: RoomControllerDef) {
+    registeredRoomControllers[def.id] = def;
+}
+
+export function getRoomControllerTypes(): HMApi.RoomControllerType[] {
+    return Object.values(registeredRoomControllers).map(({id, name, sub_name, settingsFields}) => ({
+        id,
+        settings: settingsFields,
+        name,
+        sub_name,
+    }));
 }

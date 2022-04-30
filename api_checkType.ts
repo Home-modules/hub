@@ -4,41 +4,103 @@ import { HMApi } from "./api.js";
 // It also has the schemas for types in [HMApi](./api.js)
 // It looks like I reinvented the wheel, but TypeScript doesn't support dynamic type checking.
 
-export type ParamType = {
-    type: 'any' // Any value / type is valid
-} | {
-    type: 'exactValue' // The value must be exactly as specified
-    value: any
-} | {
-    type: 'string', // The value must be a string
+/** Any value / type is valid */
+export type ParamTypeAny = {
+    type: 'any'
+};
+/** All values are invalid (will be skipped on unions) */
+export type ParamTypeNever = {
+    type: 'never'
+};
+/** The value must be exactly as specified */
+export type ParamTypeExactValue<T=unknown> = {
+    type: 'exactValue'
+    value: T
+};
+/** The value must be a string */
+export type ParamTypeString = {
+    type: 'string',
     minLength?: number, // The minimum length of the string
     maxLength?: number, // The maximum length of the string
-} | {
-    type: 'number', // The value must be a number
+};
+/** The value must be a number */
+export type ParamTypeNumber = {
+    type: 'number',
     min?: number, // The minimum value of the number
     max?: number, // The maximum value of the number
-} | {
-    type: 'boolean' // The value must be a boolean (true/false)
-} | {
-    type: 'object', // The value must be an object with the specified properties
-    properties: {
-        [key: string]: ParamType & {optional?: boolean} // Optional properties' types will be checked but not their existence
-    }
-} | {
-    type: 'array', // The value must be an array of the specified type
+};
+/** The value must be a boolean (true/false) */
+export type ParamTypeBoolean = {
+    type: 'boolean'
+};
+/** The value must be an object with the specified properties */
+export type ParamTypeObject = {
+    type: 'object',
+    properties: Record<string, (ParamType & {optional?: boolean}) | undefined> // Optional properties' types will be checked but not their existence
+};
+/** The value must be an array of the specified type */
+export type ParamTypeArray = {
+    type: 'array',
     items: ParamType,
     minItems?: number, // The minimum number of items in the array
     maxItems?: number, // The maximum number of items in the array
-} | {
-    type: 'tuple', // The value must be an array of a fixed length with the specified element types
+};
+/** The value must be an array of a fixed length with the specified element types */
+export type ParamTypeTuple = {
+    type: 'tuple',
     items: ParamType[]
-} | {
-    type: 'union', // The value must be one of the specified types
-    types: ParamType[]
-} | {
-    type: 'lazyType', // A function will be called to get the type, useful for types that depend on other types (objects cannot reference their own properties while being defined)
+};
+/** The value must conform to one of the specified types */
+export type ParamTypeUnion<T extends ParamTypeNoUnion = ParamTypeNoUnion> = {
+    type: 'union',
+    types: T[]
+};
+/** A function will be called to get the type, useful for types that depend on other types (objects cannot reference their own properties while being defined) */
+export type ParamTypeLazyType = {
+    type: 'lazyType',
     value: () => ParamType
 };
+/** The value must be an object with the merged properties of the specified types */
+export type ParamTypeMerged = {
+    type: 'merged',
+    types: (ParamTypeObject | ParamTypeUnion)[]
+};
+/** The value must be an object with the specified type of key and values */
+export type ParamTypeRecord = {
+    type: 'record',
+    keys?: TOrUnion<ParamTypeString | ParamTypeExactValue<string>>,
+    values: ParamType
+}
+type TOrUnion<T extends ParamTypeNoUnion> = T | ParamTypeUnion<T>
+
+export type ParamType =
+    ParamTypeAny |
+    ParamTypeNever |
+    ParamTypeExactValue |
+    ParamTypeString |
+    ParamTypeNumber |
+    ParamTypeBoolean |
+    ParamTypeObject |
+    ParamTypeArray |
+    ParamTypeTuple |
+    ParamTypeUnion |
+    ParamTypeLazyType |
+    ParamTypeMerged |
+    ParamTypeRecord;
+
+export type ParamTypeNoUnion =
+    ParamTypeAny |
+    ParamTypeNever |
+    ParamTypeExactValue |
+    ParamTypeString |
+    ParamTypeNumber |
+    ParamTypeBoolean |
+    ParamTypeObject |
+    ParamTypeArray |
+    ParamTypeTuple |
+    ParamTypeLazyType |
+    ParamTypeMerged |
+    ParamTypeRecord;
 
 /**
  * Checks if a value is of a certain type.
@@ -57,6 +119,9 @@ export function checkType(req: any, type: ParamType, path=""): HMApi.RequestErro
     switch(type.type) {
         case 'any':
             return null;
+
+        case 'never':
+            return invalidParamError();
 
         case 'exactValue':
             if(req !== type.value) {
@@ -89,16 +154,23 @@ export function checkType(req: any, type: ParamType, path=""): HMApi.RequestErro
             break;
 
         case 'object': {
+            if((!req) || typeof req !== 'object') {
+                return invalidParamError();
+            }
             const missingProps= [];
             for (const key in type.properties) {
+
+                const fType= type.properties[key];
+                if(fType === undefined) continue;
+
                 // Check for missing properties
                 if ((!(key in req))) {
-                    if(!type.properties[key].optional) {
+                    if(!fType.optional) {
                         missingProps.push([path, String(key)].filter(Boolean).join('.'));
                     }
                     continue;
                 }
-                const err = checkType(req[key], type.properties[key], [path, String(key)].filter(Boolean).join('.'));
+                const err = checkType(req[key], fType, [path, String(key)].filter(Boolean).join('.'));
                 if (err) {
                     return err;
                 }
@@ -147,6 +219,9 @@ export function checkType(req: any, type: ParamType, path=""): HMApi.RequestErro
 
         case 'union': {
             for (const subType of type.types) {
+                if(subType.type==='never') {
+                    continue;
+                }
                 const err = checkType(req, subType, path);
                 if (!err) {
                     return null;
@@ -159,6 +234,38 @@ export function checkType(req: any, type: ParamType, path=""): HMApi.RequestErro
             const subType = type.value();
             return checkType(req, subType, path);
         }
+
+        case 'merged': {
+            let err: ReturnType<typeof checkType> = null;
+            for (const subType of type.types) {
+                err = checkType(req, subType, path);
+                if (!err) {
+                    return null;
+                }
+            }
+            return err;
+        }
+
+        case 'record': {
+            let err: ReturnType<typeof checkType> = null;
+            if(typeof req !== 'object') {
+                return invalidParamError();
+            }
+            if(type.keys) {
+                for(const key in req) {
+                    const err = checkType(key, type.keys, `${path}[${key}]`);
+                    if (err) {
+                        return err;
+                    }
+                }
+            }
+            for(const [key, value] of Object.entries(req)) {
+                err = checkType(value, type.values, [path, String(key)].filter(Boolean).join('.'));
+                if (err) {
+                    return err;
+                }
+            }
+        }
     }
     return null;
 }
@@ -167,7 +274,8 @@ export const HMApi_Types: {
     requests: Record<HMApi.Request['type'], ParamType>,
     objects: {
         Room: ParamType,
-        RoomControllerTypeStandardSerial: ParamType,
+        RoomController: ParamType,
+        Device: ParamType,
     }
 } = { 
     requests: {
@@ -274,10 +382,41 @@ export const HMApi_Types: {
                 }
             }
         },
-        "io.getSerialPorts": {
+        "rooms.controllers.getRoomControllerTypes": {
             type: "object",
             properties: {
-                "type": { type: "exactValue", value: "io.getSerialPorts" }
+                "type": { type: "exactValue", value: "rooms.controllers.getRoomControllerTypes" }
+            }
+        },
+        "plugins.fields.getSelectLazyLoadItems": {
+            type: "union",
+            types: [
+                {
+                    type: "object",
+                    properties: {
+                        "type": { type: "exactValue", value: "plugins.fields.getSelectLazyLoadItems" },
+                        "for": { type: "exactValue", value: "roomController" },
+                        "controller": { type: "string" },
+                        "field": { type: "string" }
+                    }
+                },
+                {
+                    type: "object",
+                    properties: {
+                        "type": { type: "exactValue", value: "plugins.fields.getSelectLazyLoadItems" },
+                        "for": { type: "exactValue", value: "device" },
+                        "controller": { type: "string" },
+                        "deviceType": { type: "string" },
+                        "field": { type: "string" }
+                    }
+                }
+            ]
+        },
+        "devices.getDevices": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "devices.getDevices" },
+                "roomId": { type: "string" }
             }
         }
     },
@@ -299,16 +438,46 @@ export const HMApi_Types: {
                 },
                 "controllerType": {
                     type: "lazyType",
-                    value: () => HMApi_Types.objects.RoomControllerTypeStandardSerial
+                    value: () => HMApi_Types.objects.RoomController
                 }
             } 
         },
-        RoomControllerTypeStandardSerial: {
+        RoomController: {
             type: "object",
             properties: {
-                "type": { type: "exactValue", value: "standard-serial" },
-                "port": { type: "string", minLength: 3, maxLength: 255 },
-                "baudRate": { type: "number", optional: true, min: 300, max: 2_000_000 },
+                'type': {type: 'string'},
+                'settings': {
+                    'type': 'record',
+                    keys: {type: 'string'},
+                    values: {
+                        type: 'union',
+                        types: [
+                            {type: 'string'},
+                            {type: 'number'},
+                            {type: 'boolean'},
+                        ]
+                    }
+                }
+            }
+        },
+        Device: {
+            type: 'object',
+            properties: {
+                'id': {type: 'string'},
+                'name': {type: 'string'},
+                'type': {type: 'string'},
+                'params': {
+                    'type': 'record',
+                    keys: {type: 'string'},
+                    values: {
+                        type: 'union',
+                        types: [
+                            {type: 'string'},
+                            {type: 'number'},
+                            {type: 'boolean'},
+                        ]
+                    }
+                }
             }
         }
     }
