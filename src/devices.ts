@@ -1,14 +1,24 @@
 import { HMApi } from "./api.js";
 import { SettingsFieldDef } from "./plugins.js";
-import { getRoom, getRoomControllerTypes } from "./rooms.js";
+import { getRoom } from "./rooms.js";
+import fs from "fs";
 
 
 
-const devices: Record<string, Record<string, HMApi.Device>> = {
+let devices: Record<string, Record<string, HMApi.Device>> = {
 };
 
+
+if(fs.existsSync('../data/devices.json')) {
+    devices= JSON.parse(fs.readFileSync('../data/devices.json', 'utf8'));
+} else saveDevices();
+
+function saveDevices() {
+    fs.writeFile('../data/devices.json', JSON.stringify(devices), ()=>undefined);
+}
+
 export function getDevices(roomId: string): Record<string, HMApi.Device> | undefined {
-    if(getRoom(roomId)) {
+    if(getRoom(roomId)) { // Check if room exists
         return devices[roomId] || {};
     }
 }
@@ -16,21 +26,15 @@ export function getDevices(roomId: string): Record<string, HMApi.Device> | undef
 export const registeredDeviceTypes: Record<string, Record<string, DeviceTypeDef>>= {}; // For each controller, there are different devices.
 
 export function registerDeviceType(def: DeviceTypeDef) {
-    if(def.forRoomController.split(':')[1]=='*') { // Add the device to all controllers of this supertype.
-        const [forSupertype] = def.forRoomController.split(':');
-        for(const controllerType of getRoomControllerTypes()) {
-            if(controllerType.id.split(":")[0] === forSupertype) {
-                registerDeviceType({...def, forRoomController: controllerType.id});
-            }
-        }
-    }
+    registeredDeviceTypes[def.forRoomController] ||= {};
+    registeredDeviceTypes[def.forRoomController][def.id] = def;
 }
 
 export type DeviceTypeDef = {
     id: `${string}:${string}`,
     name: string,
     sub_name: string,
-    /** The room controller with which the device is compatible with. If it ends with `:*` (like `test:*`), the device will be registered for all subtypes. */
+    /** The room controller with which the device is compatible with. If it ends with `:*` (like `test:*`), the device is considered compatible with all subtypes. */
     forRoomController: `${string}:*`|`${string}:${string}`,
     /** A list of fields for the device in the edit page */
     settingsFields: SettingsFieldDef[],
@@ -39,4 +43,43 @@ export type DeviceTypeDef = {
     /** Called when the device starts/restarts (e.g. every time the hub starts and when the device is created) */
     onInit(device: HMApi.Device): void,
     onBeforeShutdown(device: HMApi.Device): void,
+}
+
+export function getDeviceTypes(controllerType: string): DeviceTypeDef[] {
+    const [superType] = controllerType.split(":");
+    return Object.values({...registeredDeviceTypes[controllerType], ...registeredDeviceTypes[superType + ":*"]});
+}
+
+export function addDevice(roomId: string, device: HMApi.Device): 'room_not_found'|'device_exists'|true {
+    if(!getRoom(roomId)) return 'room_not_found'; // Check if room exists
+
+    devices[roomId] ||= {};
+    const { id } = device;
+    if (devices[roomId][id]) {
+        return 'device_exists';
+    }
+    devices[roomId][id] = device;
+    saveDevices();
+    return true;
+}
+
+export function editDevice(roomId: string, device: HMApi.Device): 'room_not_found'|'device_not_found'|true {
+    if(!getRoom(roomId)) return 'room_not_found'; // Check if room exists
+
+    const { id } = device;
+    const oldDevice = devices[roomId]?.[id];
+    if (!oldDevice) {
+        return 'device_not_found';
+    }
+    devices[roomId][id] = device;
+    saveDevices();
+    return true;
+}
+
+export function deleteDevice(roomId: string, deviceId: string): 'room_not_found'|'device_not_found'|true {
+    if(!getRoom(roomId)) return 'room_not_found'; // Check if room exists
+    if(!devices[roomId]?.[deviceId]) return 'device_not_found';
+    delete devices[roomId][deviceId];
+    saveDevices();
+    return true;
 }

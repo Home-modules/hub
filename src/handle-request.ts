@@ -1,7 +1,7 @@
 import { HMApi } from "./api.js";
 import { checkType, HMApi_Types } from "./api_checkType.js";
 import { changePassword, changeUsername, checkAuthToken, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, usernameExists } from "./auth.js";
-import { getDevices, registeredDeviceTypes } from "./devices.js";
+import { addDevice, deleteDevice, editDevice, getDevices, getDeviceTypes, registeredDeviceTypes } from "./devices.js";
 import getFlatFields from "./flat-fields.js";
 import { addRoom, deleteRoom, editRoom, getRoomControllerTypes, getRooms, registeredRoomControllers, reorderRooms } from "./rooms.js";
 
@@ -329,6 +329,124 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                     devices
                 }
             };
+        }
+
+        case 'devices.getDeviceTypes': {
+            const err= checkType(req, HMApi_Types.requests["devices.getDeviceTypes"]);
+            if(err) { return { type: "error", error: err }; }
+
+            // Check if the room controller type is valid
+            if(!(req.controllerType in registeredRoomControllers)) {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND"
+                    }
+                };
+            }
+
+            return {
+                type: "ok",
+                data: {
+                    types: getDeviceTypes(req.controllerType).map(type=> ({
+                        id: type.id,
+                        name: type.name,
+                        sub_name: type.sub_name,
+                        settings: type.settingsFields,
+                    }))
+                }
+            };
+        }
+
+        case 'devices.addDevice': {
+            const err= checkType(req, HMApi_Types.requests["devices.addDevice"]);
+            if(err) { return { type: "error", error: err }; }
+
+            const res= addDevice(req.roomId, req.device);
+            if(res==='device_exists') {
+                return {
+                    type: "error",
+                    error: {
+                        code: 400,
+                        message: "DEVICE_ALREADY_EXISTS"
+                    }
+                };
+            }
+            else if(res==='room_not_found') {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND"
+                    }
+                };
+            } else {
+                return {
+                    type: "ok",
+                    data: {}
+                };
+            }
+        }
+
+        case 'devices.editDevice': {
+            const err= checkType(req, HMApi_Types.requests["devices.editDevice"]);
+            if(err) { return { type: "error", error: err }; }
+
+            const res= editDevice(req.roomId, req.device);
+            if(res==='device_not_found') {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND"
+                    }
+                };
+            } 
+            else if(res==='room_not_found') {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND"
+                    }
+                };
+            } else {
+                return {
+                    type: "ok",
+                    data: {}
+                };
+            }
+        }
+
+        case 'devices.removeDevice': {
+            const err= checkType(req, HMApi_Types.requests["devices.removeDevice"]);
+            if(err) { return { type: "error", error: err }; }
+
+            const res= deleteDevice(req.roomId, req.id);
+            if(res==='device_not_found') {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND"
+                    }
+                };
+            }
+            else if(res==='room_not_found') {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND"
+                    }
+                };
+            } else {
+                return {
+                    type: "ok",
+                    data: {}
+                };
+            }
         }
 
         default:

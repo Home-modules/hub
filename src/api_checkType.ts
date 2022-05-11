@@ -418,6 +418,43 @@ export const HMApi_Types: {
                 "type": { type: "exactValue", value: "devices.getDevices" },
                 "roomId": { type: "string" }
             }
+        },
+        "devices.getDeviceTypes": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "devices.getDeviceTypes" },
+                "controllerType": { type: "string" }
+            }
+        },
+        "devices.addDevice": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "devices.addDevice" },
+                "roomId": { type: "string" },
+                "device": {
+                    type: "lazyType",
+                    value: () => HMApi_Types.objects.Device
+                }
+            }
+        },
+        "devices.editDevice": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "devices.editDevice" },
+                "roomId": { type: "string" },
+                "device": {
+                    type: "lazyType",
+                    value: () => HMApi_Types.objects.Device
+                }
+            }
+        },
+        "devices.removeDevice": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "devices.removeDevice" },
+                "roomId": { type: "string" },
+                "id": { type: "string" }
+            }
         }
     },
     objects: {
