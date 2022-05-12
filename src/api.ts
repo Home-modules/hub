@@ -102,7 +102,7 @@ export namespace HMApi {
      * Edits the properties of a room.
      * All properties except ID can be changed.
      * If the property `controllerType` is changed, the room will be restarted. (all devices will be turned off, the connection to the controller will be dropped and the room will be initialized again)
-     * @throws `ROOM_NOT_FOUND` if the room doesn't exist
+     * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
      */
     export type RequestEditRoom = {
         type: "rooms.editRoom",
@@ -121,7 +121,7 @@ export namespace HMApi {
 
     /**
      * Shuts down and removes a room from the house.
-     * @throws `NOT_FOUND` if the room doesn't exist
+     * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
      */
     export type RequestRemoveRoom = {
         type: "rooms.removeRoom",
@@ -149,6 +149,10 @@ export namespace HMApi {
 
     /**
      * Gets the items of a lazy-loading dropdown. (for room controller and device options)
+     * @throws `NOT_FOUND` with `object="controller"` if the controller doesn't exist
+     * @throws `NOT_FOUND` with `object="deviceType"` if the device type doesn't exist
+     * @throws `NOT_FOUND` with `object="field"` if the field doesn't exist
+     * @throws `FIELD_NOT_LAZY_SELECT` if the field is not a lazy-loading dropdown
      */
     export type RequestGetSelectFieldLazyLoadItems = {
         type: "plugins.fields.getSelectLazyLoadItems",
@@ -172,7 +176,7 @@ export namespace HMApi {
 
     /**
      * Gets the devices in a room.
-     * @throws `NOT_FOUND` if the room doesn't exist
+     * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
      */
     export type RequestGetDevices = {
         type: "devices.getDevices",
@@ -182,7 +186,7 @@ export namespace HMApi {
 
     /**
      * Gets the device types for the given room controller type.
-     * @throws `NOT_FOUND` if the room controller doesn't exist
+     * @throws `NOT_FOUND` with `object="controller"` if the room controller doesn't exist
      */
     export type RequestGetDeviceTypes = {
         type: "devices.getDeviceTypes",
@@ -190,6 +194,11 @@ export namespace HMApi {
         controllerType: string
     }
 
+    /**
+     * Adds a new device to a room.
+     * @throws `DEVICE_ALREADY_EXISTS` if a device with the same ID already exists
+     * @throws `NOT_FOUND` with `object="room"` if the room (to which the device is to be added) doesn't exist
+     */
     export type RequestAddDevice = {
         type: "devices.addDevice",
         /** Room ID */
@@ -198,6 +207,12 @@ export namespace HMApi {
         device: Device
     }
 
+    /**
+     * Edits the properties of a device.
+     * All properties except ID can be changed.
+     * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
+     * @throws `NOT_FOUND` with `object="room"` if the room (which contains the device) doesn't exist
+     */
     export type RequestEditDevice = {
         type: "devices.editDevice",
         /** Room ID */
@@ -206,6 +221,11 @@ export namespace HMApi {
         device: Device
     }
 
+    /**
+     * Removes a device from a room.
+     * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
+     * @throws `NOT_FOUND` with `object="room"` if the room (which contains the device) doesn't exist
+     */
     export type RequestRemoveDevice = {
         type: "devices.removeDevice",
         /** Room ID */
@@ -360,9 +380,10 @@ export namespace HMApi {
     /**
      * The requested item/resource was not found.
      */
-    export type RequestErrorNotFound = {
+    export type RequestErrorNotFound<O extends string> = {
         code: 404,
-        message: "NOT_FOUND"
+        message: "NOT_FOUND",
+        object: O
     };
 
     /**
@@ -449,17 +470,17 @@ export namespace HMApi {
         R extends RequestChangeUsername ? RequestErrorUsernameAlreadyTaken | RequestErrorUsernameTooShort :
         R extends RequestCheckUsernameAvailable ? never :
         R extends RequestGetRooms ? never :
-        R extends RequestEditRoom ? RequestErrorNotFound :
+        R extends RequestEditRoom ? RequestErrorNotFound<"room"> :
         R extends RequestAddRoom ? RequestErrorRoomAlreadyExists :
-        R extends RequestRemoveRoom ? RequestErrorNotFound :
+        R extends RequestRemoveRoom ? RequestErrorNotFound<"room"> :
         R extends RequestChangeRoomOrder ? RequestErrorRoomsNotEqual :
         R extends RequestGetRoomControllerTypes ? never :
-        R extends RequestGetSelectFieldLazyLoadItems ? RequestErrorNotFound | RequestErrorFieldNotLazySelect | RequestErrorPluginCustomError :
-        R extends RequestGetDevices ? RequestErrorNotFound :
-        R extends RequestGetDeviceTypes ? RequestErrorNotFound :
-        R extends RequestAddDevice ? RequestErrorDeviceAlreadyExists | RequestErrorNotFound :
-        R extends RequestEditDevice ? RequestErrorNotFound :
-        R extends RequestRemoveDevice ? RequestErrorNotFound :
+        R extends RequestGetSelectFieldLazyLoadItems ? RequestErrorNotFound<"controller"|"deviceType"|"field"> | RequestErrorFieldNotLazySelect | RequestErrorPluginCustomError :
+        R extends RequestGetDevices ? RequestErrorNotFound<"room"> :
+        R extends RequestGetDeviceTypes ? RequestErrorNotFound<"controller"> :
+        R extends RequestAddDevice ? RequestErrorDeviceAlreadyExists | RequestErrorNotFound<"room"> :
+        R extends RequestEditDevice ? RequestErrorNotFound<"device"|"room"> :
+        R extends RequestRemoveDevice ? RequestErrorNotFound<"device"|"room"> :
         never
     ) | (
         [R extends R ? keyof Omit<R, 'type'>: never ][0] extends never ? never : (RequestErrorMissingParameter<R> | RequestErrorInvalidParameter<R> | RequestErrorParameterOutOfRange<R>)

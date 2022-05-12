@@ -184,7 +184,8 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                     type: "error",
                     error: {
                         code: 404,
-                        message: "NOT_FOUND"
+                        message: "NOT_FOUND",
+                        object: "room"
                     }
                 };
             }
@@ -222,7 +223,8 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                     type: "error",
                     error: {
                         code: 404,
-                        message: "NOT_FOUND"
+                        message: "NOT_FOUND",
+                        object: "room"
                     }
                 };
             }
@@ -259,17 +261,20 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
             const err= checkType(req, HMApi_Types.requests["plugins.fields.getSelectLazyLoadItems"]);
             if(err) { return { type: "error", error: err }; }
 
-            const notFoundError = {
+            const notFoundError = (o: "controller"|"deviceType"|"field") => ({
                 type: "error",
                 error: {
                     code: 404,
-                    message: "NOT_FOUND"
+                    message: "NOT_FOUND",
+                    object: o
                 }
-            } as const; 
+            } as const); 
 
-            if((!(req.controller in registeredRoomControllers)) ||
-                (req.for == 'device' && !(req.deviceType in registeredDeviceTypes[req.controller]))) {
-                return notFoundError;
+            if(!(req.controller in registeredRoomControllers)) {
+                return notFoundError("controller");
+            }
+            if(req.for == 'device' && !(req.deviceType in registeredDeviceTypes[req.controller])) {
+                return notFoundError("deviceType");
             }
 
             const field = req.for == 'device' ?
@@ -277,10 +282,16 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                 (getFlatFields(registeredRoomControllers[req.controller].settingsFields).find(f=>f.id==req.field));
             
             if(!field) {
-                return notFoundError;
+                return notFoundError("field");
             }
             if(field.type!=='select' || field.options instanceof Array || !field.options.isLazy ) {
-                return notFoundError;
+                return {
+                    type: "error",
+                    error: {
+                        code: 400,
+                        message: "FIELD_NOT_LAZY_SELECT"
+                    }
+                };
             }
 
             let res = field.options.callback();
@@ -319,7 +330,8 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                     type: "error",
                     error: {
                         code: 404,
-                        message: "NOT_FOUND"
+                        message: "NOT_FOUND",
+                        object: "room"
                     }
                 };
             }
@@ -341,7 +353,8 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                     type: "error",
                     error: {
                         code: 404,
-                        message: "NOT_FOUND"
+                        message: "NOT_FOUND",
+                        object: "controller"
                     }
                 };
             }
@@ -378,7 +391,8 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                     type: "error",
                     error: {
                         code: 404,
-                        message: "NOT_FOUND"
+                        message: "NOT_FOUND",
+                        object: "room"
                     }
                 };
             } else {
@@ -399,7 +413,8 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                     type: "error",
                     error: {
                         code: 404,
-                        message: "NOT_FOUND"
+                        message: "NOT_FOUND",
+                        object: "device"
                     }
                 };
             } 
@@ -408,7 +423,8 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                     type: "error",
                     error: {
                         code: 404,
-                        message: "NOT_FOUND"
+                        message: "NOT_FOUND",
+                        object: "room"
                     }
                 };
             } else {
@@ -429,7 +445,8 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                     type: "error",
                     error: {
                         code: 404,
-                        message: "NOT_FOUND"
+                        message: "NOT_FOUND",
+                        object: "device"
                     }
                 };
             }
@@ -438,7 +455,8 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                     type: "error",
                     error: {
                         code: 404,
-                        message: "NOT_FOUND"
+                        message: "NOT_FOUND",
+                        object: "room"
                     }
                 };
             } else {
