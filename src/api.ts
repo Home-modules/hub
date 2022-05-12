@@ -551,7 +551,9 @@ export namespace HMApi {
         /** The device sub-name (aka mode) */
         sub_name: string,
         /** Settings fields */
-        settings: SettingsField[]
+        settings: SettingsField[],
+        /** The icon to show for the device */
+        icon: IconName
     };
 
     /**

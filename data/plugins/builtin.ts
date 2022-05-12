@@ -63,6 +63,7 @@ export default function (api: PluginApi) {
         id: 'light:standard',
         name: "Light",
         sub_name: "Standard",
+        icon: "Lightbulb",
         forRoomController: 'arduino:*',
         settingsFields: [
             {

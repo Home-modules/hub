@@ -34,6 +34,7 @@ export type DeviceTypeDef = {
     id: `${string}:${string}`,
     name: string,
     sub_name: string,
+    icon: HMApi.IconName,
     /** The room controller with which the device is compatible with. If it ends with `:*` (like `test:*`), the device is considered compatible with all subtypes. */
     forRoomController: `${string}:*`|`${string}:${string}`,
     /** A list of fields for the device in the edit page */

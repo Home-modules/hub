@@ -362,11 +362,12 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
             return {
                 type: "ok",
                 data: {
-                    types: getDeviceTypes(req.controllerType).map(type=> ({
+                    types: getDeviceTypes(req.controllerType).map((type): HMApi.DeviceType=> ({
                         id: type.id,
                         name: type.name,
                         sub_name: type.sub_name,
                         settings: type.settingsFields,
+                        icon: type.icon
                     }))
                 }
             };
