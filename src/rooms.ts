@@ -1,6 +1,7 @@
 import { HMApi } from "./api.js";
 import fs from "fs";
 import { SettingsFieldDef } from "./plugins.js";
+import { devices, saveDevices } from "./devices.js";
 
 let rooms: { [key: string]: HMApi.Room } = {};
 
@@ -57,6 +58,8 @@ export function deleteRoom(id: string): boolean {
     shutDownRoom(id);
     delete rooms[id];
     saveRooms();
+    delete devices[id];
+    saveDevices();
     return true;
 }
 

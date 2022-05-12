@@ -5,7 +5,7 @@ import fs from "fs";
 
 
 
-let devices: Record<string, Record<string, HMApi.Device>> = {
+export let devices: Record<string, Record<string, HMApi.Device>> = {
 };
 
 
@@ -13,7 +13,7 @@ if(fs.existsSync('../data/devices.json')) {
     devices= JSON.parse(fs.readFileSync('../data/devices.json', 'utf8'));
 } else saveDevices();
 
-function saveDevices() {
+export function saveDevices() {
     fs.writeFile('../data/devices.json', JSON.stringify(devices), ()=>undefined);
 }
 
