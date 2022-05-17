@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { strictEqual, deepStrictEqual } from 'assert';
 import { checkType } from './api_checkType.js';
 
@@ -21,6 +22,7 @@ export default function runTests() {
     ), null);
 
     strictEqual(checkType(
+        // eslint-disable-next-line @typescript-eslint/no-loss-of-precision
         99999999999999999999999999999999999999,
         {
             type: 'any',

@@ -3,7 +3,7 @@ import SerialPort from 'serialport';
 import { HMApi } from './api.js';
 import { DeviceTypeDef, registerDeviceType } from './devices.js';
 import { registerRoomController } from './rooms.js';
-import { getSerialPorts } from './serialio.js';
+import { getSerialPorts } from './serial-io.js';
 
 export async function initPlugins() {
     if(fs.existsSync('../data/plugins.json')) {

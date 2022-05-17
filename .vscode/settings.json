@@ -2,5 +2,8 @@
     "javascript.format.semicolons": "insert",
     "typescript.format.semicolons": "insert",
     "typescript.preferences.importModuleSpecifierEnding": "js",
-    "typescript.tsdk": "node_modules\\typescript\\lib"
+    "typescript.tsdk": "node_modules\\typescript\\lib",
+    "cSpell.words": [
+        "baudrate"
+    ]
 }
