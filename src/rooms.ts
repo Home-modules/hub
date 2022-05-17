@@ -1,7 +1,7 @@
 import { HMApi } from "./api.js";
 import fs from "fs";
 import { SettingsFieldDef } from "./plugins.js";
-import { devices, saveDevices } from "./devices.js";
+import { devices, initDevice, saveDevices, shutDownDevice } from "./devices.js";
 
 let rooms: { [key: string]: HMApi.Room } = {};
 
@@ -21,41 +21,64 @@ export function getRoom(id: string): HMApi.Room | undefined {
     return rooms[id];
 }
 
-export function initRoom(id: string) {
-    // Empty
+export async function initRoom(id: string) {
+    const room= rooms[id];
+    await registeredRoomControllers[room.controllerType.type].onInit(room);
+    if(devices[id]) {
+        for(const deviceId in devices[id]) {
+            await initDevice(id, deviceId);
+        }
+    }
 }
 
-export function shutDownRoom(id: string) {
-    // Empty
+export async function shutDownRoom(id: string) {
+    const room= rooms[id];
+    if(devices[id]) {
+        for(const deviceId in devices[id]) {
+            await shutDownDevice(id, deviceId);
+        }
+    }
+    await registeredRoomControllers[room.controllerType.type].onBeforeShutdown(room);
 }
 
-export function editRoom(room: HMApi.Room): boolean {
+
+export async function editRoom(room: HMApi.Room): Promise<boolean|string> {
     const { id } = room;
     const oldRoom = rooms[id];
     if (!oldRoom) {
         return false;
     }
+
+    const err = await registeredRoomControllers[room.controllerType.type].onValidateSettings(room.controllerType.settings);
+    if (err) return err;
+
+    await shutDownRoom(id);
     rooms[id] = room;
     saveRooms();
+    await initRoom(id);
     return true;
 }
 
-export function addRoom(room: HMApi.Room): boolean {
+export async function addRoom(room: HMApi.Room): Promise<boolean|string> {
     const { id } = room;
     if (rooms[id]) {
         return false;
     }
+
+    const err = await registeredRoomControllers[room.controllerType.type].onValidateSettings(room.controllerType.settings);
+    if (err) return err;
+
     rooms[id] = room;
-    initRoom(id);
+    await initRoom(id);
     saveRooms();
     return true;
 }
 
-export function deleteRoom(id: string): boolean {
+export async function deleteRoom(id: string): Promise<boolean> {
     if (!rooms[id]) {
         return false;
     }
-    shutDownRoom(id);
+    await shutDownRoom(id);
     delete rooms[id];
     saveRooms();
     delete devices[id];
@@ -90,11 +113,11 @@ export type RoomControllerDef = {
     name: string,
     sub_name: string,
     /** Called when the room starts/restarts (e.g. every time the hub starts and when the room is created) */
-    onInit(room: HMApi.Room): void,
-    /** Called when the room shuts down/restarts (e.g. when hub is turning off and when the room is deleted )  */
-    onBeforeShutdown(room: HMApi.Room): void,
-    /** Called when the rooms settings are saved to validate the room controller options. May return nothing/undefined when there are no errors or an object when there is an error. (object contents are error info, keys and values should be strings) */
-    onValidateSettings(values: Record<string, string|number|boolean>): void | undefined | Record<string, string>,
+    onInit(room: HMApi.Room): void|Promise<void>,
+    /** Called before the room shuts down/restarts (e.g. when hub is turning off and when the room is deleted). Devices will already have shut down when this is called.  */
+    onBeforeShutdown(room: HMApi.Room): void|Promise<void>,
+    /** Called when the rooms settings are saved to validate the room controller options. May return nothing/undefined when there are no errors or an error string when there is one. */
+    onValidateSettings(values: Record<string, string|number|boolean>): void | undefined | string | Promise<void | undefined | string>,
     /** A list of fields for the room controller in the room edit page */
     settingsFields: SettingsFieldDef[],
 }
@@ -110,4 +133,10 @@ export function getRoomControllerTypes(): HMApi.RoomControllerType[] {
         name,
         sub_name,
     }));
+}
+
+export async function initRoomsDevices() {
+    for(const roomId in rooms) {
+        await initRoom(roomId);
+    }
 }

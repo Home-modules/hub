@@ -174,60 +174,84 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
         case 'rooms.editRoom': {
             const err= checkType(req, HMApi_Types.requests["rooms.editRoom"]);
             if(err) { return { type: "error", error: err }; }
-            if(editRoom(req.room)) {
-                return {
-                    type: "ok",
-                    data: {}
-                };
-            } else {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "room"
-                    }
-                };
-            }
+            return editRoom(req.room).then(res=> {
+                if(res === true) {
+                    return {
+                        type: "ok",
+                        data: {}
+                    };
+                } else if(res) { // Res is either 'true' or a string (in which case it is an error)
+                    return {
+                        type: "error",
+                        error: {
+                            code: 400,
+                            message: 'CUSTOM_PLUGIN_ERROR',
+                            text: res
+                        }
+                    };
+                } else {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 404,
+                            message: "NOT_FOUND",
+                            object: "room"
+                        }
+                    };
+                }
+            });
         }
 
         case 'rooms.addRoom': {
             const err= checkType(req, HMApi_Types.requests["rooms.addRoom"]);
             if(err) { return { type: "error", error: err }; }
-            if(addRoom(req.room)) {
-                return {
-                    type: "ok",
-                    data: {}
-                };
-            } else {
-                return {
-                    type: "error",
-                    error: {
-                        code: 400,
-                        message: "ROOM_ALREADY_EXISTS"
-                    }
-                };
-            }
+            return addRoom(req.room).then(res=> {
+                if(res === true) {
+                    return {
+                        type: "ok",
+                        data: {}
+                    };
+                } else if(res) { // Res is either 'true' or a string (in which case it is an error)
+                    return {
+                        type: "error",
+                        error: {
+                            code: 400,
+                            message: 'CUSTOM_PLUGIN_ERROR',
+                            text: res
+                        }
+                    };
+                } else {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 400,
+                            message: "ROOM_ALREADY_EXISTS"
+                        }
+                    };
+                }
+            });
         }
 
         case 'rooms.removeRoom': {
             const err= checkType(req, HMApi_Types.requests["rooms.removeRoom"]);
             if(err) { return { type: "error", error: err }; }
-            if(deleteRoom(req.id)) {
-                return {
-                    type: "ok",
-                    data: {}
-                };
-            } else {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "room"
-                    }
-                };
-            }
+            return deleteRoom(req.id).then(res=> {
+                if(res) {
+                    return {
+                        type: "ok",
+                        data: {}
+                    };
+                } else {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 404,
+                            message: "NOT_FOUND",
+                            object: "room"
+                        }
+                    };
+                }
+            });
         }
 
         case 'rooms.changeRoomOrder': {
@@ -313,7 +337,7 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                         error: {
                             code: 400,
                             message: "CUSTOM_PLUGIN_ERROR",
-                            params: result.params
+                            text: result.text
                         }
                     };
                 }
@@ -377,95 +401,118 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
             const err= checkType(req, HMApi_Types.requests["devices.addDevice"]);
             if(err) { return { type: "error", error: err }; }
 
-            const res= addDevice(req.roomId, req.device);
-            if(res==='device_exists') {
-                return {
-                    type: "error",
-                    error: {
-                        code: 400,
-                        message: "DEVICE_ALREADY_EXISTS"
-                    }
-                };
-            }
-            else if(res==='room_not_found') {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "room"
-                    }
-                };
-            } else {
-                return {
-                    type: "ok",
-                    data: {}
-                };
-            }
+            return addDevice(req.roomId, req.device).then(res=> {
+                if(res==='device_exists') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 400,
+                            message: "DEVICE_ALREADY_EXISTS"
+                        }
+                    };
+                }
+                else if(res==='room_not_found') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 404,
+                            message: "NOT_FOUND",
+                            object: "room"
+                        }
+                    };
+                } 
+                else if(typeof res === 'string') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 400,
+                            message: "CUSTOM_PLUGIN_ERROR",
+                            text: res
+                        }
+                    };
+                } else {
+                    return {
+                        type: "ok",
+                        data: {}
+                    };
+                }
+            });
         }
 
         case 'devices.editDevice': {
             const err= checkType(req, HMApi_Types.requests["devices.editDevice"]);
             if(err) { return { type: "error", error: err }; }
 
-            const res= editDevice(req.roomId, req.device);
-            if(res==='device_not_found') {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "device"
-                    }
-                };
-            } 
-            else if(res==='room_not_found') {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "room"
-                    }
-                };
-            } else {
-                return {
-                    type: "ok",
-                    data: {}
-                };
-            }
+            return editDevice(req.roomId, req.device).then(res=> {
+                if(res==='device_not_found') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 404,
+                            message: "NOT_FOUND",
+                            object: "device"
+                        }
+                    };
+                } 
+                else if(res==='room_not_found') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 404,
+                            message: "NOT_FOUND",
+                            object: "room"
+                        }
+                    };
+                } 
+                else if(typeof res === 'string') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 400,
+                            message: "CUSTOM_PLUGIN_ERROR",
+                            text: res
+                        }
+                    };
+                } else {
+                    return {
+                        type: "ok",
+                        data: {}
+                    };
+                }
+            });
         }
 
         case 'devices.removeDevice': {
             const err= checkType(req, HMApi_Types.requests["devices.removeDevice"]);
             if(err) { return { type: "error", error: err }; }
 
-            const res= deleteDevice(req.roomId, req.id);
-            if(res==='device_not_found') {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "device"
-                    }
-                };
-            }
-            else if(res==='room_not_found') {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "room"
-                    }
-                };
-            } else {
-                return {
-                    type: "ok",
-                    data: {}
-                };
-            }
+            return deleteDevice(req.roomId, req.id).then(res=> {
+                if(res==='device_not_found') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 404,
+                            message: "NOT_FOUND",
+                            object: "device"
+                        }
+                    };
+                }
+                else if(res==='room_not_found') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 404,
+                            message: "NOT_FOUND",
+                            object: "room"
+                        }
+                    };
+                } else {
+                    return {
+                        type: "ok",
+                        data: {}
+                    };
+                }
+            });
         }
 
         default:

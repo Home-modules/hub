@@ -1,13 +1,17 @@
 import fs from 'fs';
+import SerialPort from 'serialport';
 import { HMApi } from './api.js';
 import { DeviceTypeDef, registerDeviceType } from './devices.js';
 import { registerRoomController } from './rooms.js';
+import { getSerialPorts } from './serialio.js';
 
-if(fs.existsSync('../data/plugins.json')) {
-    registerPlugins(JSON.parse(fs.readFileSync('../data/plugins.json', 'utf8')));
-} else {
-    savePlugins(['builtin']);
-    registerPlugins(['builtin']);
+export async function initPlugins() {
+    if(fs.existsSync('../data/plugins.json')) {
+        await registerPlugins(JSON.parse(fs.readFileSync('../data/plugins.json', 'utf8')));
+    } else {
+        savePlugins(['builtin']);
+        await registerPlugins(['builtin']);
+    }
 }
 
 function savePlugins(plugins: string[]) {
@@ -17,7 +21,6 @@ function savePlugins(plugins: string[]) {
 const deviceTypesToRegister: DeviceTypeDef[] = [];
 
 async function registerPlugins(plugins: string[]) {
-    console.log('Loading plugins...');
     for(const path of plugins) {
         let pluginPath: string;
         if(fs.existsSync(`../data/plugins/${path}.js`) || fs.existsSync(`../data/plugins/${path}.ts`)) {
@@ -36,11 +39,9 @@ async function registerPlugins(plugins: string[]) {
         }
         plugin.default(PluginApi);
     }
-    console.log('Registering device types...');
     for(const deviceType of deviceTypesToRegister) {
         registerDeviceType(deviceType);
     }
-    console.log('Done loading plugins');
 }
 
 const PluginApi= {
@@ -57,6 +58,15 @@ const PluginApi= {
      * @param def The room controller information.
      */
     registerRoomController,
+    /**
+     * Scans the available serial ports on the hub.
+     * @returns An array of serial port paths
+     */
+    getSerialPorts,
+    /**
+     * The SerialPort class from the 'serialport' npm package
+     */
+    SerialPort
 };
 
 export type PluginApi = typeof PluginApi;
@@ -81,10 +91,10 @@ export type SettingsFieldSelectDef = (
             (HMApi.SettingsFieldSelectOption|HMApi.SettingsFieldSelectOptionGroup)[] | (HMApi.SettingsFieldSelectLazyOptions & { // Use original types, but add a property to SettingsFieldSelectLazyOptions
                 callback(): 
                     (HMApi.SettingsFieldSelectOption|HMApi.SettingsFieldSelectOptionGroup)[] |
-                    {error: true, params: Record<string, string>} |
+                    {error: true, text: string} |
                     Promise<
                         (HMApi.SettingsFieldSelectOption|HMApi.SettingsFieldSelectOptionGroup)[] |
-                        {error: true, params: Record<string, string>}
+                        {error: true, text: string}
                     >
             })
         )

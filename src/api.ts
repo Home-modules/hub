@@ -448,7 +448,7 @@ export namespace HMApi {
     export type RequestErrorPluginCustomError = {
         code: 400,
         message: "CUSTOM_PLUGIN_ERROR",
-        params: Record<string, string>
+        text: string
     }
 
     /**
@@ -470,16 +470,16 @@ export namespace HMApi {
         R extends RequestChangeUsername ? RequestErrorUsernameAlreadyTaken | RequestErrorUsernameTooShort :
         R extends RequestCheckUsernameAvailable ? never :
         R extends RequestGetRooms ? never :
-        R extends RequestEditRoom ? RequestErrorNotFound<"room"> :
-        R extends RequestAddRoom ? RequestErrorRoomAlreadyExists :
+        R extends RequestEditRoom ? RequestErrorNotFound<"room"> | RequestErrorPluginCustomError :
+        R extends RequestAddRoom ? RequestErrorRoomAlreadyExists | RequestErrorPluginCustomError :
         R extends RequestRemoveRoom ? RequestErrorNotFound<"room"> :
         R extends RequestChangeRoomOrder ? RequestErrorRoomsNotEqual :
         R extends RequestGetRoomControllerTypes ? never :
         R extends RequestGetSelectFieldLazyLoadItems ? RequestErrorNotFound<"controller"|"deviceType"|"field"> | RequestErrorFieldNotLazySelect | RequestErrorPluginCustomError :
         R extends RequestGetDevices ? RequestErrorNotFound<"room"> :
         R extends RequestGetDeviceTypes ? RequestErrorNotFound<"controller"> :
-        R extends RequestAddDevice ? RequestErrorDeviceAlreadyExists | RequestErrorNotFound<"room"> :
-        R extends RequestEditDevice ? RequestErrorNotFound<"device"|"room"> :
+        R extends RequestAddDevice ? RequestErrorDeviceAlreadyExists | RequestErrorNotFound<"room"> | RequestErrorPluginCustomError :
+        R extends RequestEditDevice ? RequestErrorNotFound<"device"|"room"> | RequestErrorPluginCustomError :
         R extends RequestRemoveDevice ? RequestErrorNotFound<"device"|"room"> :
         never
     ) | (

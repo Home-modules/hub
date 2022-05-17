@@ -1,14 +1,29 @@
 import { PluginApi } from "../../src/plugins.js";
-import { getSerialPorts } from "../../src/serialio.js";
 
 export default function (api: PluginApi) {
+    const openSerialPorts: Record<string, InstanceType<typeof api.SerialPort>> = {};
+
     api.registerRoomController({
         id: "arduino:serial",
         name: "Arduino",
         sub_name: "Serial",
-        onInit: ()=> console.log("Arduino serial controller initialized"),
-        onBeforeShutdown: ()=> console.log("Arduino serial controller shutting down"),
-        onValidateSettings: ()=> undefined,
+        onInit: (room)=> {
+            openSerialPorts[room.id] = new api.SerialPort(room.controllerType.settings.port as string, {
+                baudRate: room.controllerType.settings.baudrate as number,
+                autoOpen: true
+            });
+        },
+        onBeforeShutdown: (room)=> {
+            openSerialPorts[room.id].close();
+            delete openSerialPorts[room.id];
+        },
+        onValidateSettings: async (values)=> {
+            const port = values["port"] as string;
+            const ports = await api.getSerialPorts();
+            if(!ports.includes(port)) {
+                return "Port does not exist / is disconnected";
+            }
+        },
         settingsFields: [
             {
                 id: "port",
@@ -33,7 +48,7 @@ export default function (api: PluginApi) {
                     }],
                     callback: () => {
                         return new Promise((resolve, reject) => {
-                            getSerialPorts().then(ports => {
+                            api.getSerialPorts().then(ports => {
                                 resolve(ports.map(port => ({
                                     value: port,
                                     label: port
@@ -85,8 +100,12 @@ export default function (api: PluginApi) {
                 description_on_true: 'Currently pin will be HIGH when off and LOW when on',
             }
         ],
-        onValidateSettings: ()=>console.log('validate light:standard settings'),
-        onInit: ()=> console.log('init light:standard'),
-        onBeforeShutdown: ()=> console.log('shut down light:standard'),
+        onValidateSettings: ()=>undefined,
+        onInit: ()=> {
+            //
+        },
+        onBeforeShutdown: ()=> {
+            //
+        },
     });
 }
