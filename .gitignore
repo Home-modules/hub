@@ -4,4 +4,4 @@
 /data/*
 !/data/plugins
 /data/plugins/*
-!/data/plugins/builtin.ts
+!/data/plugins/builtin

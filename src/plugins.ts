@@ -21,21 +21,23 @@ function savePlugins(plugins: string[]) {
 const deviceTypesToRegister: DeviceTypeDef[] = [];
 
 async function registerPlugins(plugins: string[]) {
-    for(const path of plugins) {
+    for(const name of plugins) {
         let pluginPath: string;
-        if(fs.existsSync(`../data/plugins/${path}.js`) || fs.existsSync(`../data/plugins/${path}.ts`)) {
-            pluginPath = `../data/plugins/${path}.js`;
-        } else if(fs.existsSync(`../data/plugins/${path}/${path}.js`) || fs.existsSync(`../data/plugins/${path}/${path}.ts`)) {
-            pluginPath = `../data/plugins/${path}/${path}.js`;
+        if(fs.existsSync(`../data/plugins/${name}`)) {
+            if(fs.existsSync(`../data/plugins/${name}/${name}.js`) || fs.existsSync(`../data/plugins/${name}/${name}.ts`)) {
+                pluginPath = `../data/plugins/${name}/${name}.js`;
+            } else {
+                throw new Error(`Failed to load plugin '${name}': Plugin main file not found`);
+            }
         } else {
-            throw new Error(`Failed to load plugin '${path}': Plugin main file not found`);
+            throw new Error(`Failed to load plugin '${name}': Plugin directory not found`);
         }
         const plugin = await import(pluginPath);
         if(!(typeof plugin == 'object')) {
-            throw new Error(`Failed to load plugin '${path}': Importing plugin main file went wrong`);
+            throw new Error(`Failed to load plugin '${name}': Importing plugin main file went wrong`);
         }
         if(!('default' in plugin && typeof plugin.default == 'function')) {
-            throw new Error(`Failed to load plugin '${path}': Plugin main file has no default export or its default export is not a function`);
+            throw new Error(`Failed to load plugin '${name}': Plugin main file has no default export or its default export is not a function`);
         }
         plugin.default(PluginApi);
     }

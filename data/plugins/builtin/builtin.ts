@@ -1,4 +1,4 @@
-import { PluginApi } from "../../src/plugins.js";
+import { PluginApi } from "../../../src/plugins.js";
 
 export default function (api: PluginApi) {
     const openSerialPorts: Record<string, InstanceType<typeof api.SerialPort>> = {};
