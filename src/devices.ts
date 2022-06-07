@@ -5,9 +5,8 @@ import fs from "fs";
 
 
 
-export let devices: Record<string, Record<string, HMApi.Device>> = {
-};
-
+export let devices: Record<string, Record<string, HMApi.Device>> = { };
+const disabledDevices: Record<string, Record<string, string|undefined>> = { };
 
 if(fs.existsSync('../data/devices.json')) {
     devices= JSON.parse(fs.readFileSync('../data/devices.json', 'utf8'));
@@ -42,9 +41,9 @@ export type DeviceTypeDef = {
     /** Called when the rooms settings are saved to validate the room controller options. May return nothing/undefined when there are no errors or an error string when there is one. */
     onValidateSettings(values: Record<string, string|number|boolean>): void | undefined | string | Promise<void | undefined | string>,
     /** Called when the device starts/restarts (e.g. every time the hub starts and when the device is created) */
-    onInit(device: HMApi.Device, room: HMApi.Room): void,
+    onInit(device: HMApi.Device, room: HMApi.Room): void | Promise<void>,
     /** Called before the device stops/restarts */
-    onBeforeShutdown(device: HMApi.Device, room: HMApi.Room): void,
+    onBeforeShutdown(device: HMApi.Device, room: HMApi.Room): void | Promise<void>,
 }
 
 export function getDeviceTypes(controllerType: string): DeviceTypeDef[] {
@@ -59,10 +58,18 @@ export async function initDevice(roomId: string, id: string) {
         ...registeredDeviceTypes[room.controllerType.type],
         ...registeredDeviceTypes[room.controllerType.type.split(':')[0] + ":*"],
     };
-    await deviceTypes[device.type].onInit(device, room);
+    try {
+        await deviceTypes[device.type].onInit(device, room);
+    } catch(err) {
+        disabledDevices[roomId] ||= {};
+        disabledDevices[roomId][id] = String(err);
+    }
 }
 
 export async function shutDownDevice(roomId: string, id: string) {
+    if(disabledDevices[roomId]?.[id]) {
+        return; // Disabled devices are uninitialized
+    }
     const room = getRoom(roomId) as HMApi.Room;
     const device = devices[roomId][id];
     const deviceTypes = {

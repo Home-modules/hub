@@ -1,7 +1,16 @@
 import { PluginApi } from "../../../src/plugins.js";
+import arduinoBoards from "./arduino-boards.js";
 
 export default function (api: PluginApi) {
     const openSerialPorts: Record<string, InstanceType<typeof api.SerialPort>> = {};
+
+    enum arduinoCommands {
+        pinMode= 0,
+        digitalWrite= 1,
+        digitalRead= 2,
+        analogWrite= 3,
+        analogRead= 4
+    }
 
     api.registerRoomController({
         id: "arduino:serial",
@@ -10,7 +19,13 @@ export default function (api: PluginApi) {
         onInit: (room)=> {
             openSerialPorts[room.id] = new api.SerialPort(room.controllerType.settings.port as string, {
                 baudRate: room.controllerType.settings.baudrate as number,
-                autoOpen: true
+                autoOpen: false
+            });
+            return new Promise((resolve, reject)=> {
+                openSerialPorts[room.id].open((error) => {
+                    console.log('done opening');
+                    if(error) reject(error); else resolve();
+                });
             });
         },
         onBeforeShutdown: (room)=> {
@@ -19,7 +34,7 @@ export default function (api: PluginApi) {
         },
         onValidateSettings: async (values)=> {
             const port = values["port"] as string;
-            const ports = await api.getSerialPorts();
+            const ports = (await api.SerialPort.list()).map(p=>p.path);
             if(!ports.includes(port)) {
                 return "Port does not exist / is disconnected";
             }
@@ -46,15 +61,13 @@ export default function (api: PluginApi) {
                         whenNormal: "Refresh ports",
                         whenLoading: "Scanning"
                     }],
-                    callback: () => {
-                        return new Promise((resolve, reject) => {
-                            api.getSerialPorts().then(ports => {
-                                resolve(ports.map(port => ({
-                                    value: port,
-                                    label: port
-                                })));
-                            }).catch(reject);
-                        });
+                    callback: async() => {
+                        const ports = await api.SerialPort.list();
+                        return ports.map(port => ({
+                            value: port.path,
+                            label: port.path,
+                            subtext: arduinoBoards[port.vendorId+'-'+port.productId]
+                        }));
                     },
                 }
             },
@@ -101,8 +114,26 @@ export default function (api: PluginApi) {
             }
         ],
         onValidateSettings: ()=>undefined,
-        onInit: ()=> {
-            //
+        onInit: (device, room)=> {
+            const port = room.controllerType.settings.port as string;
+            const pin = device.params.pin as number;
+            const serial = openSerialPorts[room.id];
+            console.log('init light');
+            if(serial?.isOpen) {
+                return new Promise((resolve, reject) => {
+                    serial.write([arduinoCommands.pinMode, pin, 1], (error, bytesWritten)=> {
+                        if(error) {
+                            reject(error);
+                        // } else if (bytesWritten!==3) {
+                        //     reject(`The number of bytes written to ${port} was ${bytesWritten}, expected 3`);
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+            } else {
+                throw new Error(`Port ${port} is closed`);
+            }
         },
         onBeforeShutdown: ()=> {
             //

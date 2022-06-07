@@ -3,7 +3,6 @@ import SerialPort from 'serialport';
 import { HMApi } from './api.js';
 import { DeviceTypeDef, registerDeviceType } from './devices.js';
 import { registerRoomController } from './rooms.js';
-import { getSerialPorts } from './serial-io.js';
 
 export async function initPlugins() {
     if(fs.existsSync('../data/plugins.json')) {
@@ -61,17 +60,13 @@ const PluginApi= {
      */
     registerRoomController,
     /**
-     * Scans the available serial ports on the hub.
-     * @returns An array of serial port paths
-     */
-    getSerialPorts,
-    /**
      * The SerialPort class from the 'serialport' npm package
      */
     SerialPort
 };
 
 export type PluginApi = typeof PluginApi;
+export {HMApi};
 
 // Similar to an array of HMApi.SettingsField, but SettingsFieldSelect.options when isLazy=true requires a function to be called to get the options
 export type SettingsFieldDef = (

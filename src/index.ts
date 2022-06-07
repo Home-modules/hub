@@ -1,10 +1,12 @@
 import http from 'http';
 import url from 'url';
 import { HMApi } from './api.js';
+import beforeShutdown from './async-cleanup.js';
 import handleRequest from './handle-request.js';
 import './plugins.js';
 import { initPlugins } from './plugins.js';
-import { initRoomsDevices } from './rooms.js';
+import { initRoomsDevices, shutDownRoomsDevices } from './rooms.js';
+
 
 (async ()=> {
     process.stdout.write('[1/3] Loading plugins... ');
@@ -13,6 +15,9 @@ import { initRoomsDevices } from './rooms.js';
     process.stdout.write("[2/3] Starting rooms and devices... ");
     await initRoomsDevices();
     console.log('✔');
+
+    beforeShutdown(shutDownRoomsDevices);
+
     process.stdout.write("[3/3] Starting API server... ");
     http.createServer(function (req, res) {
         // Delay for 5 seconds to simulate a slow server //TODO: remove

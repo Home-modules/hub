@@ -3,7 +3,8 @@ import fs from "fs";
 import { SettingsFieldDef } from "./plugins.js";
 import { devices, initDevice, saveDevices, shutDownDevice } from "./devices.js";
 
-let rooms: { [key: string]: HMApi.Room } = {};
+let rooms: { [id: string]: HMApi.Room } = {};
+const disabledRooms: { [id: string]: string|undefined } = {};
 
 if(fs.existsSync('../data/rooms.json')) {
     rooms= JSON.parse(fs.readFileSync('../data/rooms.json', 'utf8'));
@@ -23,7 +24,12 @@ export function getRoom(id: string): HMApi.Room | undefined {
 
 export async function initRoom(id: string) {
     const room= rooms[id];
-    await registeredRoomControllers[room.controllerType.type].onInit(room);
+    try {
+        await registeredRoomControllers[room.controllerType.type].onInit(room);
+    } catch (err) {
+        disabledRooms[id] = String(err);
+        return;
+    }
     if(devices[id]) {
         for(const deviceId in devices[id]) {
             await initDevice(id, deviceId);
@@ -32,6 +38,9 @@ export async function initRoom(id: string) {
 }
 
 export async function shutDownRoom(id: string) {
+    if(disabledRooms[id]) {
+        return; // Disabled rooms are not initialized
+    }
     const room= rooms[id];
     if(devices[id]) {
         for(const deviceId in devices[id]) {
@@ -39,6 +48,7 @@ export async function shutDownRoom(id: string) {
         }
     }
     await registeredRoomControllers[room.controllerType.type].onBeforeShutdown(room);
+    disabledRooms[id] = undefined;
 }
 
 
@@ -138,5 +148,11 @@ export function getRoomControllerTypes(): HMApi.RoomControllerType[] {
 export async function initRoomsDevices() {
     for(const roomId in rooms) {
         await initRoom(roomId);
+    }
+}
+
+export async function shutDownRoomsDevices() {
+    for(const roomId in rooms) {
+        await shutDownRoom(roomId);
     }
 }
