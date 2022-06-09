@@ -27,7 +27,9 @@ export namespace HMApi {
         /** The username. If it doesn't exist, the error LOGIN_USER_NOT_FOUND will be returned. */
         username: string,
         /** The password. If it is incorrect, the error LOGIN_PASSWORD_INCORRECT will be returned with a 1 second delay. */
-        password: string
+        password: string,
+        /** Device info, should contain device info, OS info or browser info, whichever is applicable. Should not be empty. */
+        device: string
     };
 
     /** 
@@ -50,6 +52,22 @@ export namespace HMApi {
      */
     export type RequestGetSessionsCount = {
         type: "account.getSessionsCount"
+    }
+
+    /**
+     * Gets the list of all sessions for this account.
+     */
+    export type RequestGetSessions = {
+        type: "account.getSessions"
+    }
+
+    /**
+     * Terminates a specific session.
+     */
+    export type RequestLogoutSession = {
+        type: "account.logoutSession",
+        /** The session ID to terminate. */
+        id: string
     }
 
     /** 
@@ -234,7 +252,7 @@ export namespace HMApi {
         id: string
     }
 
-    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestAddRoom | RequestRemoveRoom | RequestChangeRoomOrder | RequestGetRoomControllerTypes | RequestGetSelectFieldLazyLoadItems | RequestGetDevices | RequestGetDeviceTypes | RequestAddDevice | RequestEditDevice | RequestRemoveDevice;
+    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestGetSessions | RequestLogoutSession | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestAddRoom | RequestRemoveRoom | RequestChangeRoomOrder | RequestGetRoomControllerTypes | RequestGetSelectFieldLazyLoadItems | RequestGetDevices | RequestGetDeviceTypes | RequestAddDevice | RequestEditDevice | RequestRemoveDevice;
 
 
     /** Nothing is returned */
@@ -254,6 +272,11 @@ export namespace HMApi {
         /** The number of active sessions / terminated sessions */
         sessions: number
     };
+
+    export type ResponseSessions = {
+        /** The active sessions */
+        sessions: Session[]
+    }
 
     export type ResponseCheckUsernameAvailable = {
         /** False if the username is already taken, true otherwise. */
@@ -292,6 +315,8 @@ export namespace HMApi {
         R extends RequestLogout ? ResponseEmpty :
         R extends RequestLogoutOtherSessions ? ResponseSessionCount :
         R extends RequestGetSessionsCount ? ResponseSessionCount :
+        R extends RequestGetSessions ? ResponseSessions :
+        R extends RequestLogoutSession ? ResponseEmpty :
         R extends RequestChangePassword ? ResponseEmpty :
         R extends RequestChangeUsername ? ResponseLogin :
         R extends RequestCheckUsernameAvailable ? ResponseCheckUsernameAvailable :
@@ -375,6 +400,22 @@ export namespace HMApi {
     export type RequestErrorInternalServerError = {
         code: 500,
         message: "INTERNAL_SERVER_ERROR"
+    };
+
+    /**
+     * More than 10 requests have been made in the last second
+     */
+    export type RequestErrorTooManyRequests = {
+        code: 429,
+        message: "TOO_MANY_REQUESTS"
+    };
+
+    /**
+     * The session is not old enough to perform sensitive operations. The session must be at least 24 hours old.
+     */
+    export type RequestErrorSessionTooNew = {
+        code: 403,
+        message: "SESSION_TOO_NEW"
     };
 
     /**
@@ -464,8 +505,10 @@ export namespace HMApi {
         R extends RequestGetVersion ? never :
         R extends RequestLogin ? RequestErrorLoginPasswordIncorrect | RequestErrorLoginUserNotFound :
         R extends RequestLogout ? never :
-        R extends RequestLogoutOtherSessions ? never :
+        R extends RequestLogoutOtherSessions ? RequestErrorSessionTooNew :
         R extends RequestGetSessionsCount ? never :
+        R extends RequestGetSessions ? never :
+        R extends RequestLogoutSession ? RequestErrorNotFound<"session"> | RequestErrorSessionTooNew :
         R extends RequestChangePassword ? RequestErrorLoginPasswordIncorrect :
         R extends RequestChangeUsername ? RequestErrorUsernameAlreadyTaken | RequestErrorUsernameTooShort :
         R extends RequestCheckUsernameAvailable ? never :
@@ -488,7 +531,8 @@ export namespace HMApi {
         RequestErrorInvalidRequest |
         RequestErrorInvalidJSON |
         RequestErrorInvalidRequestType |
-        RequestErrorInternalServerError | (
+        RequestErrorInternalServerError |
+        RequestErrorTooManyRequests | (
         R extends RequestLogin ? never : RequestErrorTokenInvalid
     );
 
@@ -501,6 +545,23 @@ export namespace HMApi {
         error: RequestError<R>
     };
 
+    /**
+     * Describes an active session.
+     */
+    export type Session = {
+        /** The ID of the session */
+        id: string;
+        /** Device info */
+        device: string;
+        /** The time when the session was created, in unix time. */
+        loginTime: number;
+        /** The time when the session was last used, in unix time. */
+        lastUsedTime: number;
+        /** The IP address of the login */
+        ip: string;
+        /** Whether the session is the one currently in use */
+        isCurrent: boolean;
+    }
 
     /**
      * Describes a room.

@@ -1,7 +1,21 @@
 import crypto from 'crypto';
 import fs from 'fs';
+import { HMApi } from './api.js';
 
-const loginTokens: { [username: string]: string[] } = {};
+const logins: { [username: string]: {
+    /** The authentication token */
+    token: string,
+    /** The time when the last request was made. If a week has passed, the login expires. */
+    lastRequest: Date,
+    /** Device information */
+    device: string,
+    /** The number of requests made using this token in the last second */
+    flood: number,
+    /** The time the user logged in */
+    loginTime: Date,
+    /** The IP from which the login was last used */
+    ip: string,
+}[] } = {};
 
 let users: { [username: string]: string } = {
     admin: crypto.createHash('sha256').update('admin').digest('hex')
@@ -19,9 +33,11 @@ function saveUsers() {
  * Logs in a user.
  * @param username The username of the user
  * @param password The password of the user
+ * @param device The device information
+ * @param ip The IP address of the user
  * @returns An auth token for the user
  */
-export function loginUser(username: string, password: string): string {
+export function loginUser(username: string, password: string, device: string, ip: string): string {
     if(!users[username]) {
         throw new Error('USER_NOT_FOUND');
     }
@@ -29,8 +45,15 @@ export function loginUser(username: string, password: string): string {
         throw new Error('PASSWORD_INCORRECT');
     }
     const tk= crypto.randomBytes(32).toString('hex');
-    loginTokens[username]= loginTokens[username] || [];
-    loginTokens[username].push(tk);
+    logins[username]= logins[username] || [];
+    logins[username].push({
+        token: tk,
+        device,
+        lastRequest: new Date(),
+        flood: 0,
+        loginTime: new Date(),
+        ip
+    });
     return username + ':' + tk;
 }
 
@@ -38,10 +61,31 @@ export function loginUser(username: string, password: string): string {
  * Checks if an auth token is valid.
  * @param token The auth token
  * @returns The username of the user or null if the token is invalid
+ * @throws `FLOOD` if the user has made over 10 requests in the last second
  */
 export function checkAuthToken(token: string): string|null {
     const [username, tk] = token.split(':');
-    return loginTokens[username]?.includes(tk) ? username : null;
+    const login = logins[username]?.find(t => t.token === tk);
+    if(!login) {
+        return null;
+    }
+    if(login.lastRequest.getTime() + 1000 * 60 * 60 * 24 * 7 < new Date().getTime()) {
+        logins[username]= logins[username].filter(t => t !== login);
+        return null;
+    }
+    login.lastRequest= new Date();
+    login.flood++;
+    if(login.flood > 10) {
+        throw 'FLOOD';
+    }
+    setTimeout(()=>{
+        // Find the token again, because it may have moved in the array, or been removed
+        const login = logins[username]?.find(t => t.token === tk);
+        if(login) {
+            login.flood--;
+        }
+    }, 1000);
+    return username;
 }
 
 /**
@@ -51,8 +95,8 @@ export function checkAuthToken(token: string): string|null {
  */
 export function logOutSession(token: string): boolean {
     const [username, tk] = token.split(':');
-    if(loginTokens[username]?.includes(tk)) {
-        loginTokens[username]= loginTokens[username].filter(t => t !== tk);
+    if(logins[username]?.some(t => t.token === tk)) {
+        logins[username]= logins[username].filter(t => t.token !== tk);
         return true;
     }
     return false;
@@ -65,9 +109,10 @@ export function logOutSession(token: string): boolean {
  */
 export function logOutOtherSessions(token: string): number {
     const [username, tk] = token.split(':');
-    if(loginTokens[username]) {
-        const n= loginTokens[username].length - 1;
-        loginTokens[username]= loginTokens[username].filter(t => t === tk);
+    require24HoursSession(token);
+    if(logins[username]) {
+        const n= logins[username].length - 1;
+        logins[username]= logins[username].filter(t => t.token === tk);
         return n;
     }
     return 0;
@@ -75,7 +120,7 @@ export function logOutOtherSessions(token: string): number {
 
 export function getSessionsCount(token: string): number {
     const [username] = token.split(':');
-    return loginTokens[username]?.length || 0;
+    return logins[username]?.length || 0;
 }
 
 /**
@@ -85,13 +130,16 @@ export function getSessionsCount(token: string): number {
  * @param newP The new password
  * @returns True if oldP is valid and password was changed
  */
-export function changePassword(username: string, oldP: string, newP: string): boolean {
+export function changePassword(token: string, oldP: string, newP: string) {
+    const [username] = token.split(':');
+
     if(users[username] !== crypto.createHash('sha256').update(oldP).digest('hex')) {
-        return false;
+        throw 'PASSWORD_INCORRECT';
     }
+    require24HoursSession(token);
+
     users[username]= crypto.createHash('sha256').update(newP).digest('hex');
     saveUsers();
-    return true;
 }
 
 /**
@@ -105,14 +153,64 @@ export function changeUsername(token: string, newUsername: string): string|false
     if(!users[username] || users[newUsername]) {
         return false;
     }
+
+    require24HoursSession(token);
+
     users[newUsername]= users[username];
     delete users[username];
     saveUsers();
-    loginTokens[newUsername]= [tk];
-    delete loginTokens[username];
+    logins[newUsername]= [logins[username].find(t => t.token === tk)!];
+    delete logins[username];
     return `${newUsername}:${tk}`;
 }
 
 export function usernameExists(username: string): boolean {
     return !!users[username];
 }
+
+export function getSessions(token: string): HMApi.Session[] {
+    const [username, tk] = token.split(':');
+    return logins[username]?.map(t => ({
+        id: crypto.createHash('sha256').update(t.token).digest('hex'),
+        device: t.device,
+        lastUsedTime: t.lastRequest.getTime(),
+        loginTime: t.loginTime.getTime(),
+        ip: t.ip,
+        isCurrent: t.token === tk
+    })).sort((a,b) => {
+        if(a.isCurrent) return -1;
+        if(b.isCurrent) return 1;
+        return a.lastUsedTime - b.lastUsedTime;
+    }) || [];
+}
+
+export function terminateSession(token: string, sessionId: string) {
+    const [username] = token.split(':');
+
+    require24HoursSession(token);
+
+    for(const login of logins[username]) {
+        const id = crypto.createHash('sha256').update(login.token).digest('hex');
+        if(id === sessionId) {
+            logins[username]= logins[username].filter(t => t.token !== login.token);
+            return;
+        }
+    }
+    throw 'SESSION_NOT_FOUND';
+}
+
+/** @throws 'SESSION_TOO_NEW' */
+function require24HoursSession(token: string) {
+    const [username, tk] = token.split(':');
+
+    // If the username and password are both 'admin', skip the check. This is a special case for the first login.
+    if(username === 'admin' && users['admin'] === crypto.createHash('sha256').update('admin').digest('hex')) {
+        return;
+    }
+    
+    const session = logins[username]?.find(t => t.token === tk);
+    if (session && session.loginTime.getTime() + 1000 * 60 * 60 * 24 > new Date().getTime()) { // Check if 24 hours have passed since the login time
+        throw 'SESSION_TOO_NEW';
+    }
+}
+

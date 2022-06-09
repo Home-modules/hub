@@ -296,7 +296,8 @@ export const HMApi_Types: {
             properties: {
                 "type": { type: "exactValue", value: "account.login" },
                 "username": { type: "string" },
-                "password": { type: "string" }
+                "password": { type: "string" },
+                "device": { type: "string", minLength: 1 }
             }
         },
         "account.logout": {
@@ -315,6 +316,19 @@ export const HMApi_Types: {
             type: "object",
             properties: {
                 "type": { type: "exactValue", value: "account.getSessionsCount" }
+            }
+        },
+        "account.getSessions": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "account.getSessions" }
+            }
+        },
+        "account.logoutSession": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "account.logoutSession" },
+                "id": { type: "string" }
             }
         },
         "account.changePassword": {

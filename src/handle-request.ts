@@ -1,22 +1,37 @@
 import { HMApi } from "./api.js";
 import { checkType, HMApi_Types } from "./api_checkType.js";
-import { changePassword, changeUsername, checkAuthToken, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, usernameExists } from "./auth.js";
+import { changePassword, changeUsername, checkAuthToken, getSessions, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, terminateSession, usernameExists } from "./auth.js";
 import { addDevice, deleteDevice, editDevice, getDevices, getDeviceTypes, registeredDeviceTypes } from "./devices.js";
 import getFlatFields from "./flat-fields.js";
 import { addRoom, deleteRoom, editRoom, getRoomControllerTypes, getRooms, registeredRoomControllers, reorderRooms } from "./rooms.js";
 
-export default function handleRequest(token: string, req: HMApi.Request): HMApi.Response<HMApi.Request>|Promise<HMApi.Response<HMApi.Request>> {
+export default function handleRequest(token: string, req: HMApi.Request, ip: string): HMApi.Response<HMApi.Request>|Promise<HMApi.Response<HMApi.Request>> {
     let user: string;
     if(req.type!=="account.login") {
-        user = checkAuthToken(token)!;
-        if(!user) {
-            return {
-                type: "error",
-                error: {
-                    code: 401,
-                    message: "TOKEN_INVALID"
-                }
-            };
+        try {
+            user = checkAuthToken(token)!;
+            if(!user) {
+                return {
+                    type: "error",
+                    error: {
+                        code: 401,
+                        message: "TOKEN_INVALID"
+                    }
+                };
+            }
+        } catch (e) {
+            if(e === 'FLOOD') {
+                return {
+                    type: "error",
+                    error: {
+                        code: 429,
+                        message: "TOO_MANY_REQUESTS"
+                    }
+                };
+            }
+            else {
+                throw e;
+            }
         }
     } else {
         [user]= token.split(':');
@@ -40,7 +55,7 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
             const err= checkType(req, HMApi_Types.requests["account.login"]);
             if(err) { return { type: "error", error: err }; }
             try {
-                const tk= loginUser(req.username, req.password);
+                const tk= loginUser(req.username, req.password, req.device, ip);
                 return {
                     type: "ok",
                     data: {
@@ -86,12 +101,24 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
             };
 
         case 'account.logoutOtherSessions':
-            return {
-                type: "ok",
-                data: {
-                    sessions: logOutOtherSessions(token)
+            try {
+                return {
+                    type: "ok",
+                    data: {
+                        sessions: logOutOtherSessions(token)
+                    }
+                };
+            } catch (e) {
+                if(e === 'SESSION_TOO_NEW') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 403,
+                            message: "SESSION_TOO_NEW"
+                        }
+                    };
                 }
-            };
+            }
 
         case 'account.getSessionsCount':
             return {
@@ -101,23 +128,77 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                 }
             };
 
-        case 'account.changePassword': {
-            const err= checkType(req, HMApi_Types.requests["account.changePassword"]);
+        case 'account.getSessions':
+            return {
+                type: "ok",
+                data: {
+                    sessions: getSessions(token)
+                }
+            };
+
+        case 'account.logoutSession':
+            const err= checkType(req, HMApi_Types.requests["account.logoutSession"]);
             if(err) { return { type: "error", error: err }; }
-            if(changePassword(user, req.oldPassword, req.newPassword)) {
+
+            try {
+                terminateSession(token, req.id);
                 return {
                     type: "ok",
                     data: {}
                 };
+            } catch(err) {
+                if(err === 'SESSION_NOT_FOUND') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 404,
+                            message: "NOT_FOUND",
+                            object: "session"
+                        }
+                    };
+                } else if(err === 'SESSION_TOO_NEW') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 403,
+                            message: "SESSION_TOO_NEW",
+                        }
+                    };
+                } else {
+                    throw err;
+                }
             }
-            else {
+
+        case 'account.changePassword': {
+            const err= checkType(req, HMApi_Types.requests["account.changePassword"]);
+            if(err) { return { type: "error", error: err }; }
+
+            try {
+                changePassword(token, req.oldPassword, req.newPassword);
                 return {
-                    type: "error",
-                    error: {
-                        code: 401,
-                        message: "LOGIN_PASSWORD_INCORRECT"
-                    }
+                    type: "ok",
+                    data: {}
                 };
+            } catch(err) {
+                if(err === 'PASSWORD_INCORRECT') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 401,
+                            message: "LOGIN_PASSWORD_INCORRECT"
+                        }
+                    };
+                } else if(err === 'SESSION_TOO_NEW') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 403,
+                            message: "SESSION_TOO_NEW",
+                        }
+                    };
+                } else {
+                    throw err;
+                }
             }
         }
 
@@ -134,22 +215,36 @@ export default function handleRequest(token: string, req: HMApi.Request): HMApi.
                     }
                 };
             }
-            const newTk= changeUsername(token, req.username);
-            if(!newTk) {
+            try {
+                const newTk= changeUsername(token, req.username);
+                if(!newTk) {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 400,
+                            message: "USERNAME_ALREADY_TAKEN"
+                        }
+                    };
+                }
                 return {
-                    type: "error",
-                    error: {
-                        code: 400,
-                        message: "USERNAME_ALREADY_TAKEN"
+                    type: "ok",
+                    data: {
+                        token: newTk
                     }
                 };
-            }
-            return {
-                type: "ok",
-                data: {
-                    token: newTk
+            } catch(err) {
+                if(err === 'SESSION_TOO_NEW') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 403,
+                            message: "SESSION_TOO_NEW",
+                        }
+                    };
+                } else {
+                    throw err;
                 }
-            };
+            }
         }
 
         case 'account.checkUsernameAvailable': {

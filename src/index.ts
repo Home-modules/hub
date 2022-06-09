@@ -62,7 +62,7 @@ import { initRoomsDevices, shutDownRoomsDevices } from './rooms.js';
                 return;
             }
             try {
-                const result=handleRequest(token, json);
+                const result=handleRequest(token, json, req.socket.remoteAddress||'unknown');
                 function handleResult(result: HMApi.Response<HMApi.Request>){ 
                     if(result.type=='error' && (result.error.message=='LOGIN_PASSWORD_INCORRECT' || result.error.message=='TOKEN_INVALID')) {
                         // Delay a bit to prevent brute force attacks
