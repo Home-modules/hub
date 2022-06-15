@@ -19,6 +19,7 @@ export namespace HMApi {
      * Logs in to a hub account. 
      * A token is returned which must be passed to all future requests. 
      * (this is the only request that doesn't require an auth token, you can pass any value for it) 
+     * ---
      * @throws `LOGIN_USER_NOT_FOUND` if the user doesn't exist
      * @throws `LOGIN_PASSWORD_INCORRECT` if the password is incorrect
      */
@@ -72,6 +73,8 @@ export namespace HMApi {
 
     /** 
      * Changes the password of the current account. 
+     * 
+     * ---
      * @throws LOGIN_PASSWORD_INCORRECT if the current password is incorrect.
      */
     export type RequestChangePassword = {
@@ -86,6 +89,7 @@ export namespace HMApi {
      * Changes the username of the current account. 
      * A new token will be returned for future requests and the previous one will be invalidated. 
      * WARNING: This causes all other sessions to be logged out, because there is no way the new token can be sent to other sessions. 
+     * ---
      * @throws USERNAME_ALREADY_TAKEN if the username is already taken.
      * @throws USERNAME_TOO_SHORT if the username is shorter than 3 characters.
      */
@@ -120,6 +124,7 @@ export namespace HMApi {
      * Edits the properties of a room.
      * All properties except ID can be changed.
      * If the property `controllerType` is changed, the room will be restarted. (all devices will be turned off, the connection to the controller will be dropped and the room will be initialized again)
+     * ---
      * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
      */
     export type RequestEditRoom = {
@@ -139,6 +144,8 @@ export namespace HMApi {
 
     /**
      * Shuts down and removes a room from the house.
+     * 
+     * ---
      * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
      */
     export type RequestRemoveRoom = {
@@ -149,6 +156,8 @@ export namespace HMApi {
 
     /**
      * Changes the order of the rooms. The new ids must not have any new or deleted room IDs.
+     * 
+     * ---
      * @throws `ROOMS_NOT_EQUAL` if the passed IDs have new or deleted room IDs.
      */
     export type RequestChangeRoomOrder = {
@@ -167,6 +176,8 @@ export namespace HMApi {
 
     /**
      * Gets the items of a lazy-loading dropdown. (for room controller and device options)
+     * 
+     * ---
      * @throws `NOT_FOUND` with `object="controller"` if the controller doesn't exist
      * @throws `NOT_FOUND` with `object="deviceType"` if the device type doesn't exist
      * @throws `NOT_FOUND` with `object="field"` if the field doesn't exist
@@ -194,6 +205,8 @@ export namespace HMApi {
 
     /**
      * Gets the devices in a room.
+     * 
+     * ---
      * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
      */
     export type RequestGetDevices = {
@@ -204,6 +217,8 @@ export namespace HMApi {
 
     /**
      * Gets the device types for the given room controller type.
+     * 
+     * ---
      * @throws `NOT_FOUND` with `object="controller"` if the room controller doesn't exist
      */
     export type RequestGetDeviceTypes = {
@@ -214,6 +229,8 @@ export namespace HMApi {
 
     /**
      * Adds a new device to a room.
+     * 
+     * ---
      * @throws `DEVICE_ALREADY_EXISTS` if a device with the same ID already exists
      * @throws `NOT_FOUND` with `object="room"` if the room (to which the device is to be added) doesn't exist
      */
@@ -228,6 +245,8 @@ export namespace HMApi {
     /**
      * Edits the properties of a device.
      * All properties except ID can be changed.
+     * 
+     * ---
      * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
      * @throws `NOT_FOUND` with `object="room"` if the room (which contains the device) doesn't exist
      */
@@ -241,6 +260,8 @@ export namespace HMApi {
 
     /**
      * Removes a device from a room.
+     * 
+     * ---
      * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
      * @throws `NOT_FOUND` with `object="room"` if the room (which contains the device) doesn't exist
      */
