@@ -1,7 +1,7 @@
 import { HMApi } from "./api.js";
 import { checkType, HMApi_Types } from "./api_checkType.js";
 import { changePassword, changeUsername, checkAuthToken, getSessions, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, terminateSession, usernameExists } from "./auth.js";
-import { addDevice, deleteDevice, editDevice, getDevices, getDeviceTypes, registeredDeviceTypes } from "./devices.js";
+import { addDevice, deleteDevice, editDevice, getDevices, getDeviceTypes, registeredDeviceTypes, reorderDevices } from "./devices.js";
 import getFlatFields from "./flat-fields.js";
 import { addRoom, deleteRoom, editRoom, getRoomControllerTypes, getRooms, registeredRoomControllers, reorderRooms } from "./rooms.js";
 
@@ -608,6 +608,38 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     };
                 }
             });
+        }
+
+        case 'devices.changeDeviceOrder': {
+            const err= checkType(req, HMApi_Types.requests["devices.changeDeviceOrder"]);
+            if(err) { return { type: "error", error: err }; }
+
+            const res = reorderDevices(req.roomId, req.ids);
+            if(res === true) {
+                return {
+                    type: "ok",
+                    data: { }
+                };
+            }
+            if(res === 'devices_not_equal') {
+                return {
+                    type: "error",
+                    error: {
+                        code: 400,
+                        message: "DEVICES_NOT_EQUAL"
+                    }
+                };
+            }
+            if(res === 'room_not_found') {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND",
+                        object: "room"
+                    }
+                };
+            }
         }
 
         default:

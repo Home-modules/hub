@@ -469,7 +469,18 @@ export const HMApi_Types: {
                 "roomId": { type: "string" },
                 "id": { type: "string" }
             }
-        }
+        },
+        "devices.changeDeviceOrder": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "devices.changeDeviceOrder" },
+                "roomId": { type: "string" },
+                "ids": {
+                    type: "array",
+                    items: { type: "string" }
+                }
+            }
+        },
     },
     objects: {
         Room: {

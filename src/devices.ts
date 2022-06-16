@@ -133,3 +133,26 @@ export async function deleteDevice(roomId: string, deviceId: string): Promise<tr
     saveDevices();
     return true;
 }
+
+export function reorderDevices(roomId: string, ids: string[]): 'room_not_found'|'devices_not_equal'|true {
+    if(!(roomId in devices)) {
+        return 'room_not_found';
+    }
+    
+    const oldIds= Object.keys(devices[roomId]);
+
+    // Check if there are no added or removed devices
+    const added = ids.filter(id => !oldIds.includes(id));
+    const removed = oldIds.filter(id => !ids.includes(id));
+    if(added.length || removed.length) {
+        return 'devices_not_equal';
+    }
+
+    const newDevices: { [key: string]: HMApi.Device } = {};
+    ids.forEach(id => {
+        newDevices[id] = devices[roomId][id];
+    });
+    devices[roomId] = newDevices;
+    saveDevices();
+    return true;
+}

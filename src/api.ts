@@ -273,7 +273,22 @@ export namespace HMApi {
         id: string
     }
 
-    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestGetSessions | RequestLogoutSession | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestAddRoom | RequestRemoveRoom | RequestChangeRoomOrder | RequestGetRoomControllerTypes | RequestGetSelectFieldLazyLoadItems | RequestGetDevices | RequestGetDeviceTypes | RequestAddDevice | RequestEditDevice | RequestRemoveDevice;
+    /**
+     * Changes the order of the devices in a room. The new ids must not have any new or deleted device IDs.
+     * 
+     * ---
+     * @throws `NOT_FOUND` with `object="room"` if the room was not found.
+     * @throws `DEVICES_NOT_EQUAL` if the passed IDs have new or deleted device IDs. 
+     */
+    export type RequestChangeDeviceOrder = {
+        type: "devices.changeDeviceOrder",
+        /** The ID of the room in which the devices are */
+        roomId: string,
+        /** The new order of the devices */
+        ids: string[]
+    }
+
+    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestGetSessions | RequestLogoutSession | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestAddRoom | RequestRemoveRoom | RequestChangeRoomOrder | RequestGetRoomControllerTypes | RequestGetSelectFieldLazyLoadItems | RequestGetDevices | RequestGetDeviceTypes | RequestAddDevice | RequestEditDevice | RequestRemoveDevice | RequestChangeDeviceOrder;
 
 
     /** Nothing is returned */
@@ -353,6 +368,7 @@ export namespace HMApi {
         R extends RequestAddDevice ? ResponseEmpty :
         R extends RequestEditDevice ? ResponseEmpty :
         R extends RequestRemoveDevice ? ResponseEmpty :
+        R extends RequestChangeDeviceOrder ? ResponseEmpty :
         never;
 
 
@@ -497,6 +513,14 @@ export namespace HMApi {
     };
 
     /**
+     * The passed device IDs have new or deleted device IDs.
+     */
+    export type RequestErrorDevicesNotEqual = {
+        code: 400,
+        message: "DEVICES_NOT_EQUAL"
+    };
+
+    /**
      * The settings field is not a lazy-loading dropdown.
      */
     export type RequestErrorFieldNotLazySelect = {
@@ -545,6 +569,7 @@ export namespace HMApi {
         R extends RequestAddDevice ? RequestErrorDeviceAlreadyExists | RequestErrorNotFound<"room"> | RequestErrorPluginCustomError :
         R extends RequestEditDevice ? RequestErrorNotFound<"device"|"room"> | RequestErrorPluginCustomError :
         R extends RequestRemoveDevice ? RequestErrorNotFound<"device"|"room"> :
+        R extends RequestChangeDeviceOrder ? RequestErrorNotFound<"room"> | RequestErrorDevicesNotEqual :
         never
     ) | (
         [R extends R ? keyof Omit<R, 'type'>: never ][0] extends never ? never : (RequestErrorMissingParameter<R> | RequestErrorInvalidParameter<R> | RequestErrorParameterOutOfRange<R>)
