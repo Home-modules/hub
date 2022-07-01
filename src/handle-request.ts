@@ -6,11 +6,10 @@ import getFlatFields from "./flat-fields.js";
 import { addRoom, deleteRoom, editRoom, getRoomControllerTypes, getRooms, registeredRoomControllers, reorderRooms } from "./rooms.js";
 
 export default function handleRequest(token: string, req: HMApi.Request, ip: string): HMApi.Response<HMApi.Request>|Promise<HMApi.Response<HMApi.Request>> {
-    let user: string;
     if(req.type!=="account.login") {
         try {
-            user = checkAuthToken(token)!;
-            if(!user) {
+            const tk = checkAuthToken(token)!;
+            if(!tk) {
                 return {
                     type: "error",
                     error: {
@@ -33,8 +32,6 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 throw e;
             }
         }
-    } else {
-        [user]= token.split(':');
     }
     switch( req.type ) {
         case "empty":
@@ -253,7 +250,7 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
             return {
                 type: "ok",
                 data: {
-                    available: !usernameExists(req.username)
+                    available: !usernameExists(token, req.username)
                 }
             };
         }

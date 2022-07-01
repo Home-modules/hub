@@ -37,8 +37,9 @@ function saveUsers() {
  * @param ip The IP address of the user
  * @returns An auth token for the user
  */
-export function loginUser(username: string, password: string, device: string, ip: string): string {
-    if(!users[username]) {
+export function loginUser(username: string|undefined, password: string, device: string, ip: string): string {
+    username = Object.keys(users).find(u=> u.toLowerCase() == username?.toLowerCase());
+    if(!(username && users[username])) {
         throw new Error('USER_NOT_FOUND');
     }
     if(users[username] !== crypto.createHash('sha256').update(password).digest('hex')) {
@@ -150,7 +151,7 @@ export function changePassword(token: string, oldP: string, newP: string) {
  */
 export function changeUsername(token: string, newUsername: string): string|false {
     const [username, tk] = token.split(':');
-    if(!users[username] || users[newUsername]) {
+    if((!users[username]) || usernameExists(token, newUsername)) {
         return false;
     }
 
@@ -164,8 +165,21 @@ export function changeUsername(token: string, newUsername: string): string|false
     return `${newUsername}:${tk}`;
 }
 
-export function usernameExists(username: string): boolean {
-    return !!users[username];
+/**
+ * Checks if a username is taken.
+ * 
+ * The case variations of another user's username are all considered taken, while for one's own username, case variations are considered free.
+ * @param token The toke of the user who performed the request
+ * @param username The username to be checked
+ * @returns False if the username is free, true if the username is taken
+ */
+export function usernameExists(token: string, username: string): boolean {
+    const [requester] = token.split(':');
+    if(requester.toLowerCase() === username.toLowerCase()) {
+        return !!users[username];
+    } else {
+        return Object.keys(users).some(u=> u.toLowerCase() == username?.toLowerCase());
+    }
 }
 
 export function getSessions(token: string): HMApi.Session[] {
@@ -204,7 +218,7 @@ function require24HoursSession(token: string) {
     const [username, tk] = token.split(':');
 
     // If the username and password are both 'admin', skip the check. This is a special case for the first login.
-    if(username === 'admin' && users['admin'] === crypto.createHash('sha256').update('admin').digest('hex')) {
+    if(username.toLowerCase() === 'admin' && users[username] === crypto.createHash('sha256').update('admin').digest('hex')) {
         return;
     }
     
