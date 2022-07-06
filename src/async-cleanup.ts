@@ -9,6 +9,9 @@
  * I understand how it works.
  */
 
+import { Log } from "./log.js";
+const log = new Log('async-cleanup.ts');
+
 type BeforeShutdownListener = (signalOrEvent?: string) => Promise<void>;
 
 /**
@@ -44,7 +47,8 @@ function forceExitAfter(timeout: number) {
     return () => {
         setTimeout(() => {
             // Force shutdown after timeout
-            console.warn(`Shutting down took longer than ${timeout}ms, forcing shutdown`);
+            console.warn(`Shutting down took longer than ${timeout}ms, forcing shutdown.`);
+            log.w(`Shutting down took longer than ${timeout}ms, forcing shutdown.`);
             return process.exit(1);
         }, timeout).unref();
     };
@@ -58,10 +62,13 @@ function forceExitAfter(timeout: number) {
  */
 async function shutdownHandler(signalOrEvent: string) {
     console.warn('Shutting down');
+    log.w('Shutting down, event:', signalOrEvent);
 
     for (const listener of shutdownListeners) {
         await listener(signalOrEvent);
     }
+
+    log.w('Shutdown complete');
 
     return process.exit(0);
 }

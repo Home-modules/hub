@@ -1,8 +1,10 @@
 import fs from 'fs';
 import SerialPort from 'serialport';
 import { HMApi } from './api.js';
-import { DeviceTypeDef, registerDeviceType } from './devices.js';
-import { registerRoomController } from './rooms.js';
+import { DeviceInstance, DeviceTypeClass, registerDeviceType } from './devices.js';
+import { Log } from './log.js';
+import { registerRoomController, RoomControllerInstance } from './rooms.js';
+const log = new Log('plugins');
 
 export async function initPlugins() {
     if(fs.existsSync('../data/plugins.json')) {
@@ -17,9 +19,10 @@ function savePlugins(plugins: string[]) {
     fs.writeFile('../data/plugins.json', JSON.stringify(plugins), ()=>undefined);
 }
 
-const deviceTypesToRegister: DeviceTypeDef[] = [];
+const deviceTypesToRegister: DeviceTypeClass[] = [];
 
 async function registerPlugins(plugins: string[]) {
+    log.i('Plugins', plugins.join(', '));
     for(const name of plugins) {
         let pluginPath: string;
         if(fs.existsSync(`../data/plugins/${name}`)) {
@@ -31,7 +34,9 @@ async function registerPlugins(plugins: string[]) {
         } else {
             throw new Error(`Failed to load plugin '${name}': Plugin directory not found`);
         }
+        log.d("Plugin found at", pluginPath);
         const plugin = await import(pluginPath);
+        log.d("Plugin file loaded");
         if(!(typeof plugin == 'object')) {
             throw new Error(`Failed to load plugin '${name}': Importing plugin main file went wrong`);
         }
@@ -39,10 +44,13 @@ async function registerPlugins(plugins: string[]) {
             throw new Error(`Failed to load plugin '${name}': Plugin main file has no default export or its default export is not a function`);
         }
         plugin.default(PluginApi);
+        log.d("Plugin run");
     }
+    log.i('Registered plugins');
     for(const deviceType of deviceTypesToRegister) {
         registerDeviceType(deviceType);
     }
+    log.i('Registered device types');
 }
 
 const PluginApi= {
@@ -51,7 +59,7 @@ const PluginApi= {
      * **NOTE: Device types are not registered immediately, but after all plugins are loaded, because they depend on room controller types that may not be registered yet.**
      * @param def The device information.
      */
-    registerDeviceType(def: DeviceTypeDef) {
+    registerDeviceType(def: DeviceTypeClass) {
         deviceTypesToRegister.push(def);
     },
     /**
@@ -62,7 +70,19 @@ const PluginApi= {
     /**
      * The SerialPort class from the 'serialport' npm package
      */
-    SerialPort
+    SerialPort,
+    /**
+     * The RoomControllerInstance class.
+     */
+    RoomControllerInstance,
+    /**
+     * The DeviceInstance class.
+     */
+    DeviceInstance,
+    /**
+     * A class for logging
+     */
+    Log,
 };
 
 export type PluginApi = typeof PluginApi;

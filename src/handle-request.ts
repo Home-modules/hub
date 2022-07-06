@@ -4,6 +4,7 @@ import { changePassword, changeUsername, checkAuthToken, getSessions, getSession
 import { addDevice, deleteDevice, editDevice, getDevices, getDeviceTypes, registeredDeviceTypes, reorderDevices } from "./devices.js";
 import getFlatFields from "./flat-fields.js";
 import { addRoom, deleteRoom, editRoom, getRoomControllerTypes, getRooms, registeredRoomControllers, reorderRooms } from "./rooms.js";
+import version from "./version.js";
 
 export default function handleRequest(token: string, req: HMApi.Request, ip: string): HMApi.Response<HMApi.Request>|Promise<HMApi.Response<HMApi.Request>> {
     if(req.type!=="account.login") {
@@ -44,7 +45,7 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
             return {
                 type: "ok",
                 data: {
-                    version: "0.0.1"
+                    version
                 }
             };
 
@@ -478,9 +479,9 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
             return {
                 type: "ok",
                 data: {
-                    types: getDeviceTypes(req.controllerType).map((type): HMApi.DeviceType=> ({
+                    types: Object.values(getDeviceTypes(req.controllerType)).map((type): HMApi.DeviceType=> ({
                         id: type.id,
-                        name: type.name,
+                        name: type.super_name,
                         sub_name: type.sub_name,
                         settings: type.settingsFields,
                         icon: type.icon
