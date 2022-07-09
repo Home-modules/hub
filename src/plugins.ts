@@ -1,5 +1,5 @@
 import fs from 'fs';
-import SerialPort from 'serialport';
+import { SerialPort } from 'serialport';
 import { HMApi } from './api.js';
 import { DeviceInstance, DeviceTypeClass, registerDeviceType } from './devices.js';
 import { Log } from './log.js';

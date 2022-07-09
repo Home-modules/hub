@@ -71,9 +71,10 @@ export default function (api: PluginApi) {
         constructor(properties: HMApi.Room) {
             super(properties);
 
-            this.serialPort = new api.SerialPort(properties.controllerType.settings.port as string, {
+            this.serialPort = new api.SerialPort({
+                path: properties.controllerType.settings.port as string,
                 baudRate: properties.controllerType.settings.baudrate as number,
-                autoOpen: false
+                autoOpen: false,
             });
         }
 
@@ -183,11 +184,9 @@ export default function (api: PluginApi) {
             if(serial.isOpen) {
                 return new Promise<void>((resolve) => {
                     logLightStandard.i('Initializing pin', pin, port);
-                    serial.write([arduinoCommands.pinMode, pin, 1], (error, bytesWritten)=> {
+                    serial.write([arduinoCommands.pinMode, pin, 1], error=> {
                         if(error) {
                             this.disable(error.message);
-                        } else if (bytesWritten!==3) {
-                            this.disable(`The number of bytes written to ${port} was ${bytesWritten}, expected 3`);
                         }
                         resolve();
                     });
