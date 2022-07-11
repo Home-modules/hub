@@ -3,7 +3,7 @@ import { checkType, HMApi_Types } from "./api_checkType.js";
 import { changePassword, changeUsername, checkAuthToken, getSessions, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, terminateSession, usernameExists } from "./auth.js";
 import { addDevice, deleteDevice, editDevice, getDevices, getDeviceTypes, registeredDeviceTypes, reorderDevices } from "./devices.js";
 import getFlatFields from "./flat-fields.js";
-import { addRoom, deleteRoom, editRoom, getRoomControllerTypes, getRooms, registeredRoomControllers, reorderRooms } from "./rooms.js";
+import { addRoom, deleteRoom, editRoom, getRoomControllerTypes, getRooms, registeredRoomControllers, reorderRooms, restartRoom, roomControllerInstances } from "./rooms.js";
 import version from "./version.js";
 
 export default function handleRequest(token: string, req: HMApi.Request, ip: string): HMApi.Response<HMApi.Request>|Promise<HMApi.Response<HMApi.Request>> {
@@ -366,6 +366,29 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
             }
         }
 
+        case 'rooms.restartRoom': {
+            const err= checkType(req, HMApi_Types.requests["rooms.restartRoom"]);
+            if(err) { return { type: "error", error: err }; }
+
+            return restartRoom(req.id).then(success=> {
+                if(success) {
+                    return {
+                        type: "ok",
+                        data: {}
+                    };
+                } else {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 404,
+                            message: "NOT_FOUND",
+                            object: "room"
+                        }
+                    };
+                }
+            });
+        }
+
         case 'rooms.controllers.getRoomControllerTypes':
             return {
                 type: "ok",
@@ -639,6 +662,27 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 };
             }
         }
+
+        case 'rooms.getRoomStates':
+            return {
+                type: "ok",
+                data: {
+                    states: Object.fromEntries(Object.keys(getRooms()).map(key=> [key, roomControllerInstances[key]] as const).map(([id, instance])=> [id, (
+                        instance.disabled === false ? {
+                            disabled: false,
+                            id: instance.id,
+                            name: instance.name,
+                            icon: instance.icon
+                        } : {
+                            disabled: true,
+                            error: instance.disabled,
+                            id: instance.id,
+                            name: instance.name,
+                            icon: instance.icon
+                        }
+                    )]))
+                }
+            };
 
         default:
             return {

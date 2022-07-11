@@ -175,6 +175,19 @@ export function reorderRooms(ids: string[]): boolean {
     return true;
 }
 
+export async function restartRoom(id: string): Promise<boolean> {
+    if (!rooms[id]) {
+        return false;
+    }
+    if(roomControllerInstances[id]) {
+        await roomControllerInstances[id].dispose();
+        delete roomControllerInstances[id];
+    }
+    roomControllerInstances[id] = new registeredRoomControllers[rooms[id].controllerType.type](rooms[id]);
+    await roomControllerInstances[id].init();
+    return true;
+}
+
 
 export const registeredRoomControllers: Record<string, RoomControllerClass> = {};
 

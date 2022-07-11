@@ -396,6 +396,13 @@ export const HMApi_Types: {
                 }
             }
         },
+        "rooms.restartRoom": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "rooms.restartRoom" },
+                "id": { type: "string" }
+            }
+        },
         "rooms.controllers.getRoomControllerTypes": {
             type: "object",
             properties: {
@@ -481,6 +488,12 @@ export const HMApi_Types: {
                 }
             }
         },
+        "rooms.getRoomStates": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "rooms.getRoomStates" }
+            }
+        }
     },
     objects: {
         Room: {

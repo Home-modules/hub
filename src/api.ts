@@ -166,6 +166,18 @@ export namespace HMApi {
         ids: string[]
     }
 
+    /**
+     * Restarts a room.
+     * 
+     * ---
+     * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
+     */
+    export type RequestRestartRoom = {
+        type: "rooms.restartRoom",
+        /** The ID of the room to restart */
+        id: string
+    }
+
 
     /**
      * Gets the available room controller types.
@@ -288,7 +300,14 @@ export namespace HMApi {
         ids: string[]
     }
 
-    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestGetSessions | RequestLogoutSession | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestAddRoom | RequestRemoveRoom | RequestChangeRoomOrder | RequestGetRoomControllerTypes | RequestGetSelectFieldLazyLoadItems | RequestGetDevices | RequestGetDeviceTypes | RequestAddDevice | RequestEditDevice | RequestRemoveDevice | RequestChangeDeviceOrder;
+    /**
+     * Gets the current state of the rooms
+     */
+    export type RequestGetRoomStates = {
+        type: "rooms.getRoomStates"
+    }
+
+    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestGetSessions | RequestLogoutSession | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestAddRoom | RequestRemoveRoom | RequestChangeRoomOrder | RequestRestartRoom | RequestGetRoomControllerTypes | RequestGetSelectFieldLazyLoadItems | RequestGetDevices | RequestGetDeviceTypes | RequestAddDevice | RequestEditDevice | RequestRemoveDevice | RequestChangeDeviceOrder | RequestGetRoomStates;
 
 
     /** Nothing is returned */
@@ -344,6 +363,11 @@ export namespace HMApi {
         types: DeviceType[]
     }
 
+    export type ResponseRoomStates = {
+        /** The current state of the rooms */
+        states: Record<string, RoomState>
+    }
+
     export type ResponseData<R extends Request> = 
         R extends RequestEmpty ? ResponseEmpty :
         R extends RequestGetVersion ? ResponseGetVersion :
@@ -361,6 +385,7 @@ export namespace HMApi {
         R extends RequestAddRoom ? ResponseEmpty :
         R extends RequestRemoveRoom ? ResponseEmpty :
         R extends RequestChangeRoomOrder ? ResponseEmpty :
+        R extends RequestRestartRoom ? ResponseEmpty :
         R extends RequestGetRoomControllerTypes ? ResponseGetRoomControllerTypes :
         R extends RequestGetSelectFieldLazyLoadItems ? ResponseSelectFieldItems :
         R extends RequestGetDevices ? ResponseGetDevices :
@@ -369,6 +394,7 @@ export namespace HMApi {
         R extends RequestEditDevice ? ResponseEmpty :
         R extends RequestRemoveDevice ? ResponseEmpty :
         R extends RequestChangeDeviceOrder ? ResponseEmpty :
+        R extends RequestGetRoomStates ? ResponseRoomStates :
         never;
 
 
@@ -562,6 +588,7 @@ export namespace HMApi {
         R extends RequestAddRoom ? RequestErrorRoomAlreadyExists | RequestErrorPluginCustomError :
         R extends RequestRemoveRoom ? RequestErrorNotFound<"room"> :
         R extends RequestChangeRoomOrder ? RequestErrorRoomsNotEqual :
+        R extends RequestRestartRoom ? RequestErrorNotFound<"room"> :
         R extends RequestGetRoomControllerTypes ? never :
         R extends RequestGetSelectFieldLazyLoadItems ? RequestErrorNotFound<"controller"|"deviceType"|"field"> | RequestErrorFieldNotLazySelect | RequestErrorPluginCustomError :
         R extends RequestGetDevices ? RequestErrorNotFound<"room"> :
@@ -570,6 +597,7 @@ export namespace HMApi {
         R extends RequestEditDevice ? RequestErrorNotFound<"device"|"room"> | RequestErrorPluginCustomError :
         R extends RequestRemoveDevice ? RequestErrorNotFound<"device"|"room"> :
         R extends RequestChangeDeviceOrder ? RequestErrorNotFound<"room"> | RequestErrorDevicesNotEqual :
+        R extends RequestGetRoomStates ? never :
         never
     ) | (
         [R extends R ? keyof Omit<R, 'type'>: never ][0] extends never ? never : (RequestErrorMissingParameter<R> | RequestErrorInvalidParameter<R> | RequestErrorParameterOutOfRange<R>)
@@ -677,6 +705,26 @@ export namespace HMApi {
         params: {
             [key: string]: string|number|boolean,
         },
+    }
+
+    /**
+     * The current state of a room.
+     */
+    export type RoomState = ({
+        /** Whether the room is disabled because of a failure */
+        disabled: true,
+        /** The error message */
+        error: string,
+    } | {
+        /** Whether the room is disabled because of a failure */
+        disabled: false,
+    }) & {
+        /** The room's ID, usually a more machine-friendly version of `name` */
+        id: string,
+        /** The room's name, e.g. "Living Room" */
+        name: string,
+        /** The icon to show for the room */
+        icon: Room['icon']
     }
 
     /**
