@@ -11,7 +11,12 @@ function log(level: string, component: string, ...args: any[]) {
             return;
         }
         const info = `${new Date().toISOString()} ${component} [${level}] `;
-        logStream?.write(`${info}${args.map(arg => (typeof arg === 'string')? arg : JSON.stringify(arg, undefined, 2)).join(' ').split('\n').map((l, i)=> i==0? l : ' '.repeat(info.length)+l).join('\n')}\n`);
+        logStream?.write(`${info}${
+            args.map(arg => 
+                (typeof arg === 'string')? arg : ((arg instanceof Error) ? String(arg) : JSON.stringify(arg, undefined, 2) )
+            ).join(' ')
+                .split('\n').map((l, i)=> i==0? l : ' '.repeat(info.length)+l).join('\n')
+        }\n`);
     }
 }
 
