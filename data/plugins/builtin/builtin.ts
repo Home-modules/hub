@@ -80,7 +80,10 @@ export default function (api: PluginApi) {
 
         async init() {
             this.serialPort.on('close', ()=> {
-                this.disable("Serial port closed");
+                logArduinoSerial.w('Serial port closed', this.initialized);
+                if(this.initialized) {
+                    this.disable("Serial port closed");
+                }
             });
             await new Promise<void>((resolve)=> {
                 this.serialPort.open((error) => {
@@ -173,16 +176,18 @@ export default function (api: PluginApi) {
             if(c instanceof ArduinoSerialController) {
                 return c;
             } else {
-                throw new Error("Room controller is not an ArduinoSerialController");
+                throw new Error("Room controller is not an ArduinoSerialController"); // This error will crash hub. The reason for doing this is that things have gone too wrong for other means of error handling to be used.
             }
         }
 
-        async onInit() {
+        async init() {
+            super.init();
+
             const port = this.roomController.settings.port as string;
             const pin = this.settings.pin as number;
             const serial = this.roomController.serialPort;
             if(serial.isOpen) {
-                return new Promise<void>((resolve) => {
+                await new Promise<void>((resolve) => {
                     logLightStandard.i('Initializing pin', pin, port);
                     serial.write([arduinoCommands.pinMode, pin, 1], error=> {
                         if(error) {
