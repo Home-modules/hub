@@ -1,6 +1,6 @@
 import { HMApi } from "./api.js";
 import { SettingsFieldDef } from "./plugins.js";
-import { getRoom, roomControllerInstances } from "./rooms.js";
+import { getRoom, NonAbstractClass, roomControllerInstances } from "./rooms.js";
 import fs from "fs";
 import { Log } from "./log.js";
 const log = new Log("devices");
@@ -83,17 +83,7 @@ export function registerDeviceType(def: DeviceTypeClass) {
     registeredDeviceTypes[def.forRoomController][def.id] = def;
 }
 
-export type DeviceTypeClass =  (new (properties: HMApi.Device, roomId: string) => DeviceInstance) & { 
-    id: `${string}:${string}`,
-    super_name: string,
-    sub_name: string,
-    icon: HMApi.IconName,
-    /** The room controller with which the device is compatible with. If it ends with `:*` (like `test:*`), the device is considered compatible with all subtypes. */
-    forRoomController: `${string}:*`|`${string}:${string}`,
-    /** A list of fields for the device in the edit page */
-    settingsFields: SettingsFieldDef[],
-    validateSettings: (typeof DeviceInstance)['validateSettings'] 
-};
+export type DeviceTypeClass =  NonAbstractClass<typeof DeviceInstance>
 
 export function getDeviceTypes(controllerType: string) {
     const [superType] = controllerType.split(":");

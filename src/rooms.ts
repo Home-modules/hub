@@ -64,6 +64,8 @@ export abstract class RoomControllerInstance {
     }
 }
 
+export type NonAbstractClass<T extends abstract new (...args: any)=>any> = Omit<T, 'prototype'> & (new (...args: ConstructorParameters<T>) => InstanceType<T>);
+
 let rooms: { [id: string]: HMApi.Room } = {};
 export let roomControllerInstances: { [id: string]: RoomControllerInstance } = {};
 
@@ -176,14 +178,7 @@ export function reorderRooms(ids: string[]): boolean {
 
 export const registeredRoomControllers: Record<string, RoomControllerClass> = {};
 
-export type RoomControllerClass = (new (properties: HMApi.Room) => RoomControllerInstance) & { 
-    validateSettings: (typeof RoomControllerInstance)['validateSettings'],
-    id: `${string}:${string}`,
-    super_name: string,
-    sub_name: string,
-    /** A list of fields for the room controller in the room edit page */
-    settingsFields: SettingsFieldDef[],
-}
+export type RoomControllerClass = NonAbstractClass<typeof RoomControllerInstance>;
 
 export function registerRoomController(def: RoomControllerClass) {
     registeredRoomControllers[def.id] = def;
