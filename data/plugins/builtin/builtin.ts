@@ -115,29 +115,6 @@ export default function (api: PluginApi) {
     }
 
     api.registerRoomController(ArduinoSerialController);
-    // onInit: (room)=> {
-    //     openSerialPorts[room.id] = new api.SerialPort(room.controllerType.settings.port as string, {
-    //         baudRate: room.controllerType.settings.baudrate as number,
-    //         autoOpen: false
-    //     });
-    //     return new Promise((resolve, reject)=> {
-    //         openSerialPorts[room.id].open((error) => {
-    //             console.log('done opening');
-    //             if(error) reject(error); else resolve();
-    //         });
-    //     });
-    // },
-    // onBeforeShutdown: (room)=> {
-    //     openSerialPorts[room.id].close();
-    //     delete openSerialPorts[room.id];
-    // },
-    // onValidateSettings: async (values)=> {
-    //     const port = values["port"] as string;
-    //     const ports = (await api.SerialPort.list()).map(p=>p.path);
-    //     if(!ports.includes(port)) {
-    //         return "Port does not exist / is disconnected";
-    //     }
-    // },
 
     class LightStandardDevice extends (api.DeviceInstance) {
         static id: `${string}:${string}` = "light:standard";
@@ -203,29 +180,4 @@ export default function (api: PluginApi) {
     }
 
     api.registerDeviceType(LightStandardDevice);
-    // onValidateSettings: ()=>undefined,
-    // onInit: (device, room)=> {
-    //     const port = room.controllerType.settings.port as string;
-    //     const pin = device.params.pin as number;
-    //     const serial = openSerialPorts[room.id];
-    //     console.log('init light');
-    //     if(serial?.isOpen) {
-    //         return new Promise((resolve, reject) => {
-    //             serial.write([arduinoCommands.pinMode, pin, 1], (error, bytesWritten)=> {
-    //                 if(error) {
-    //                     reject(error);
-    //                 // } else if (bytesWritten!==3) {
-    //                 //     reject(`The number of bytes written to ${port} was ${bytesWritten}, expected 3`);
-    //                 } else {
-    //                     resolve();
-    //                 }
-    //             });
-    //         });
-    //     } else {
-    //         throw new Error(`Port ${port} is closed`);
-    //     }
-    // },
-    // onBeforeShutdown: ()=> {
-    //     //
-    // },
 }

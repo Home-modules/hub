@@ -90,43 +90,6 @@ export function getDeviceTypes(controllerType: string) {
     return {...registeredDeviceTypes[controllerType], ...registeredDeviceTypes[superType + ":*"]};
 }
 
-// export async function initDevice(roomId: string, id: string) {
-//     const room = getRoom(roomId) as HMApi.Room;
-//     const device = devices[roomId][id];
-//     const deviceTypes = {
-//         ...registeredDeviceTypes[room.controllerType.type],
-//         ...registeredDeviceTypes[room.controllerType.type.split(':')[0] + ":*"],
-//     };
-//     try {
-//         await deviceTypes[device.type].onInit(device, room);
-//     } catch(err) {
-//         disabledDevices[roomId] ||= {};
-//         disabledDevices[roomId][id] = String(err);
-//     }
-// }
-
-// export async function shutDownDevice(roomId: string, id: string) {
-//     if(disabledDevices[roomId]?.[id]) {
-//         return; // Disabled devices are uninitialized
-//     }
-//     const room = getRoom(roomId) as HMApi.Room;
-//     const device = devices[roomId][id];
-//     const deviceTypes = {
-//         ...registeredDeviceTypes[room.controllerType.type],
-//         ...registeredDeviceTypes[room.controllerType.type.split(':')[0] + ":*"],
-//     };
-//     await deviceTypes[device.type].onBeforeShutdown(device, room);
-// }
-
-// function validateOptions(roomId: string, deviceType: string, options: Record<string, string | number | boolean>) {
-//     const room = getRoom(roomId) as HMApi.Room;
-//     const deviceTypes = {
-//         ...registeredDeviceTypes[room.controllerType.type],
-//         ...registeredDeviceTypes[room.controllerType.type.split(':')[0] + ":*"],
-//     };
-//     return deviceTypes[deviceType].onValidateSettings(options);
-// }
-
 export async function addDevice(roomId: string, device: HMApi.Device): Promise<true | "room_not_found" | "device_exists"|string> {
     if(!getRoom(roomId)) return 'room_not_found'; // Check if room exists
 

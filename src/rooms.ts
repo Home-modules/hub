@@ -85,20 +85,6 @@ export function getRoom(id: string): HMApi.Room | undefined {
     return rooms[id];
 }
 
-// export async function shutDownRoom(id: string) {
-//     if(disabledRooms[id]) {
-//         return; // Disabled rooms are not initialized
-//     }
-//     const room= rooms[id];
-//     if(devices[id]) {
-//         for(const deviceId in devices[id]) {
-//             await shutDownDevice(id, deviceId);
-//         }
-//     }
-//     await registeredRoomControllers[room.controllerType.type].onBeforeShutdown(room);
-//     disabledRooms[id] = undefined;
-// }
-
 
 export async function editRoom(room: HMApi.Room): Promise<boolean|string> {
     const { id } = room;
