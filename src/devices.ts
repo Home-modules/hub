@@ -10,8 +10,8 @@ export abstract class DeviceInstance {
     static super_name: string;
     static sub_name: string;
     static icon: HMApi.IconName;
-    /** The room controller with which the device is compatible with. If it ends with `:*` (like `test:*`), the device is considered compatible with all subtypes. */
-    static forRoomController: `${string}:*`|`${string}:${string}`;
+    /** The room controller with which the device is compatible with. If it ends with `:*` (like `test:*`), the device is considered compatible with all subtypes. If it is `*`, the device is considered compatible with all room controller types. */
+    static forRoomController: `${string}:*`|`${string}:${string}`|'*';
     /** A list of fields for the device in the edit page */
     static settingsFields: SettingsFieldDef[];
 
@@ -87,7 +87,7 @@ export type DeviceTypeClass =  NonAbstractClass<typeof DeviceInstance>
 
 export function getDeviceTypes(controllerType: string) {
     const [superType] = controllerType.split(":");
-    return {...registeredDeviceTypes[controllerType], ...registeredDeviceTypes[superType + ":*"]};
+    return {...registeredDeviceTypes[controllerType], ...registeredDeviceTypes[superType + ":*"], ...registeredDeviceTypes['*']};
 }
 
 export async function addDevice(roomId: string, device: HMApi.Device): Promise<true | "room_not_found" | "device_exists"|string> {
