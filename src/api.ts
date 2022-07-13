@@ -307,7 +307,35 @@ export namespace HMApi {
         type: "rooms.getRoomStates"
     }
 
-    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestGetSessions | RequestLogoutSession | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestAddRoom | RequestRemoveRoom | RequestChangeRoomOrder | RequestRestartRoom | RequestGetRoomControllerTypes | RequestGetSelectFieldLazyLoadItems | RequestGetDevices | RequestGetDeviceTypes | RequestAddDevice | RequestEditDevice | RequestRemoveDevice | RequestChangeDeviceOrder | RequestGetRoomStates;
+    /**
+     * Gets the current state of the devices in a room
+     * 
+     * ---
+     * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
+     */
+    export type RequestGetDeviceStates = {
+        type: "devices.getDeviceStates",
+        /** Room ID */
+        roomId: string
+    }
+
+    /**
+     * Toggles the main toggle of a device.
+     * 
+     * ---
+     * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
+     * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
+     * @throws `NO_MAIN_TOGGLE` if the device doesn't have a main toggle
+     */
+    export type RequestToggleDeviceMainToggle = {
+        type: "devices.toggleDeviceMainToggle",
+        /** Room ID */
+        roomId: string,
+        /** Device ID */
+        id: string
+    }
+
+    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestGetSessions | RequestLogoutSession | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestAddRoom | RequestRemoveRoom | RequestChangeRoomOrder | RequestRestartRoom | RequestGetRoomControllerTypes | RequestGetSelectFieldLazyLoadItems | RequestGetDevices | RequestGetDeviceTypes | RequestAddDevice | RequestEditDevice | RequestRemoveDevice | RequestChangeDeviceOrder | RequestGetRoomStates | RequestGetDeviceStates | RequestToggleDeviceMainToggle;
 
 
     /** Nothing is returned */
@@ -368,6 +396,11 @@ export namespace HMApi {
         states: Record<string, RoomState>
     }
 
+    export type ResponseDeviceStates = {
+        /** The current state of the devices in the room */
+        states: Record<string, DeviceState>
+    }
+
     export type ResponseData<R extends Request> = 
         R extends RequestEmpty ? ResponseEmpty :
         R extends RequestGetVersion ? ResponseGetVersion :
@@ -395,6 +428,8 @@ export namespace HMApi {
         R extends RequestRemoveDevice ? ResponseEmpty :
         R extends RequestChangeDeviceOrder ? ResponseEmpty :
         R extends RequestGetRoomStates ? ResponseRoomStates :
+        R extends RequestGetDeviceStates ? ResponseDeviceStates :
+        R extends RequestToggleDeviceMainToggle ? ResponseEmpty :
         never;
 
 
@@ -571,6 +606,32 @@ export namespace HMApi {
         message: "DEVICE_ALREADY_EXISTS"
     }
 
+    /**
+     * The device does not have a main toggle.
+     */
+    export type RequestErrorNoMainToggle = {
+        code: 400,
+        message: "NO_MAIN_TOGGLE"
+    }
+
+    /**
+     * The room is disabled because of an error.
+     */
+    export type RequestErrorRoomDisabled = {
+        code: 500,
+        message: "ROOM_DISABLED",
+        error: string
+    }
+
+    /**
+     * The device is disabled because of an error.
+     */
+    export type RequestErrorDeviceDisabled = {
+        code: 500,
+        message: "DEVICE_DISABLED",
+        error: string
+    }
+
     export type RequestError<R extends Request> = (
         R extends RequestEmpty ? never :
         R extends RequestGetVersion ? never :
@@ -598,6 +659,8 @@ export namespace HMApi {
         R extends RequestRemoveDevice ? RequestErrorNotFound<"device"|"room"> :
         R extends RequestChangeDeviceOrder ? RequestErrorNotFound<"room"> | RequestErrorDevicesNotEqual :
         R extends RequestGetRoomStates ? never :
+        R extends RequestGetDeviceStates ? RequestErrorNotFound<"room"> :
+        R extends RequestToggleDeviceMainToggle ? RequestErrorNotFound<"room"> | RequestErrorNotFound<"device"> | RequestErrorNoMainToggle | RequestErrorRoomDisabled | RequestErrorDeviceDisabled :
         never
     ) | (
         [R extends R ? keyof Omit<R, 'type'>: never ][0] extends never ? never : (RequestErrorMissingParameter<R> | RequestErrorInvalidParameter<R> | RequestErrorParameterOutOfRange<R>)
@@ -725,6 +788,32 @@ export namespace HMApi {
         name: string,
         /** The icon to show for the room */
         icon: Room['icon']
+    }
+
+    /**
+     * The current state of a device.
+     */
+    export type DeviceState = ({
+        /** Whether the device is disabled because of a failure */
+        disabled: true,
+        /** The error message */
+        error: string,
+    } | {
+        /** Whether the device is disabled because of a failure */
+        disabled: false,
+    }) & {
+        /** The device's ID */
+        id: string,
+        /** The device's name */
+        name: string,
+        /** The device's type */
+        type: Omit<DeviceType, 'settings'>,
+        /** Current device icon, use `type.icon` if not provided */
+        icon?: IconName,
+        /** Whether the device has a main toggle */
+        hasMainToggle: boolean,
+        /** Whether the device's main toggle is on */
+        mainToggleState: boolean,
     }
 
     /**

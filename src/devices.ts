@@ -14,16 +14,24 @@ export abstract class DeviceInstance {
     static forRoomController: `${string}:*`|`${string}:${string}`|'*';
     /** A list of fields for the device in the edit page */
     static settingsFields: SettingsFieldDef[];
+    /** Whether the devices have a main toggle */
+    static hasMainToggle = false;
 
 
+    /** Device ID */
     id: string;
+    /** Device name */
     name: string;
+    /** Device type ID */
     type: string;
     settings: Record<string, string|number|boolean>;
     roomId: string;
 
     disabled: false|string = false;
     initialized = false;
+
+    icon?: HMApi.IconName;
+    mainToggleState = false;
 
     constructor(public properties: HMApi.Device, roomId: string) {
         this.id = properties.id;
@@ -50,6 +58,17 @@ export abstract class DeviceInstance {
     disable(reason: string) {
         this.disabled = reason;
         Log.e(this.constructor.name, 'Device', this.id, 'Disabled:', reason);
+    }
+
+    async getCurrentState() {
+        return {
+            mainToggleState: this.mainToggleState,
+        };
+    }
+
+    async toggleMainToggle() {
+        this.mainToggleState = !this.mainToggleState;
+        Log.e(this.constructor.name, 'Device', this.id, 'turned', this.mainToggleState ? 'on' : 'off');
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -172,4 +191,32 @@ export function reorderDevices(roomId: string, ids: string[]): 'room_not_found'|
     roomControllerInstances[roomId].devices = newInstances;
 
     return true;
+}
+
+export async function getDeviceStates(roomId: string): Promise<Record<string, HMApi.DeviceState>> {
+    const getDeviceType = ({id, super_name, sub_name, icon}: DeviceTypeClass)=> ({
+        id, name: super_name, sub_name, icon
+    });
+
+    const controller = roomControllerInstances[roomId];
+    const deviceTypes = getDeviceTypes(controller.type);
+    const instanceEntries = Object.keys(getDevices(roomId)!).map(key=> [key, controller.devices[key]] as const);
+
+    return Object.fromEntries(await Promise.all(instanceEntries.map(async([id, instance])=> {
+        const deviceType = deviceTypes[instance.type];
+        const {mainToggleState} = await instance.getCurrentState();
+        return [id, {
+            ...(instance.disabled === false ? {
+                disabled: false,
+            } : {
+                disabled: true,
+                error: instance.disabled,
+            }),
+            id: instance.id,
+            name: instance.name,
+            type: getDeviceType(deviceType),
+            hasMainToggle: deviceType.hasMainToggle,
+            mainToggleState
+        }];
+    })));
 }

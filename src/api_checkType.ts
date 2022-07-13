@@ -493,7 +493,22 @@ export const HMApi_Types: {
             properties: {
                 "type": { type: "exactValue", value: "rooms.getRoomStates" }
             }
-        }
+        },
+        "devices.getDeviceStates": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "devices.getDeviceStates" },
+                "roomId": { type: "string" }
+            }
+        },
+        "devices.toggleDeviceMainToggle": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "devices.toggleDeviceMainToggle" },
+                "roomId": { type: "string" },
+                "id": { type: "string" }
+            }
+        },
     },
     objects: {
         Room: {

@@ -1,7 +1,7 @@
 import { HMApi } from "./api.js";
 import { checkType, HMApi_Types } from "./api_checkType.js";
 import { changePassword, changeUsername, checkAuthToken, getSessions, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, terminateSession, usernameExists } from "./auth.js";
-import { addDevice, deleteDevice, editDevice, getDevices, getDeviceTypes, registeredDeviceTypes, reorderDevices } from "./devices.js";
+import { addDevice, deleteDevice, editDevice, getDevices, getDeviceStates, getDeviceTypes, registeredDeviceTypes, reorderDevices } from "./devices.js";
 import getFlatFields from "./flat-fields.js";
 import { addRoom, deleteRoom, editRoom, getRoomControllerTypes, getRooms, registeredRoomControllers, reorderRooms, restartRoom, roomControllerInstances } from "./rooms.js";
 import version from "./version.js";
@@ -683,6 +683,94 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     )]))
                 }
             };
+
+        case 'devices.getDeviceStates': {
+            const err= checkType(req, HMApi_Types.requests["devices.getDeviceStates"]);
+            if(err) { return { type: "error", error: err }; }
+
+            if(!(req.roomId in roomControllerInstances)) {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND",
+                        object: 'room'
+                    }
+                };
+            }
+
+            return getDeviceStates(req.roomId).then(states=> ({
+                type: "ok",
+                data: { states }
+            }));
+        }
+
+        case 'devices.toggleDeviceMainToggle': {
+            const err= checkType(req, HMApi_Types.requests["devices.toggleDeviceMainToggle"]);
+            if(err) { return { type: "error", error: err }; }
+
+            if(!(req.roomId in roomControllerInstances)) {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND",
+                        object: 'room'
+                    }
+                };
+            }
+
+            const roomController = roomControllerInstances[req.roomId];
+            if(roomController.disabled) {
+                return {
+                    type: "error",
+                    error: {
+                        code: 500,
+                        message: "ROOM_DISABLED",
+                        error: roomController.disabled
+                    }
+                };
+            }
+            if(!(req.id in roomController.devices)) {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND",
+                        object: 'device'
+                    }
+                };
+            }
+
+            const device = roomController.devices[req.id];
+            if(device.disabled) {
+                return {
+                    type: "error",
+                    error: {
+                        code: 500,
+                        message: "DEVICE_DISABLED",
+                        error: device.disabled
+                    }
+                };
+            }
+            const deviceType = getDeviceTypes(roomController.type)[device.type];
+            if(!deviceType.hasMainToggle) {
+                return {
+                    type: "error",
+                    error: {
+                        code: 400,
+                        message: "NO_MAIN_TOGGLE"
+                    }
+                };
+            }
+
+            return device.toggleMainToggle().then(()=> {
+                return {
+                    type: "ok",
+                    data: { }
+                };
+            });
+        }
 
         default:
             return {
