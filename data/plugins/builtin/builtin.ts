@@ -101,8 +101,14 @@ export default function (api: PluginApi) {
                     logArduinoSerial.i('Opened serial port', this.serialPort.path);
                     if(error) {
                         this.disable(error.message);
+                        resolve();
+                    } else {
+                        this.serialPort.on('data', (data: Buffer)=> {
+                            if(data[0] === 0) {
+                                resolve();
+                            }
+                        });
                     }
-                    resolve();
                 });
             });
             return super.init();
@@ -111,7 +117,9 @@ export default function (api: PluginApi) {
         async dispose(): Promise<void> {
             await super.dispose();
             if(this.serialPort.isOpen) {
-                this.serialPort.close();
+                await new Promise<void>((resolve)=> {
+                    this.serialPort.close(()=> resolve());
+                });
             }
             this.serialPort.destroy();
         }
