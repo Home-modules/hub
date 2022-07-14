@@ -1,6 +1,6 @@
 import { HMApi } from "./api.js";
 import { SettingsFieldDef } from "./plugins.js";
-import { getRoom, NonAbstractClass, roomControllerInstances } from "./rooms.js";
+import { getRoom, getRooms, NonAbstractClass, roomControllerInstances } from "./rooms.js";
 import fs from "fs";
 import { Log } from "./log.js";
 const log = new Log("devices");
@@ -86,6 +86,17 @@ if(fs.existsSync('../data/devices.json')) {
 export function saveDevices() {
     fs.writeFile('../data/devices.json', JSON.stringify(devices), ()=>undefined);
     log.d("Saving devices");
+}
+
+export let favoriteDevices: [string, string][] = [ ];
+
+if(fs.existsSync('../data/favorite-devices.json')) {
+    favoriteDevices= JSON.parse(fs.readFileSync('../data/favorite-devices.json', 'utf8'));
+} else saveFavoriteDevices();
+
+export function saveFavoriteDevices() {
+    fs.writeFile('../data/favorite-devices.json', JSON.stringify(favoriteDevices), ()=>undefined);
+    log.d("Saving favorite devices");
 }
 
 export function getDevices(roomId: string): Record<string, HMApi.Device> | undefined {
@@ -194,29 +205,62 @@ export function reorderDevices(roomId: string, ids: string[]): 'room_not_found'|
 }
 
 export async function getDeviceStates(roomId: string): Promise<Record<string, HMApi.DeviceState>> {
-    const getDeviceType = ({id, super_name, sub_name, icon}: DeviceTypeClass)=> ({
-        id, name: super_name, sub_name, icon
-    });
-
     const controller = roomControllerInstances[roomId];
     const deviceTypes = getDeviceTypes(controller.type);
     const instanceEntries = Object.keys(getDevices(roomId)!).map(key=> [key, controller.devices[key]] as const);
 
-    return Object.fromEntries(await Promise.all(instanceEntries.map(async([id, instance])=> {
-        const deviceType = deviceTypes[instance.type];
-        const {mainToggleState} = await instance.getCurrentState();
-        return [id, {
-            ...(instance.disabled === false ? {
-                disabled: false,
-            } : {
-                disabled: true,
-                error: instance.disabled,
-            }),
-            id: instance.id,
-            name: instance.name,
-            type: getDeviceType(deviceType),
-            hasMainToggle: deviceType.hasMainToggle,
-            mainToggleState
-        }];
-    })));
+    return Object.fromEntries(
+        await Promise.all(
+            instanceEntries.map(
+                async([id, instance]) => ([id, await getDeviceState(instance, deviceTypes[instance.type])])
+            )
+        )
+    );
+}
+
+export async function getDeviceState(instance: DeviceInstance, deviceType: DeviceTypeClass): Promise<HMApi.DeviceState> {
+    const {mainToggleState} = await instance.getCurrentState();
+    return {
+        ...(instance.disabled === false ? {
+            disabled: false,
+        } : {
+            disabled: true,
+            error: instance.disabled,
+        }),
+        id: instance.id,
+        roomId: instance.roomId,
+        isFavorite: favoriteDevices.some(([rId, dId]) => rId === instance.roomId && dId === instance.id),
+        name: instance.name,
+        type: (({id, super_name, sub_name, icon}: DeviceTypeClass)=> ({
+            id, name: super_name, sub_name, icon
+        }))(deviceType),
+        hasMainToggle: deviceType.hasMainToggle,
+        mainToggleState
+    };
+}
+
+export async function getFavoriteDeviceStates(): Promise<HMApi.DeviceState[]> {
+    return Promise.all(favoriteDevices.map(async ([roomId, deviceId]) => {
+        const roomController = roomControllerInstances[roomId];
+        const device = roomController.devices[deviceId];
+        const deviceType = getDeviceTypes(roomController.type)[device.type];
+        return getDeviceState(device, deviceType);
+    }));
+}
+
+export function toggleDeviceIsFavorite(roomId: string, deviceId: string, isFavorite: boolean) {
+    if(!(roomId in getRooms())) {
+        return 'room_not_found';
+    }
+    if(!(deviceId in devices[roomId])) {
+        return 'device_not_found';
+    }
+
+    if(isFavorite) {
+        if(favoriteDevices.some(([rId, dId]) => rId === roomId && dId === deviceId)) return; // Check if device is already a favorite. If so, do nothing
+        favoriteDevices.push([roomId, deviceId]);
+    } else {
+        favoriteDevices = favoriteDevices.filter(([r, d]) => !(r === roomId && d === deviceId));
+    }
+    saveFavoriteDevices();
 }

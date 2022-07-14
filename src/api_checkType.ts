@@ -509,6 +509,21 @@ export const HMApi_Types: {
                 "id": { type: "string" }
             }
         },
+        "devices.getFavoriteDeviceStates": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "devices.getFavoriteDeviceStates" }
+            }
+        },
+        "devices.toggleDeviceIsFavorite": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "devices.toggleDeviceIsFavorite" },
+                "roomId": { type: "string" },
+                "id": { type: "string" },
+                "isFavorite": { type: "boolean" }
+            }
+        },
     },
     objects: {
         Room: {

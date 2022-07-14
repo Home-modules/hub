@@ -320,6 +320,13 @@ export namespace HMApi {
     }
 
     /**
+     * Gets the current state of the favorite devices
+     */
+    export type RequestGetFavoriteDeviceStates = {
+        type: "devices.getFavoriteDeviceStates"
+    }
+
+    /**
      * Toggles the main toggle of a device.
      * 
      * ---
@@ -335,7 +342,25 @@ export namespace HMApi {
         id: string
     }
 
-    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestGetSessions | RequestLogoutSession | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestAddRoom | RequestRemoveRoom | RequestChangeRoomOrder | RequestRestartRoom | RequestGetRoomControllerTypes | RequestGetSelectFieldLazyLoadItems | RequestGetDevices | RequestGetDeviceTypes | RequestAddDevice | RequestEditDevice | RequestRemoveDevice | RequestChangeDeviceOrder | RequestGetRoomStates | RequestGetDeviceStates | RequestToggleDeviceMainToggle;
+    /**
+     * Adds/removes a device to/from the favorites list.
+     * 
+     * ---
+     * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
+     * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist  
+     * @throws Does **not** throw any error if `isFavorite===true` and the device is already in the favorites list, or if `isFavorite===false` and the device is not in the favorites list.
+     */
+    export type RequestToggleDeviceIsFavorite = {
+        type: "devices.toggleDeviceIsFavorite",
+        /** Room ID */
+        roomId: string,
+        /** Device ID */
+        id: string,
+        /** Whether the device is now a favorite */
+        isFavorite: boolean
+    }
+
+    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestGetSessions | RequestLogoutSession | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestAddRoom | RequestRemoveRoom | RequestChangeRoomOrder | RequestRestartRoom | RequestGetRoomControllerTypes | RequestGetSelectFieldLazyLoadItems | RequestGetDevices | RequestGetDeviceTypes | RequestAddDevice | RequestEditDevice | RequestRemoveDevice | RequestChangeDeviceOrder | RequestGetRoomStates | RequestGetDeviceStates | RequestToggleDeviceMainToggle | RequestGetFavoriteDeviceStates | RequestToggleDeviceIsFavorite;
 
 
     /** Nothing is returned */
@@ -401,6 +426,11 @@ export namespace HMApi {
         states: Record<string, DeviceState>
     }
 
+    export type ResponseFavoriteDeviceStates = {
+        /** The current state of the favorite devices */
+        states: DeviceState[]
+    }
+
     export type ResponseData<R extends Request> = 
         R extends RequestEmpty ? ResponseEmpty :
         R extends RequestGetVersion ? ResponseGetVersion :
@@ -430,6 +460,8 @@ export namespace HMApi {
         R extends RequestGetRoomStates ? ResponseRoomStates :
         R extends RequestGetDeviceStates ? ResponseDeviceStates :
         R extends RequestToggleDeviceMainToggle ? ResponseEmpty :
+        R extends RequestGetFavoriteDeviceStates ? ResponseFavoriteDeviceStates :
+        R extends RequestToggleDeviceIsFavorite ? ResponseEmpty :
         never;
 
 
@@ -661,6 +693,8 @@ export namespace HMApi {
         R extends RequestGetRoomStates ? never :
         R extends RequestGetDeviceStates ? RequestErrorNotFound<"room"> :
         R extends RequestToggleDeviceMainToggle ? RequestErrorNotFound<"room"> | RequestErrorNotFound<"device"> | RequestErrorNoMainToggle | RequestErrorRoomDisabled | RequestErrorDeviceDisabled :
+        R extends RequestGetFavoriteDeviceStates ? never :
+        R extends RequestToggleDeviceIsFavorite ? RequestErrorNotFound<"room"> | RequestErrorNotFound<"device"> :
         never
     ) | (
         [R extends R ? keyof Omit<R, 'type'>: never ][0] extends never ? never : (RequestErrorMissingParameter<R> | RequestErrorInvalidParameter<R> | RequestErrorParameterOutOfRange<R>)
@@ -804,6 +838,10 @@ export namespace HMApi {
     }) & {
         /** The device's ID */
         id: string,
+        /** The room's ID */
+        roomId: string,
+        /** Whether de device is in the favorites list */
+        isFavorite: boolean,
         /** The device's name */
         name: string,
         /** The device's type */

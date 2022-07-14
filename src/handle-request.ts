@@ -1,7 +1,7 @@
 import { HMApi } from "./api.js";
 import { checkType, HMApi_Types } from "./api_checkType.js";
 import { changePassword, changeUsername, checkAuthToken, getSessions, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, terminateSession, usernameExists } from "./auth.js";
-import { addDevice, deleteDevice, editDevice, getDevices, getDeviceStates, getDeviceTypes, registeredDeviceTypes, reorderDevices } from "./devices.js";
+import { addDevice, deleteDevice, editDevice, getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, reorderDevices, toggleDeviceIsFavorite } from "./devices.js";
 import getFlatFields from "./flat-fields.js";
 import { addRoom, deleteRoom, editRoom, getRoomControllerTypes, getRooms, registeredRoomControllers, reorderRooms, restartRoom, roomControllerInstances } from "./rooms.js";
 import version from "./version.js";
@@ -770,6 +770,43 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     data: { }
                 };
             });
+        }
+
+        case 'devices.getFavoriteDeviceStates': 
+            return getFavoriteDeviceStates().then(states=> ({
+                type: "ok",
+                data: { states }
+            }));
+
+        case 'devices.toggleDeviceIsFavorite': {
+            const err= checkType(req, HMApi_Types.requests["devices.toggleDeviceIsFavorite"]);
+            if(err) { return { type: "error", error: err }; }
+
+            const res = toggleDeviceIsFavorite(req.roomId, req.id, req.isFavorite);
+            if(res === 'room_not_found') {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND",
+                        object: "room"
+                    }
+                };
+            }
+            if(res === 'device_not_found') {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND",
+                        object: "device"
+                    }
+                };
+            }
+            return {
+                type: "ok",
+                data: { }
+            };
         }
 
         default:
