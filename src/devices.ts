@@ -36,7 +36,7 @@ export abstract class DeviceInstance {
     icon?: HMApi.IconName;
     /** A big text to show instead of the icon. It should be very short so it can fit in the icon area. */
     iconText?: string;
-    /** Icon color override */
+    /** Icon color override. Ignored if `mainToggleState` is true. */
     iconColor?: HMApi.UIColor;
     /** The main toggle state. When true, the device will be shown as active. */
     mainToggleState = false;
@@ -267,8 +267,9 @@ export async function getFavoriteDeviceStates(): Promise<HMApi.DeviceState[]> {
         const roomController = roomControllerInstances[roomId];
         const device = roomController.devices[deviceId];
         const deviceType = getDeviceTypes(roomController.type)[device.type];
+        if(roomController.disabled) return undefined;
         return getDeviceState(device, deviceType);
-    }));
+    })).then(states => states.filter(Boolean) as HMApi.DeviceState[]);
 }
 
 export function toggleDeviceIsFavorite(roomId: string, deviceId: string, isFavorite: boolean) {
