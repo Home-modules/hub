@@ -16,6 +16,8 @@ export abstract class DeviceInstance {
     static settingsFields: SettingsFieldDef[];
     /** Whether the devices have a main toggle */
     static hasMainToggle = false;
+    /** Whether the device can be clicked in the app */
+    static clickable = true;
 
 
     /** Device ID */
@@ -30,8 +32,18 @@ export abstract class DeviceInstance {
     disabled: false|string = false;
     initialized = false;
 
+    /** An icon to set that overrides the default icon. */
     icon?: HMApi.IconName;
+    /** A big text to show instead of the icon. It should be very short so it can fit in the icon area. */
+    iconText?: string;
+    /** Icon color override */
+    iconColor?: HMApi.UIColor;
+    /** The main toggle state. When true, the device will be shown as active. */
     mainToggleState = false;
+    /** The status text to show for the device. If it is not provided and `hasMainToggle` is true, 'ON' or 'OFF' will be used as a fallback. */
+    statusText?: string;
+    /** Active highlight color override */
+    activeColor?: HMApi.UIColor;
 
     constructor(public properties: HMApi.Device, roomId: string) {
         this.id = properties.id;
@@ -62,7 +74,12 @@ export abstract class DeviceInstance {
 
     async getCurrentState() {
         return {
+            icon: this.icon,
+            iconText: this.iconText,
+            iconColor: this.iconColor,
             mainToggleState: this.mainToggleState,
+            statusText: this.statusText || ((this.constructor as DeviceTypeClass).hasMainToggle ? (this.mainToggleState ? 'ON' : 'OFF') : ' '),
+            activeColor: this.activeColor,
         };
     }
 
@@ -219,7 +236,7 @@ export async function getDeviceStates(roomId: string): Promise<Record<string, HM
 }
 
 export async function getDeviceState(instance: DeviceInstance, deviceType: DeviceTypeClass): Promise<HMApi.DeviceState> {
-    const {mainToggleState} = await instance.getCurrentState();
+    const {mainToggleState, icon, iconText, iconColor, statusText, activeColor} = await instance.getCurrentState();
     return {
         ...(instance.disabled === false ? {
             disabled: false,
@@ -234,8 +251,14 @@ export async function getDeviceState(instance: DeviceInstance, deviceType: Devic
         type: (({id, super_name, sub_name, icon}: DeviceTypeClass)=> ({
             id, name: super_name, sub_name, icon
         }))(deviceType),
+        icon,
+        iconText,
+        iconColor,
         hasMainToggle: deviceType.hasMainToggle,
-        mainToggleState
+        mainToggleState,
+        statusText,
+        activeColor,
+        clickable: deviceType.clickable,
     };
 }
 
