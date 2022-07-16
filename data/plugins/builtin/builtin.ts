@@ -378,6 +378,8 @@ export default function (api: PluginApi) {
             const humidity = data.readFloatLE(4);
             if(temperature === -999 && humidity === -999) {
                 this.disable("DHT sensor is not connected or wrong type is specified in settings");
+            } else {
+                this.disabled = false;
             }
             this.iconColor = 
                 temperature < this.settings.cold_threshold ? 'blue' : 
