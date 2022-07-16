@@ -301,6 +301,21 @@ export namespace HMApi {
     }
 
     /**
+     * Restarts a device.
+     * 
+     * ---
+     * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
+     * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
+     */
+    export type RequestRestartDevice = {
+        type: "devices.restartDevice",
+        /** Room ID */
+        roomId: string,
+        /** Device ID */
+        id: string
+    }
+
+    /**
      * Gets the current state of the rooms
      */
     export type RequestGetRoomStates = {
@@ -360,7 +375,7 @@ export namespace HMApi {
         isFavorite: boolean
     }
 
-    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestGetSessions | RequestLogoutSession | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestAddRoom | RequestRemoveRoom | RequestChangeRoomOrder | RequestRestartRoom | RequestGetRoomControllerTypes | RequestGetSelectFieldLazyLoadItems | RequestGetDevices | RequestGetDeviceTypes | RequestAddDevice | RequestEditDevice | RequestRemoveDevice | RequestChangeDeviceOrder | RequestGetRoomStates | RequestGetDeviceStates | RequestToggleDeviceMainToggle | RequestGetFavoriteDeviceStates | RequestToggleDeviceIsFavorite;
+    export type Request= RequestEmpty | RequestGetVersion | RequestLogin | RequestLogout | RequestLogoutOtherSessions | RequestGetSessionsCount | RequestGetSessions | RequestLogoutSession | RequestChangePassword | RequestChangeUsername | RequestCheckUsernameAvailable | RequestGetRooms | RequestEditRoom | RequestAddRoom | RequestRemoveRoom | RequestChangeRoomOrder | RequestRestartRoom | RequestGetRoomControllerTypes | RequestGetSelectFieldLazyLoadItems | RequestGetDevices | RequestGetDeviceTypes | RequestAddDevice | RequestEditDevice | RequestRemoveDevice | RequestChangeDeviceOrder | RequestRestartDevice | RequestGetRoomStates | RequestGetDeviceStates | RequestToggleDeviceMainToggle | RequestGetFavoriteDeviceStates | RequestToggleDeviceIsFavorite;
 
 
     /** Nothing is returned */
@@ -457,6 +472,7 @@ export namespace HMApi {
         R extends RequestEditDevice ? ResponseEmpty :
         R extends RequestRemoveDevice ? ResponseEmpty :
         R extends RequestChangeDeviceOrder ? ResponseEmpty :
+        R extends RequestRestartDevice ? ResponseEmpty :
         R extends RequestGetRoomStates ? ResponseRoomStates :
         R extends RequestGetDeviceStates ? ResponseDeviceStates :
         R extends RequestToggleDeviceMainToggle ? ResponseEmpty :
@@ -690,6 +706,7 @@ export namespace HMApi {
         R extends RequestEditDevice ? RequestErrorNotFound<"device"|"room"> | RequestErrorPluginCustomError :
         R extends RequestRemoveDevice ? RequestErrorNotFound<"device"|"room"> :
         R extends RequestChangeDeviceOrder ? RequestErrorNotFound<"room"> | RequestErrorDevicesNotEqual :
+        R extends RequestRestartDevice ? RequestErrorNotFound<"device"|"room"> | RequestErrorRoomDisabled :
         R extends RequestGetRoomStates ? never :
         R extends RequestGetDeviceStates ? RequestErrorNotFound<"room"> :
         R extends RequestToggleDeviceMainToggle ? RequestErrorNotFound<"room"> | RequestErrorNotFound<"device"> | RequestErrorNoMainToggle | RequestErrorRoomDisabled | RequestErrorDeviceDisabled :

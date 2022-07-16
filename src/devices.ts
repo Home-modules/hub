@@ -228,6 +228,27 @@ export function reorderDevices(roomId: string, ids: string[]): 'room_not_found'|
     return true;
 }
 
+export async function restartDevice(roomId: string, id: string): Promise<'room_not_found'|'device_not_found'|'room_disabled'|void> {
+    if(!getRooms()[roomId]) {
+        return 'room_not_found';
+    }
+    if(!devices[roomId]?.[id]) {
+        return 'device_not_found';
+    }
+    const room = roomControllerInstances[roomId];
+    if(room.disabled) {
+        return 'room_disabled';
+    }
+    
+    const device = room.devices[id];
+    if(device) {
+        await device.dispose();
+        delete room.devices[id];
+    }
+    room.devices[id] = new (getDeviceTypes(room.type)[device.type])(devices[roomId][id], roomId);
+    await room.devices[id].init();
+}
+
 export async function getDeviceStates(roomId: string): Promise<Record<string, HMApi.DeviceState>> {
     const controller = roomControllerInstances[roomId];
     const deviceTypes = getDeviceTypes(controller.type);

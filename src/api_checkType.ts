@@ -488,6 +488,14 @@ export const HMApi_Types: {
                 }
             }
         },
+        "devices.restartDevice": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "devices.restartDevice" },
+                "roomId": { type: "string" },
+                "id": { type: "string" }
+            }
+        },
         "rooms.getRoomStates": {
             type: "object",
             properties: {

@@ -1,7 +1,7 @@
 import { HMApi } from "./api.js";
 import { checkType, HMApi_Types } from "./api_checkType.js";
 import { changePassword, changeUsername, checkAuthToken, getSessions, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, terminateSession, usernameExists } from "./auth.js";
-import { addDevice, deleteDevice, editDevice, getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, reorderDevices, toggleDeviceIsFavorite } from "./devices.js";
+import { addDevice, deleteDevice, editDevice, getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, reorderDevices, restartDevice, toggleDeviceIsFavorite } from "./devices.js";
 import getFlatFields from "./flat-fields.js";
 import { addRoom, deleteRoom, editRoom, getRoomControllerTypes, getRooms, registeredRoomControllers, reorderRooms, restartRoom, roomControllerInstances } from "./rooms.js";
 import version from "./version.js";
@@ -636,12 +636,6 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
             if(err) { return { type: "error", error: err }; }
 
             const res = reorderDevices(req.roomId, req.ids);
-            if(res === true) {
-                return {
-                    type: "ok",
-                    data: { }
-                };
-            }
             if(res === 'devices_not_equal') {
                 return {
                     type: "error",
@@ -661,6 +655,53 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     }
                 };
             }
+            return {
+                type: "ok",
+                data: { }
+            };
+        }
+
+        case 'devices.restartDevice': {
+            const err= checkType(req, HMApi_Types.requests["devices.restartDevice"]);
+            if(err) { return { type: "error", error: err }; }
+            
+            return restartDevice(req.roomId, req.id).then(res=> {
+                if(res==='device_not_found') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 404,
+                            message: "NOT_FOUND",
+                            object: "device"
+                        }
+                    };
+                } 
+                else if(res==='room_not_found') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 404,
+                            message: "NOT_FOUND",
+                            object: "room"
+                        }
+                    };
+                } 
+                else if(res==='room_disabled') {
+                    return {
+                        type: "error",
+                        error: {
+                            code: 500,
+                            message: "ROOM_DISABLED",
+                            error: roomControllerInstances[req.roomId].disabled as string
+                        }
+                    };
+                } else {
+                    return {
+                        type: "ok",
+                        data: {}
+                    };
+                }
+            });
         }
 
         case 'rooms.getRoomStates':
