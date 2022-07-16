@@ -116,6 +116,11 @@ export function saveFavoriteDevices() {
     log.d("Saving favorite devices");
 }
 
+export function setFavoriteDevices(devices: [string, string][]) {
+    favoriteDevices = devices;
+    saveFavoriteDevices();
+}
+
 export function getDevices(roomId: string): Record<string, HMApi.Device> | undefined {
     if(getRoom(roomId)) { // Check if room exists
         return devices[roomId] || {};
@@ -188,6 +193,8 @@ export async function deleteDevice(roomId: string, deviceId: string): Promise<tr
     delete roomControllerInstances[roomId].devices[deviceId];
     delete devices[roomId][deviceId];
     saveDevices();
+    favoriteDevices = favoriteDevices.filter(([room, device]) => room !== roomId || device !== deviceId);
+    saveFavoriteDevices();
     return true;
 }
 

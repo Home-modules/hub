@@ -1,7 +1,7 @@
 import { HMApi } from "./api.js";
 import fs from "fs";
 import { SettingsFieldDef } from "./plugins.js";
-import { DeviceInstance, devices, getDeviceTypes, registeredDeviceTypes, saveDevices } from "./devices.js";
+import { DeviceInstance, devices, favoriteDevices, getDeviceTypes, registeredDeviceTypes, saveDevices, setFavoriteDevices } from "./devices.js";
 import { Log } from "./log.js";
 const log = new Log("rooms");
 
@@ -132,6 +132,7 @@ export async function deleteRoom(id: string): Promise<boolean> {
     saveRooms();
     delete devices[id];
     saveDevices();
+    setFavoriteDevices(favoriteDevices.filter(d => d[0] !== id));
     return true;
 }
 
