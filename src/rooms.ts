@@ -14,7 +14,7 @@ export abstract class RoomControllerInstance {
 
     id: string;
     name: string;
-    icon: HMApi.Room['icon'];
+    icon: HMApi.T.Room['icon'];
     type: string;
     settings: Record<string, string|number|boolean>;
 
@@ -22,7 +22,7 @@ export abstract class RoomControllerInstance {
     initialized = false;
     devices: Record<string, DeviceInstance> = {};
 
-    constructor(properties: HMApi.Room) {
+    constructor(properties: HMApi.T.Room) {
         const id = this.id = properties.id;
         this.name = properties.name;
         this.icon = properties.icon;
@@ -66,7 +66,7 @@ export abstract class RoomControllerInstance {
 
 export type NonAbstractClass<T extends abstract new (...args: any)=>any> = Omit<T, 'prototype'> & (new (...args: ConstructorParameters<T>) => InstanceType<T>);
 
-let rooms: { [id: string]: HMApi.Room } = {};
+let rooms: { [id: string]: HMApi.T.Room } = {};
 export let roomControllerInstances: { [id: string]: RoomControllerInstance } = {};
 
 if(fs.existsSync('../data/rooms.json')) {
@@ -81,12 +81,12 @@ export function getRooms(): typeof rooms {
     return rooms;
 }
 
-export function getRoom(id: string): HMApi.Room | undefined {
+export function getRoom(id: string): HMApi.T.Room | undefined {
     return rooms[id];
 }
 
 
-export async function editRoom(room: HMApi.Room): Promise<boolean|string> {
+export async function editRoom(room: HMApi.T.Room): Promise<boolean|string> {
     const { id } = room;
     const oldRoom = rooms[id];
     if (!oldRoom) {
@@ -105,7 +105,7 @@ export async function editRoom(room: HMApi.Room): Promise<boolean|string> {
     return true;
 }
 
-export async function addRoom(room: HMApi.Room): Promise<boolean|string> {
+export async function addRoom(room: HMApi.T.Room): Promise<boolean|string> {
     const { id } = room;
     if (rooms[id]) {
         return false;
@@ -146,7 +146,7 @@ export function reorderRooms(ids: string[]): boolean {
         return false;
     }
 
-    const newRooms: { [key: string]: HMApi.Room } = {};
+    const newRooms: { [key: string]: HMApi.T.Room } = {};
     ids.forEach(id => {
         newRooms[id] = rooms[id];
     });
@@ -185,7 +185,7 @@ export function registerRoomController(def: RoomControllerClass) {
     log.d('Registered room controller', def.id);
 }
 
-export function getRoomControllerTypes(): HMApi.RoomControllerType[] {
+export function getRoomControllerTypes(): HMApi.T.RoomControllerType[] {
     return Object.values(registeredRoomControllers).map(({id, super_name, sub_name, settingsFields}) => ({
         id,
         settings: settingsFields,

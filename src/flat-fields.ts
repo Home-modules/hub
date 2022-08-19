@@ -1,7 +1,7 @@
 import { HMApi } from "./api.js";
 import { SettingsFieldDef } from "./plugins.js";
 
-type SettingsFieldWithoutContainer = Exclude<SettingsFieldDef, HMApi.SettingsFieldContainer | HMApi.SettingsFieldHorizontalWrapper>;
+type SettingsFieldWithoutContainer = Exclude<SettingsFieldDef, HMApi.T.SettingsField.TypeContainer | HMApi.T.SettingsField.TypeHorizontalWrapper>;
 
 export default function getFlatFields(fields: SettingsFieldDef[]): SettingsFieldWithoutContainer[] {
     const result: SettingsFieldWithoutContainer[] = [];

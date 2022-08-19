@@ -9,7 +9,7 @@ export abstract class DeviceInstance {
     static id: `${string}:${string}`;
     static super_name: string;
     static sub_name: string;
-    static icon: HMApi.IconName;
+    static icon: HMApi.T.IconName;
     /** The room controller with which the device is compatible with. If it ends with `:*` (like `test:*`), the device is considered compatible with all subtypes. If it is `*`, the device is considered compatible with all room controller types. */
     static forRoomController: `${string}:*`|`${string}:${string}`|'*';
     /** A list of fields for the device in the edit page */
@@ -33,19 +33,19 @@ export abstract class DeviceInstance {
     initialized = false;
 
     /** An icon to set that overrides the default icon. */
-    icon?: HMApi.IconName;
+    icon?: HMApi.T.IconName;
     /** A big text to show instead of the icon. It should be very short so it can fit in the icon area. */
     iconText?: string;
     /** Icon color override. Ignored if `mainToggleState` is true. */
-    iconColor?: HMApi.UIColor;
+    iconColor?: HMApi.T.UIColor;
     /** The main toggle state. When true, the device will be shown as active. */
     mainToggleState = false;
     /** The status text to show for the device. If it is not provided and `hasMainToggle` is true, 'ON' or 'OFF' will be used as a fallback. */
     statusText?: string;
     /** Active highlight color override */
-    activeColor?: HMApi.UIColor;
+    activeColor?: HMApi.T.UIColor;
 
-    constructor(public properties: HMApi.Device, roomId: string) {
+    constructor(public properties: HMApi.T.Device, roomId: string) {
         this.id = properties.id;
         this.name = properties.name;
         this.type = properties.type;
@@ -94,7 +94,7 @@ export abstract class DeviceInstance {
     }
 }
 
-export let devices: Record<string, Record<string, HMApi.Device>> = { };
+export let devices: Record<string, Record<string, HMApi.T.Device>> = { };
 
 if(fs.existsSync('../data/devices.json')) {
     devices= JSON.parse(fs.readFileSync('../data/devices.json', 'utf8'));
@@ -121,7 +121,7 @@ export function setFavoriteDevices(devices: [string, string][]) {
     saveFavoriteDevices();
 }
 
-export function getDevices(roomId: string): Record<string, HMApi.Device> | undefined {
+export function getDevices(roomId: string): Record<string, HMApi.T.Device> | undefined {
     if(getRoom(roomId)) { // Check if room exists
         return devices[roomId] || {};
     }
@@ -142,7 +142,7 @@ export function getDeviceTypes(controllerType: string) {
     return {...registeredDeviceTypes[controllerType], ...registeredDeviceTypes[superType + ":*"], ...registeredDeviceTypes['*']};
 }
 
-export async function addDevice(roomId: string, device: HMApi.Device): Promise<true | "room_not_found" | "device_exists"|string> {
+export async function addDevice(roomId: string, device: HMApi.T.Device): Promise<true | "room_not_found" | "device_exists"|string> {
     if(!getRoom(roomId)) return 'room_not_found'; // Check if room exists
 
     devices[roomId] ||= {};
@@ -151,7 +151,7 @@ export async function addDevice(roomId: string, device: HMApi.Device): Promise<t
         return 'device_exists';
     }
 
-    const deviceType= getDeviceTypes((getRoom(roomId) as HMApi.Room).controllerType.type)[device.type];
+    const deviceType= getDeviceTypes((getRoom(roomId) as HMApi.T.Room).controllerType.type)[device.type];
 
     const err = await deviceType.validateSettings(device.params);
     if(err) return err;
@@ -163,7 +163,7 @@ export async function addDevice(roomId: string, device: HMApi.Device): Promise<t
     return true;
 }
 
-export async function editDevice(roomId: string, device: HMApi.Device): Promise<true | "room_not_found" | "device_not_found" | string> {
+export async function editDevice(roomId: string, device: HMApi.T.Device): Promise<true | "room_not_found" | "device_not_found" | string> {
     if(!getRoom(roomId)) return 'room_not_found'; // Check if room exists
 
     const { id } = device;
@@ -172,7 +172,7 @@ export async function editDevice(roomId: string, device: HMApi.Device): Promise<
         return 'device_not_found';
     }
 
-    const deviceType= getDeviceTypes((getRoom(roomId) as HMApi.Room).controllerType.type)[device.type];
+    const deviceType= getDeviceTypes((getRoom(roomId) as HMApi.T.Room).controllerType.type)[device.type];
 
     const err = await deviceType.validateSettings(device.params);
     if(err) return err;
@@ -212,7 +212,7 @@ export function reorderDevices(roomId: string, ids: string[]): 'room_not_found'|
         return 'devices_not_equal';
     }
 
-    const newDevices: { [key: string]: HMApi.Device } = {};
+    const newDevices: { [key: string]: HMApi.T.Device } = {};
     ids.forEach(id => {
         newDevices[id] = devices[roomId][id];
     });
@@ -249,7 +249,7 @@ export async function restartDevice(roomId: string, id: string): Promise<'room_n
     await room.devices[id].init();
 }
 
-export async function getDeviceStates(roomId: string): Promise<Record<string, HMApi.DeviceState>> {
+export async function getDeviceStates(roomId: string): Promise<Record<string, HMApi.T.DeviceState>> {
     const controller = roomControllerInstances[roomId];
     const deviceTypes = getDeviceTypes(controller.type);
     const instanceEntries = Object.keys(getDevices(roomId)!).map(key=> [key, controller.devices[key]] as const);
@@ -263,7 +263,7 @@ export async function getDeviceStates(roomId: string): Promise<Record<string, HM
     );
 }
 
-export async function getDeviceState(instance: DeviceInstance, deviceType: DeviceTypeClass): Promise<HMApi.DeviceState> {
+export async function getDeviceState(instance: DeviceInstance, deviceType: DeviceTypeClass): Promise<HMApi.T.DeviceState> {
     const {mainToggleState, icon, iconText, iconColor, statusText, activeColor} = await instance.getCurrentState();
     return {
         ...(instance.disabled === false ? {
@@ -290,14 +290,14 @@ export async function getDeviceState(instance: DeviceInstance, deviceType: Devic
     };
 }
 
-export async function getFavoriteDeviceStates(): Promise<HMApi.DeviceState[]> {
+export async function getFavoriteDeviceStates(): Promise<HMApi.T.DeviceState[]> {
     return Promise.all(favoriteDevices.map(async ([roomId, deviceId]) => {
         const roomController = roomControllerInstances[roomId];
         const device = roomController.devices[deviceId];
         const deviceType = getDeviceTypes(roomController.type)[device.type];
         if(roomController.disabled) return undefined;
         return getDeviceState(device, deviceType);
-    })).then(states => states.filter(Boolean) as HMApi.DeviceState[]);
+    })).then(states => states.filter(Boolean) as HMApi.T.DeviceState[]);
 }
 
 export function toggleDeviceIsFavorite(roomId: string, deviceId: string, isFavorite: boolean) {

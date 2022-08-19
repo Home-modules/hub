@@ -38,7 +38,7 @@ log.i("Home_modules hub", version);
         log.i("Request received from", req.socket.remoteAddress);
         log.d("HTTP", req.httpVersion, "method", req.method, "url", req.url);
     
-        function respond(data: HMApi.Response<HMApi.Request>): void {
+        function respond(data: HMApi.ResponseOrError<HMApi.Request>): void {
             log.i("Responding to request with status", data.type=='error' ? `${data.error.code} (${data.error.message})` : 200);
             log.d(data);
             res.writeHead(data.type=='error' ? data.error.code : 200, {
@@ -82,7 +82,7 @@ log.i("Home_modules hub", version);
                 log.i("Request type:", json.type);
                 log.d(json);
                 const result=handleRequest(token, json, req.socket.remoteAddress||'unknown');
-                function handleResult(result: HMApi.Response<HMApi.Request>){ 
+                function handleResult(result: HMApi.ResponseOrError<HMApi.Request>){ 
                     if(result.type=='error' && (result.error.message=='LOGIN_PASSWORD_INCORRECT' || result.error.message=='TOKEN_INVALID')) {
                         log.w("Invalid credentials received:", result.error.message, "Delaying for 1000ms to prevent brute force attacks");
                         // Delay a bit to prevent brute force attacks

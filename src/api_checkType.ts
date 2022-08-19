@@ -108,8 +108,8 @@ export type ParamTypeNoUnion =
  * @param type An object describing the type of the request (like a schema)
  * @param path An object path to prepend to keys in case of an error
  */
-export function checkType(req: any, type: ParamType, path=""): HMApi.RequestError<HMApi.Request> | null {
-    function invalidParamError(name="", message: "INVALID_PARAMETER"|"PARAMETER_OUT_OF_RANGE" ="INVALID_PARAMETER"): HMApi.RequestError<HMApi.Request> {
+export function checkType(req: any, type: ParamType, path=""): HMApi.Error<HMApi.Request> | null {
+    function invalidParamError(name="", message: "INVALID_PARAMETER"|"PARAMETER_OUT_OF_RANGE" ="INVALID_PARAMETER"): HMApi.Error<HMApi.Request> {
         return {
             code: 400,
             message,

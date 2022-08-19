@@ -182,7 +182,7 @@ export function usernameExists(token: string, username: string): boolean {
     }
 }
 
-export function getSessions(token: string): HMApi.Session[] {
+export function getSessions(token: string): HMApi.T.Session[] {
     const [username, tk] = token.split(':');
     return logins[username]?.map(t => ({
         id: crypto.createHash('sha256').update(t.token).digest('hex'),

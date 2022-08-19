@@ -90,27 +90,27 @@ export {HMApi};
 
 // Similar to an array of HMApi.SettingsField, but SettingsFieldSelect.options when isLazy=true requires a function to be called to get the options
 export type SettingsFieldDef = (
-    Exclude<HMApi.SettingsField, HMApi.SettingsFieldSelect | HMApi.SettingsFieldHorizontalWrapper | HMApi.SettingsFieldContainer> | // Exclude HMApi.SettingsFieldSelect and add the modified version
+    Exclude<HMApi.T.SettingsField, HMApi.T.SettingsField.TypeSelect | HMApi.T.SettingsField.TypeHorizontalWrapper | HMApi.T.SettingsField.TypeContainer> | // Exclude HMApi.SettingsFieldSelect and add the modified version
     SettingsFieldSelectDef |
-    (Omit<HMApi.SettingsFieldHorizontalWrapper, 'columns'> & {
-        columns: (Omit<HMApi.SettingsFieldHorizontalWrapperColumn, 'fields'> & {
+    (Omit<HMApi.T.SettingsField.TypeHorizontalWrapper, 'columns'> & {
+        columns: (Omit<HMApi.T.SettingsField.HorizontalWrapperColumn, 'fields'> & {
             fields: SettingsFieldDef[]
         })[]
     }) |
-    (Omit<HMApi.SettingsFieldContainer, 'children'> & {
+    (Omit<HMApi.T.SettingsField.TypeContainer, 'children'> & {
         children:  SettingsFieldDef[]
     })
 );
 
 export type SettingsFieldSelectDef = (
-    Omit<HMApi.SettingsFieldSelect, 'options'> & { // Replace `options` field with the modified version
+    Omit<HMApi.T.SettingsField.TypeSelect, 'options'> & { // Replace `options` field with the modified version
         options: (
-            (HMApi.SettingsFieldSelectOption|HMApi.SettingsFieldSelectOptionGroup)[] | (HMApi.SettingsFieldSelectLazyOptions & { // Use original types, but add a property to SettingsFieldSelectLazyOptions
+            (HMApi.T.SettingsField.SelectOption|HMApi.T.SettingsField.SelectOptionGroup)[] | (HMApi.T.SettingsField.SelectLazyOptions & { // Use original types, but add a property to SettingsFieldSelectLazyOptions
                 callback(): 
-                    (HMApi.SettingsFieldSelectOption|HMApi.SettingsFieldSelectOptionGroup)[] |
+                    (HMApi.T.SettingsField.SelectOption|HMApi.T.SettingsField.SelectOptionGroup)[] |
                     {error: true, text: string} |
                     Promise<
-                        (HMApi.SettingsFieldSelectOption|HMApi.SettingsFieldSelectOptionGroup)[] |
+                        (HMApi.T.SettingsField.SelectOption|HMApi.T.SettingsField.SelectOptionGroup)[] |
                         {error: true, text: string}
                     >
             })
@@ -118,4 +118,4 @@ export type SettingsFieldSelectDef = (
     }
 )
 
-export type x = SettingsFieldSelectDef extends HMApi.SettingsFieldSelect ? true : false;
+export type x = SettingsFieldSelectDef extends HMApi.T.SettingsField.TypeSelect ? true : false;

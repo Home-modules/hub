@@ -6,7 +6,7 @@ import getFlatFields from "./flat-fields.js";
 import { addRoom, deleteRoom, editRoom, getRoomControllerTypes, getRooms, registeredRoomControllers, reorderRooms, restartRoom, roomControllerInstances } from "./rooms.js";
 import version from "./version.js";
 
-export default function handleRequest(token: string, req: HMApi.Request, ip: string): HMApi.Response<HMApi.Request>|Promise<HMApi.Response<HMApi.Request>> {
+export default function handleRequest(token: string, req: HMApi.Request, ip: string): HMApi.ResponseOrError<HMApi.Request>|Promise<HMApi.ResponseOrError<HMApi.Request>> {
     if(req.type!=="account.login") {
         try {
             const tk = checkAuthToken(token)!;
@@ -502,7 +502,7 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
             return {
                 type: "ok",
                 data: {
-                    types: Object.values(getDeviceTypes(req.controllerType)).map((type): HMApi.DeviceType=> ({
+                    types: Object.values(getDeviceTypes(req.controllerType)).map((type): HMApi.T.DeviceType=> ({
                         id: type.id,
                         name: type.super_name,
                         sub_name: type.sub_name,
