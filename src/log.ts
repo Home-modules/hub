@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-const logEnabled = process.argv.includes('--log') || process.argv.includes('--debug');
+const logEnabled = !process.argv.includes('--no-log');
 const debugEnabled = process.argv.includes('--debug');
 
 const logStream = logEnabled ? fs.createWriteStream('../data/log.txt') : null;
