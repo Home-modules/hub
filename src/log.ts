@@ -3,7 +3,7 @@ import fs from 'fs';
 const logEnabled = !process.argv.includes('--no-log');
 const debugEnabled = process.argv.includes('--debug');
 
-const logStream = logEnabled ? fs.createWriteStream('../data/log.txt') : null;
+const logStream = logEnabled ? fs.createWriteStream('../data/log.log') : null;
 
 function log(level: string, component: string, ...args: any[]) {
     if(logEnabled) {
