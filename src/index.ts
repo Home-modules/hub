@@ -39,7 +39,7 @@ log.i("Home_modules hub", version);
         log.d("HTTP", req.httpVersion, "method", req.method, "url", req.url);
     
         function respond(data: HMApi.Response<HMApi.Request>): void {
-            log.i("Responding to request, status:", data.type=='error' ? data.error.code : 200);
+            log.i("Responding to request with status", data.type=='error' ? `${data.error.code} (${data.error.message})` : 200);
             log.d(data);
             res.writeHead(data.type=='error' ? data.error.code : 200, {
                 'Content-Type': 'text/json',
@@ -79,6 +79,7 @@ log.i("Home_modules hub", version);
                 return;
             }
             try {
+                log.i("Request type:", json.type);
                 log.d(json);
                 const result=handleRequest(token, json, req.socket.remoteAddress||'unknown');
                 function handleResult(result: HMApi.Response<HMApi.Request>){ 
