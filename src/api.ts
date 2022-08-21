@@ -1118,6 +1118,8 @@ export namespace HMApi {
                 type: 'horizontal_wrapper',
                 /** The columns */
                 columns: HorizontalWrapperColumn[],
+                /** Whether the columns should collapse into one for mobile device (default: true) */
+                responsive?: boolean,
             }
 
             /**
