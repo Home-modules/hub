@@ -887,7 +887,7 @@ export namespace HMApi {
             /**
              * Properties shared by most of SettingsField* types
              */
-            type GeneralProps<T>= {
+            type GeneralProps<T> = {
                 /** Field ID */
                 id: string,
                 /** Field label */
@@ -898,7 +898,7 @@ export namespace HMApi {
                 default?: T,
                 /** True if the field is required */
                 required?: boolean,
-            }
+            };
 
             /**
              * A text input.
@@ -917,7 +917,7 @@ export namespace HMApi {
                 max_length_error?: string,
                 /** A text to show after the value (e.g. unit of measurement) */
                 postfix?: string,
-            }
+            };
 
             /**
              * A numerical input.
@@ -938,7 +938,7 @@ export namespace HMApi {
                 postfix?: string,
                 /** Whether to show the arrows/spinners and allow scrolling and using up and down arrow buttons to change value. Enabled by default */
                 scrollable?: boolean,
-            }
+            };
 
             /**
              * A check-box. Required check-boxes must be checked.
@@ -946,8 +946,8 @@ export namespace HMApi {
             export type TypeCheckbox = GeneralProps<boolean> & {
                 type: 'checkbox',
                 /** If provided, the description will change to this value when the field is checked. */
-                description_on_true?: string
-            }
+                description_on_true?: string;
+            };
 
             /**
              * A radio-button group
@@ -962,10 +962,10 @@ export namespace HMApi {
                     description?: string,
                 }>,
                 /** The preferred orientation of the radio buttons. 'h' means they will be on the same line and 'v' means they will be on different lines. */
-                direction: 'h'|'v',
+                direction: 'h' | 'v',
                 /** Label before the radio buttons */
-                label?: string
-            }
+                label?: string;
+            };
 
             /**
              * A drop-down / select / combo-box
@@ -973,14 +973,14 @@ export namespace HMApi {
             export type TypeSelect = GeneralProps<string> & {
                 type: 'select',
                 /** The list of options */
-                options: (SelectOption|SelectOptionGroup)[] | SelectLazyOptions,
+                options: (SelectOption | SelectOptionGroup)[] | SelectLazyOptions,
                 /** Whether the user can fill in the value instead of selecting an item. The field will show the value of the active option instead of its label+subtext. */
                 allowCustomValue?: boolean,
                 /** Whether the custom value should be checked to be in the items. Ignored if allowCustomValue is false or the options are lazy-loading. */
                 checkCustomValue?: boolean,
                 /** A search bar will be shown in the dropdown if true. A number can instead be provided which will be the minimum number of total options for the search bar to be shown. */
                 showSearchBar?: boolean | number,
-            }
+            };
 
             /**
              * An option in a drop-down / select / combo-box
@@ -993,7 +993,7 @@ export namespace HMApi {
                 label: string,
                 /** Smaller/lighter text to be shown alongside the label. Might be shown in parentheses if proper rendering isn't possible. */
                 subtext?: string,
-            }
+            };
 
             /**
              * A group of options in a drop-down / select / combo-box
@@ -1008,7 +1008,7 @@ export namespace HMApi {
                 expanded?: boolean,
                 /** The list of options in the group */
                 children: SelectOption[],
-            }
+            };
 
             /**
              * The options for a lazy-loading drop-down / select / combo-box
@@ -1023,13 +1023,13 @@ export namespace HMApi {
                     whenEmpty?: string;
                     /** The text to show if the list cannot be loaded (request failure) */
                     whenError?: string;
-                }
+                };
                 /** 
                  * When to load the items: 
                  * - When the field is rendered
                  * - When the dropdown is opened (Warning: dropdown button will show the value of the active item instead of its label+subtext before the list is loaded, so it is recommended to only use this mode when values == labels.)
                  */
-                loadOn: 'render'|'open',
+                loadOn: 'render' | 'open',
                 /** Whether to refresh every time the dropdown is opened (default is true) */
                 refreshOnOpen?: boolean,
                 /** 
