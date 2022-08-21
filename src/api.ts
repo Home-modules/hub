@@ -1076,16 +1076,39 @@ export namespace HMApi {
              */
             export type TypeSlider = GeneralProps<number> & {
                 type: 'slider',
-                /** The minimum value */
+                /** The minimum value (default: 0) */
                 min?: number,
-                /** The maximum value */
+                /** The maximum value (default: 100) */
                 max?: number,
-                /** The step size */
+                /** The step size, set to 0 to disable (default: 1) */
                 step?: number,
                 /** The slider color (useful for color fields) */
-                color?: 'white'|'black'|'blue'|'green'|'red'|'yellow',
-                /** Slider appearance (horizontal/vertical/radial) */
-                appearance?: 'horizontal'|'vertical'|'radial',
+                color?: UIColor,
+                /** Whether to show the value text next to the slider */
+                showValue?: boolean,
+                /** A text to add to the value shown next to the slider */
+                postfix?: string,
+                /** Slider appearance (default: horizontal, large) */
+                appearance?: {
+                    /** horizontal/vertical/radial */
+                    type: 'horizontal',
+                    /** Width mode: small / large / fill (default: large) */
+                    width?: 'small' | 'large' | 'fill',
+                } | {
+                    /** horizontal/vertical/radial */
+                    type: 'vertical',
+                    /** Height mode: small / large (default: large) */
+                    height?: 'small' | 'large',
+                // } | {
+                //     /** horizontal/vertical/radial */
+                //     type: 'radial',
+                //     /** Size: small / large (default: large) */
+                //     size?: 'small' | 'large',
+                //     /** Start angle in degrees (distance from the bottom center, default: 45) */
+                //     startAngle?: number,
+                //     /** End angle in degrees (distance from the bottom center, default: 45) */
+                //     endAngle?: number,
+                }
             }
 
             /**
@@ -1127,7 +1150,7 @@ export namespace HMApi {
          * A device / controller type / etc settings field
          */
         export type SettingsField<IncludeContainers extends boolean = true> = 
-            SettingsField.TypeText | SettingsField.TypeNumber | SettingsField.TypeCheckbox | SettingsField.TypeRadio | SettingsField.TypeSelect | 
+            SettingsField.TypeText | SettingsField.TypeNumber | SettingsField.TypeCheckbox | SettingsField.TypeRadio | SettingsField.TypeSelect | SettingsField.TypeSlider |
             (IncludeContainers extends true ? (SettingsField.TypeHorizontalWrapper | SettingsField.TypeContainer) : never);
 
         /** A Font Awesome v6 free solid icon name */
