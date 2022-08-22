@@ -1,7 +1,7 @@
 import { HMApi } from "./api.js";
 import { checkType, HMApi_Types } from "./api_checkType.js";
 import { changePassword, changeUsername, checkAuthToken, getSessions, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, terminateSession, usernameExists } from "./auth.js";
-import { addDevice, deleteDevice, editDevice, getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, reorderDevices, restartDevice, toggleDeviceIsFavorite } from "./devices.js";
+import { addDevice, deleteDevice, editDevice, getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, reorderDevices, restartDevice, sendDeviceInteractionAction, toggleDeviceIsFavorite } from "./devices.js";
 import getFlatFields from "./flat-fields.js";
 import { addRoom, deleteRoom, editRoom, getRoomControllerTypes, getRooms, registeredRoomControllers, reorderRooms, restartRoom, roomControllerInstances } from "./rooms.js";
 import version from "./version.js";
@@ -848,6 +848,33 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 type: "ok",
                 data: { }
             };
+        }
+            
+        case 'devices.interactions.sendAction': {
+            const err = checkType(req, HMApi_Types.requests["devices.interactions.sendAction"]);
+            if (err) { return { type: "error", error: err }; }
+            
+            const res = sendDeviceInteractionAction(req.roomId, req.deviceId, req.interactionId, req.action);
+            if (res instanceof Promise) {
+                return res.then(() => ({ type: "ok", data: {} }));
+            } else {
+                switch (res) {
+                    case 'room_not_found':
+                        return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "room" } };
+                    case 'device_not_found':
+                        return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "device" } };
+                    case 'interaction_not_found':
+                        return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "interaction" } };
+                    case 'room_disabled':
+                        return { type: "error", error: { code: 500, message: "ROOM_DISABLED", error: roomControllerInstances[req.roomId].disabled as string } };
+                    case 'device_disabled':
+                        return { type: "error", error: { code: 500, message: "DEVICE_DISABLED", error: roomControllerInstances[req.roomId].devices[req.deviceId].disabled as string } };
+                    case 'invalid_action':
+                        return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "action" } };
+                    case 'value_out_of_range':
+                        return { type: "error", error: { code: 400, message: "PARAMETER_OUT_OF_RANGE", paramName: "action.value" } };
+                }
+            }
         }
 
         default:

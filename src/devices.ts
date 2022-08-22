@@ -3,6 +3,7 @@ import { SettingsFieldDef } from "./plugins.js";
 import { getRoom, getRooms, NonAbstractClass, roomControllerInstances } from "./rooms.js";
 import fs from "fs";
 import { Log } from "./log.js";
+import { HMApi_Types } from "./api_checkType.js";
 const log = new Log("devices");
 
 export abstract class DeviceInstance {
@@ -18,7 +19,8 @@ export abstract class DeviceInstance {
     static hasMainToggle = false;
     /** Whether the device can be clicked in the app */
     static clickable = true;
-
+    /** The interactions for the device */
+    static interactions: Record<string, HMApi.T.DeviceInteraction.Type>;
 
     /** Device ID */
     id: string;
@@ -44,6 +46,8 @@ export abstract class DeviceInstance {
     statusText?: string;
     /** Active highlight color override */
     activeColor?: HMApi.T.UIColor;
+    /** Interaction states */
+    interactionStates: Record<string, HMApi.T.DeviceInteraction.State | undefined> = {};
 
     constructor(public properties: HMApi.T.Device, roomId: string) {
         this.id = properties.id;
@@ -80,12 +84,22 @@ export abstract class DeviceInstance {
             mainToggleState: this.mainToggleState,
             statusText: this.statusText || ((this.constructor as DeviceTypeClass).hasMainToggle ? (this.mainToggleState ? 'ON' : 'OFF') : ' '),
             activeColor: this.activeColor,
+            interactionStates: this.interactionStates,
         };
     }
 
     async toggleMainToggle() {
         this.mainToggleState = !this.mainToggleState;
         Log.e(this.constructor.name, 'Device', this.id, 'turned', this.mainToggleState ? 'on' : 'off');
+    }
+
+    async sendInteractionAction(interactionId: string, action: HMApi.T.DeviceInteraction.Action) {
+        switch (action.type) {
+            case 'setSliderValue':
+                this.interactionStates[interactionId] = {
+                    value: action.value,
+                };
+        }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -264,7 +278,7 @@ export async function getDeviceStates(roomId: string): Promise<Record<string, HM
 }
 
 export async function getDeviceState(instance: DeviceInstance, deviceType: DeviceTypeClass): Promise<HMApi.T.DeviceState> {
-    const {mainToggleState, icon, iconText, iconColor, statusText, activeColor} = await instance.getCurrentState();
+    const {mainToggleState, icon, iconText, iconColor, statusText, activeColor, interactionStates} = await instance.getCurrentState();
     return {
         ...(instance.disabled === false ? {
             disabled: false,
@@ -276,8 +290,8 @@ export async function getDeviceState(instance: DeviceInstance, deviceType: Devic
         roomId: instance.roomId,
         isFavorite: favoriteDevices.some(([rId, dId]) => rId === instance.roomId && dId === instance.id),
         name: instance.name,
-        type: (({id, super_name, sub_name, icon}: DeviceTypeClass)=> ({
-            id, name: super_name, sub_name, icon
+        type: (({id, super_name, sub_name, icon, interactions}: DeviceTypeClass)=> ({
+            id, name: super_name, sub_name, icon, interactions
         }))(deviceType),
         icon,
         iconText,
@@ -287,6 +301,7 @@ export async function getDeviceState(instance: DeviceInstance, deviceType: Devic
         statusText,
         activeColor,
         clickable: deviceType.clickable,
+        interactions: interactionStates,
     };
 }
 
@@ -315,4 +330,43 @@ export function toggleDeviceIsFavorite(roomId: string, deviceId: string, isFavor
         favoriteDevices = favoriteDevices.filter(([r, d]) => !(r === roomId && d === deviceId));
     }
     saveFavoriteDevices();
+}
+
+export function sendDeviceInteractionAction(roomId: string, deviceId: string, interactionId: string, action: HMApi.T.DeviceInteraction.Action) {
+    const roomController = roomControllerInstances[roomId];
+    if(!roomController) return 'room_not_found';
+    if (roomController.disabled) return 'room_disabled';
+    
+    const device = roomController.devices[deviceId];
+    if (!device) return 'device_not_found';
+    if (device.disabled) return 'device_disabled';
+
+    let interaction = (device.constructor as DeviceTypeClass).interactions[interactionId];
+    if (!interaction) return 'interaction_not_found';
+    if (!HMApi_Types.objects.DeviceInteractionActionsPerInteraction[interaction.type].includes(action.type))  return 'invalid_action';
+    
+    switch (action.type) {
+        case 'setSliderValue': {
+            interaction = interaction as HMApi.T.DeviceInteraction.Type.Slider;
+            // Check min and max and step
+            if ((
+                interaction.min !== undefined &&
+                action.value < interaction.min
+            ) || (
+                interaction.max !== undefined &&
+                action.value > interaction.max
+            ) || (
+                interaction.step !== undefined && 
+                (action.value - (interaction.min === undefined ? 0 : interaction.min)) % interaction.step !== 0
+            )) {
+                return 'value_out_of_range';
+            }
+            break;
+        }
+        // case 'clickButton':
+        //     interaction = interaction as HMApi.T.DeviceInteraction.Type.Button;
+        //     break;
+    }
+
+    return device.sendInteractionAction(interactionId, action);
 }

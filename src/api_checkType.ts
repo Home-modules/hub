@@ -276,6 +276,8 @@ export const HMApi_Types: {
         Room: ParamType,
         RoomController: ParamType,
         Device: ParamType,
+        DeviceInteractionAction: ParamType,
+        DeviceInteractionActionsPerInteraction: Record<HMApi.T.DeviceInteraction.Type['type'], HMApi.T.DeviceInteraction.Action['type'][]>,
     }
 } = { 
     requests: {
@@ -532,6 +534,16 @@ export const HMApi_Types: {
                 "isFavorite": { type: "boolean" }
             }
         },
+        "devices.interactions.sendAction": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "devices.interactions.sendAction" },
+                "roomId": { type: "string" },
+                "deviceId": { type: "string" },
+                "interactionId": { type: "string" },
+                "action": { type: "lazyType", value: () => HMApi_Types.objects.DeviceInteractionAction }
+            }
+        }
     },
     objects: {
         Room: {
@@ -592,6 +604,29 @@ export const HMApi_Types: {
                     }
                 }
             }
+        },
+        DeviceInteractionAction: {
+            type: 'union',
+            types: [
+                {
+                    type: 'object',
+                    properties: {
+                        'type': { type: 'exactValue', value: 'setSliderValue' },
+                        'value': { type: 'number' }
+                    }
+                },
+                {
+                    type: 'object',
+                    properties: {
+                        'type': { type: 'exactValue', value: 'clickButton' },
+                    }
+                }
+            ]
+        },
+        DeviceInteractionActionsPerInteraction: {
+            "slider": ["setSliderValue"],
+            "button": ["clickButton"],
+            "label": []
         }
     }
 };
