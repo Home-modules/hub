@@ -20,7 +20,7 @@ export abstract class DeviceInstance {
     /** Whether the device can be clicked in the app */
     static clickable = true;
     /** The interactions for the device */
-    static interactions: Record<string, HMApi.T.DeviceInteraction.Type>;
+    static interactions: Record<string, HMApi.T.DeviceInteraction.Type> = { };
 
     /** Device ID */
     id: string;
