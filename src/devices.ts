@@ -96,9 +96,21 @@ export abstract class DeviceInstance {
     async sendInteractionAction(interactionId: string, action: HMApi.T.DeviceInteraction.Action) {
         switch (action.type) {
             case 'setSliderValue':
+            case 'setTwoButtonNumberValue':
                 this.interactionStates[interactionId] = {
                     value: action.value,
                 };
+                break;
+            case 'toggleToggleButton':
+                this.interactionStates[interactionId] = {
+                    on: action.value,
+                };
+                break;
+            case 'setUIColorInputValue':
+                this.interactionStates[interactionId] = {
+                    color: action.color,
+                };
+                break;
         }
     }
 
@@ -346,8 +358,9 @@ export function sendDeviceInteractionAction(roomId: string, deviceId: string, in
     if (!HMApi_Types.objects.DeviceInteractionActionsPerInteraction[interaction.type].includes(action.type))  return 'invalid_action';
     
     switch (action.type) {
+        case 'setTwoButtonNumberValue':
         case 'setSliderValue': {
-            interaction = interaction as HMApi.T.DeviceInteraction.Type.Slider;
+            interaction = interaction as HMApi.T.DeviceInteraction.Type.Slider | HMApi.T.DeviceInteraction.Type.TwoButtonNumber;
             // Check min and max and step
             if ((
                 interaction.min !== undefined &&
@@ -363,9 +376,13 @@ export function sendDeviceInteractionAction(roomId: string, deviceId: string, in
             }
             break;
         }
-        // case 'clickButton':
-        //     interaction = interaction as HMApi.T.DeviceInteraction.Type.Button;
-        //     break;
+        case 'setUIColorInputValue': {
+            interaction = interaction as HMApi.T.DeviceInteraction.Type.UIColorInput;
+            if (interaction.allowed !== undefined && !interaction.allowed.includes(action.color)) {
+                return 'value_out_of_range';
+            }
+            break;
+        }
     }
 
     return device.sendInteractionAction(interactionId, action);

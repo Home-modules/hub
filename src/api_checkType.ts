@@ -278,6 +278,7 @@ export const HMApi_Types: {
         Device: ParamType,
         DeviceInteractionAction: ParamType,
         DeviceInteractionActionsPerInteraction: Record<HMApi.T.DeviceInteraction.Type['type'], HMApi.T.DeviceInteraction.Action['type'][]>,
+        UIColor(white?: boolean): ParamType
     }
 } = { 
     requests: {
@@ -620,14 +621,55 @@ export const HMApi_Types: {
                     properties: {
                         'type': { type: 'exactValue', value: 'clickButton' },
                     }
-                }
+                },
+                {
+                    type: 'object',
+                    properties: {
+                        'type': { type: 'exactValue', value: 'toggleToggleButton' },
+                        'value': { type: 'boolean' }
+                    }
+                },
+                {
+                    type: 'object',
+                    properties: {
+                        'type': { type: 'exactValue', value: 'setTwoButtonNumberValue' },
+                        'value': { type: 'number' }
+                    }
+                },
+                {
+                    type: 'object',
+                    properties: {
+                        'type': { type: 'exactValue', value: 'setSliderValue' },
+                        'value': { type: 'number' }
+                    }
+                },
+                {
+                    type: 'object',
+                    properties: {
+                        'type': { type: 'exactValue', value: 'setUIColorInputValue' },
+                        'color': { type: 'lazyType', value: ()=> HMApi_Types.objects.UIColor(true)}
+                    }
+                },
             ]
         },
         DeviceInteractionActionsPerInteraction: {
             "slider": ["setSliderValue"],
             "button": ["clickButton"],
-            "label": []
-        }
+            "label": [],
+            "toggleButton": ["toggleToggleButton"],
+            "twoButtonNumber": ["setTwoButtonNumberValue"],
+            "uiColorInput": ["setUIColorInputValue"]
+        },
+        UIColor(white = false) {
+            const colors = ["red", "orange", "yellow", "green", "blue", "purple", "pink", "brown"];
+            if (white) colors.push("white");
+            return {
+                type: "union",
+                types: colors.map(color => ({
+                    type: "exactValue", value: color
+                }))
+            };
+        },
     }
 };
 
