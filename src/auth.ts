@@ -64,17 +64,22 @@ export function loginUser(username: string|undefined, password: string, device: 
  * @returns The username of the user or null if the token is invalid
  * @throws `FLOOD` if the user has made over 10 requests in the last second
  */
-export function checkAuthToken(token: string): string|null {
+export function checkAuthToken(token: string): string | null {
+    const now = new Date();
+
     const [username, tk] = token.split(':');
     const login = logins[username]?.find(t => t.token === tk);
     if(!login) {
         return null;
     }
-    if(login.lastRequest.getTime() + 1000 * 60 * 60 * 24 * 7 < new Date().getTime()) {
+    if(login.lastRequest.getTime() + 1000 * 60 * 60 * 24 * 7 < now.getTime()) {
         logins[username]= logins[username].filter(t => t !== login);
         return null;
     }
-    login.lastRequest= new Date();
+    if (login.lastRequest.getTime() + 1000 < now.getTime()) {
+        login.flood = 0; // Sometimes the flood value will get stuck without coming down, even though no requests are made.
+    }
+    login.lastRequest= now;
     login.flood++;
     if(login.flood > 10) {
         throw 'FLOOD';
@@ -83,7 +88,7 @@ export function checkAuthToken(token: string): string|null {
         // Find the token again, because it may have moved in the array, or been removed
         const login = logins[username]?.find(t => t.token === tk);
         if(login) {
-            login.flood--;
+            login.flood = Math.max(login.flood-1, 0);
         }
     }, 1000);
     return username;
