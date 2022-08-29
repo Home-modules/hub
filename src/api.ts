@@ -893,6 +893,8 @@ export namespace HMApi {
             type: Omit<DeviceType, 'settings'> & {
                 /** The interactions for the device */
                 interactions: Record<string, DeviceInteraction.Type>,
+                /** The interaction that is displayed on the device itself in addition to the context menu. An On/Off label should be shown if not set. */
+                defaultInteraction?: string,
             },
             /** Current device icon, use `type.icon` if not provided. Can be overridden by `iconText`. */
             icon?: IconName,
@@ -906,8 +908,6 @@ export namespace HMApi {
             mainToggleState: boolean,
             /** Active highlight color override */
             activeColor?: UIColor,
-            /** Current device status as text. */
-            statusText: string,
             /** Whether the device can be clicked */
             clickable: boolean,
             /** The state of the interactions for the device */
@@ -1194,6 +1194,10 @@ export namespace HMApi {
                  * ---
                  * Actions:
                  * - setSliderValue: Change the slider value
+                 * 
+                 * ---
+                 * As default interaction:
+                 * - The label will be removed
                  */
                 export type Slider = Omit<SettingsField.TypeSlider, keyof SettingsField.GeneralProps<number> | 'appearance'> & {
                     /** A descriptive label shown above the slider */
@@ -1211,6 +1215,10 @@ export namespace HMApi {
                  * 
                  * ---
                  * Does not have any actions.
+                 * 
+                 * ---
+                 * As default interaction:
+                 * - Size and align will be ignored.
                  */
                 export type Label = {
                     type: 'label',
@@ -1230,6 +1238,10 @@ export namespace HMApi {
                  * ---
                  * Actions:
                  * - clickButton: Click the button
+                 * 
+                 * ---
+                 * As default interaction:
+                 * - `primary` will be ignored and set to `true`.
                  */
                 export type Button = {
                     type: 'button',
@@ -1249,6 +1261,10 @@ export namespace HMApi {
                  * ---
                  * Actions:
                  * - toggleToggleButton
+                 * 
+                 * ---
+                 * As default interaction:
+                 * - The label will be removed.
                  */
                 export type ToggleButton = {
                     type: 'toggleButton',
@@ -1264,6 +1280,12 @@ export namespace HMApi {
                  * ---
                  * Actions:
                  * - setTwoButtonNumberValue
+                 * 
+                 * ---
+                 * As default interaction:
+                 * - The label will be removed.
+                 * - Will be shown in place of the device icon
+                 * - Another interaction can also be added as default by separating with a plus sign (e.g. `temperature+speed`)
                  */
                 export type TwoButtonNumber = {
                     type: 'twoButtonNumber',
@@ -1293,6 +1315,8 @@ export namespace HMApi {
                     }) & {
                         color?: UIColor
                     },
+                    /** Text to add at the end of the displayed value */
+                    postfix?: string,
                 }
 
                 /**
@@ -1303,6 +1327,10 @@ export namespace HMApi {
                  * ---
                  * Actions:
                  * - setUIColorInputValue
+                 * 
+                 * ---
+                 * As default interaction:
+                 * - The label will be removed.
                  */
                 export type UIColorInput = {
                     type: 'uiColorInput',
@@ -1378,6 +1406,7 @@ export namespace HMApi {
                 /** @see Type.Label */
                 export type Label = {
                     text: string,
+                    color?: UIColor,
                 }
 
                 /** @see Type.Button */

@@ -20,7 +20,17 @@ export abstract class DeviceInstance {
     /** Whether the device can be clicked in the app */
     static clickable = true;
     /** The interactions for the device */
-    static interactions: Record<string, HMApi.T.DeviceInteraction.Type> = { };
+    static interactions: Record<string, HMApi.T.DeviceInteraction.Type> = {};
+    /** 
+     * (Optional) the ID of the interaction to show on the device itself in addition to the context menu.  
+     * When not set (or set to ""), an On/Off label will be shown. 
+     * 
+     * A `TwoButtonNumber` can be used in conjunction with one other interaction. To do this, separate the interactions with a plus sign (+).  
+     * In this case, the `TwoButtonNumber` interaction must appear first.
+     */
+    static defaultInteraction?: string;
+    /** Default interaction(s) when `hasMainToggle==true` and `mainToggleState==false` */
+    static defaultInteractionWhenOff?: string;
 
     /** Device ID */
     id: string;
@@ -42,8 +52,6 @@ export abstract class DeviceInstance {
     iconColor?: HMApi.T.UIColor;
     /** The main toggle state. When true, the device will be shown as active. */
     mainToggleState = false;
-    /** The status text to show for the device. If it is not provided and `hasMainToggle` is true, 'ON' or 'OFF' will be used as a fallback. */
-    statusText?: string;
     /** Active highlight color override */
     activeColor?: HMApi.T.UIColor;
     /** Interaction states */
@@ -82,7 +90,6 @@ export abstract class DeviceInstance {
             iconText: this.iconText,
             iconColor: this.iconColor,
             mainToggleState: this.mainToggleState,
-            statusText: this.statusText || ((this.constructor as DeviceTypeClass).hasMainToggle ? (this.mainToggleState ? 'ON' : 'OFF') : ' '),
             activeColor: this.activeColor,
             interactionStates: this.interactionStates,
         };
@@ -290,7 +297,7 @@ export async function getDeviceStates(roomId: string): Promise<Record<string, HM
 }
 
 export async function getDeviceState(instance: DeviceInstance, deviceType: DeviceTypeClass): Promise<HMApi.T.DeviceState> {
-    const {mainToggleState, icon, iconText, iconColor, statusText, activeColor, interactionStates} = await instance.getCurrentState();
+    const {mainToggleState, icon, iconText, iconColor, activeColor, interactionStates} = await instance.getCurrentState();
     return {
         ...(instance.disabled === false ? {
             disabled: false,
@@ -302,15 +309,15 @@ export async function getDeviceState(instance: DeviceInstance, deviceType: Devic
         roomId: instance.roomId,
         isFavorite: favoriteDevices.some(([rId, dId]) => rId === instance.roomId && dId === instance.id),
         name: instance.name,
-        type: (({id, super_name, sub_name, icon, interactions}: DeviceTypeClass)=> ({
-            id, name: super_name, sub_name, icon, interactions
+        type: (({id, super_name, sub_name, icon, interactions, defaultInteraction, defaultInteractionWhenOff}: DeviceTypeClass)=> ({
+            id, name: super_name, sub_name, icon, interactions,
+            defaultInteraction: (deviceType.hasMainToggle && !mainToggleState) ? defaultInteractionWhenOff : defaultInteraction
         }))(deviceType),
         icon,
         iconText,
         iconColor,
         hasMainToggle: deviceType.hasMainToggle,
         mainToggleState,
-        statusText,
         activeColor,
         clickable: deviceType.clickable,
         interactions: interactionStates,
