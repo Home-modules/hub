@@ -1,5 +1,4 @@
 import fs from 'fs';
-import { SerialPort } from 'serialport';
 import { HMApi } from './api.js';
 import { DeviceInstance, DeviceTypeClass, registerDeviceType } from './devices.js';
 import { Log } from './log.js';
@@ -35,16 +34,8 @@ async function registerPlugins(plugins: string[]) {
             throw new Error(`Failed to load plugin '${name}': Plugin directory not found`);
         }
         log.d("Plugin found at", pluginPath);
-        const plugin = await import(pluginPath);
-        log.d("Plugin file loaded");
-        if(!(typeof plugin == 'object')) {
-            throw new Error(`Failed to load plugin '${name}': Importing plugin main file went wrong`);
-        }
-        if(!('default' in plugin && typeof plugin.default == 'function')) {
-            throw new Error(`Failed to load plugin '${name}': Plugin main file has no default export or its default export is not a function`);
-        }
-        plugin.default(PluginApi);
-        log.d("Plugin run");
+        await import(pluginPath);
+        log.d("Plugin loaded");
     }
     log.i('Registered plugins');
     for(const deviceType of deviceTypesToRegister) {
@@ -53,40 +44,18 @@ async function registerPlugins(plugins: string[]) {
     log.i('Registered device types');
 }
 
-const PluginApi= {
-    /**
-     * Registers a device type.  
-     * **NOTE: Device types are not registered immediately, but after all plugins are loaded, because they depend on room controller types that may not be registered yet.**
-     * @param def The device information.
-     */
-    registerDeviceType(def: DeviceTypeClass) {
-        deviceTypesToRegister.push(def);
-    },
-    /**
-     * Registers a room controller type.
-     * @param def The room controller information.
-     */
-    registerRoomController,
-    /**
-     * The SerialPort class from the 'serialport' npm package
-     */
-    SerialPort,
-    /**
-     * The RoomControllerInstance class.
-     */
-    RoomControllerInstance,
-    /**
-     * The DeviceInstance class.
-     */
-    DeviceInstance,
-    /**
-     * A class for logging
-     */
-    Log,
-};
+function queueDeviceTypeRegistration(def: DeviceTypeClass) {
+    deviceTypesToRegister.push(def);
+}
 
-export type PluginApi = typeof PluginApi;
-export {HMApi};
+export {
+    HMApi,
+    Log,
+    RoomControllerInstance,
+    DeviceInstance,
+    registerRoomController,
+    queueDeviceTypeRegistration as registerDeviceType
+};
 
 // Similar to an array of HMApi.SettingsField, but SettingsFieldSelect.options when isLazy=true requires a function to be called to get the options
 export type SettingsFieldDef = (
