@@ -16,14 +16,15 @@ const log = new Log('index.ts');
 console.log("Home_modules hub", version);
 log.i("Home_modules hub", version);
 
+const allowHttps = !process.argv.includes('--disable-https');
 const httpsOptions: https.ServerOptions | null =
-    (fs.existsSync("../data/key.pem") && fs.existsSync("../data/cert.pem")) ? {
+    (allowHttps && fs.existsSync("../data/key.pem") && fs.existsSync("../data/cert.pem")) ? {
         key: fs.readFileSync("../data/key.pem"),
         cert: fs.readFileSync("../data/cert.pem")
     } : null;
 if (httpsOptions) {
     log.i("Found SSL private key at data/key.pem and certificate at data/cert.pem");
-} else {
+} else if(allowHttps) {
     log.w("data/key.pem and/or data/cert.pem was not found. Will fall back to HTTP for API and web app servers.");
 }
 
@@ -62,7 +63,7 @@ const apiServerPort = parseInt(process.argv[process.argv.indexOf('--api-port') +
     }, async() => {
         console.log('✔');
         log.i("Init 3/4 Starting API server... Done");
-        if (!httpsOptions) {
+        if (allowHttps && !httpsOptions) {
             console.log("Warning: SSL certificate and/or private key not found. Falling back to HTTP.");
         }
         await startWebAppServer();
