@@ -60,7 +60,7 @@ function forceExitAfter(timeout: number) {
  * be logged out as a warning, but won't prevent other callbacks from executing.
  * @param signalOrEvent The exit signal or event name received on the process.
  */
-async function shutdownHandler(signalOrEvent: string) {
+export async function shutdownHandler(signalOrEvent: string) {
     console.warn('Shutting down');
     log.w('Shutting down, event:', signalOrEvent);
 
