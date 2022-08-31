@@ -86,5 +86,3 @@ export type SettingsFieldSelectDef = (
         )
     }
 )
-
-export type x = SettingsFieldSelectDef extends HMApi.T.SettingsField.TypeSelect ? true : false;
