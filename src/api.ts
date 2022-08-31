@@ -44,6 +44,9 @@ export namespace HMApi {
 
         /** 
          * Terminates all sessions for this account except the one from which the request was made. 
+         * 
+         * ---
+         * @throws `SESSION_TOO_NEW` if the current session is less than 24 hours old.
          */
         export type LogoutOtherSessions = {
             type: "account.logoutOtherSessions"
@@ -65,6 +68,9 @@ export namespace HMApi {
 
         /**
          * Terminates a specific session.
+         * 
+         * ---
+         * @throws `SESSION_TOO_NEW` if the current session is less than 24 hours old.
          */
         export type LogoutSession = {
             type: "account.logoutSession",
@@ -77,6 +83,7 @@ export namespace HMApi {
          * 
          * ---
          * @throws LOGIN_PASSWORD_INCORRECT if the current password is incorrect.
+         * @throws `SESSION_TOO_NEW` if the current session is less than 24 hours old.
          */
         export type ChangePassword = {
             type: "account.changePassword",
@@ -87,12 +94,13 @@ export namespace HMApi {
         }
 
         /** 
-         * Changes the username of the current account. 
-         * A new token will be returned for future requests and the previous one will be invalidated. 
+         * Changes the username of the current account.  
+         * A new token will be returned for future requests and the previous one will be invalidated.  
          * WARNING: This causes all other sessions to be logged out, because there is no way the new token can be sent to other sessions. 
          * ---
          * @throws USERNAME_ALREADY_TAKEN if the username is already taken.
          * @throws USERNAME_TOO_SHORT if the username is shorter than 3 characters.
+         * @throws `SESSION_TOO_NEW` if the current session is less than 24 hours old.
          */
         export type ChangeUsername = {
             type: "account.changeUsername",
@@ -115,7 +123,7 @@ export namespace HMApi {
         }
 
         /** 
-         * Gets the registered rooms in the house 
+         * Gets the rooms in the house 
          */
         export type GetRooms = {
             type: "rooms.getRooms",
@@ -123,8 +131,8 @@ export namespace HMApi {
 
         /**
          * Edits the properties of a room.
-         * All properties except ID can be changed.
-         * If the property `controllerType` is changed, the room will be restarted. (all devices will be turned off, the connection to the controller will be dropped and the room will be initialized again)
+         * All properties except ID can be changed.  
+         * The room will be restarted. (all devices will be turned off, the connection to the controller will be dropped and the room will be initialized again)
          * ---
          * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
          */
@@ -136,6 +144,9 @@ export namespace HMApi {
 
         /**
          * Adds a new room to the house.
+         * 
+         * ---
+         * @throws `ROOM_ALREADY_EXISTS` if a room with the same ID already exists.
          */
         export type AddRoom = {
             type: "rooms.addRoom",
@@ -272,7 +283,7 @@ export namespace HMApi {
         }
 
         /**
-         * Removes a device from a room.
+         * Shuts down and removes a device from a room.
          * 
          * ---
          * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
@@ -407,7 +418,7 @@ export namespace HMApi {
         /** Nothing is returned */
         export type Empty = Record<string, never>;
 
-        export type GetVersion = {
+        export type Version = {
             /** The hub software version */
             version: `${number}.${number}.${number}`
         };
@@ -427,17 +438,17 @@ export namespace HMApi {
             sessions: T.Session[]
         }
 
-        export type CheckUsernameAvailable = {
+        export type UsernameAvailability = {
             /** False if the username is already taken, true otherwise. */
             available: boolean
         };
 
-        export type GetRooms = {
+        export type Rooms = {
             /** The rooms in the house */
             rooms: {[roomId: string]: T.Room}
         }
 
-        export type GetRoomControllerTypes = {
+        export type RoomControllerTypes = {
             /** The available room controller types */
             types: T.RoomControllerType[]
         }
@@ -447,12 +458,12 @@ export namespace HMApi {
             items: (T.SettingsField.SelectOption | T.SettingsField.SelectOptionGroup)[]
         }
 
-        export type GetDevices = {
+        export type Devices = {
             /** The devices in the room */
             devices: Record<string, T.Device>
         }
 
-        export type GetDeviceTypes = {
+        export type DeviceTypes = {
             /** The available device types for this room controller type */
             types: T.DeviceType[]
         }
@@ -474,7 +485,7 @@ export namespace HMApi {
     }
     export type Response<R extends Request> = 
         R extends Request.Empty ? Response.Empty :
-        R extends Request.GetVersion ? Response.GetVersion :
+        R extends Request.GetVersion ? Response.Version :
         R extends Request.Login ? Response.Login :
         R extends Request.Logout ? Response.Empty :
         R extends Request.LogoutOtherSessions ? Response.SessionCount :
@@ -483,17 +494,17 @@ export namespace HMApi {
         R extends Request.LogoutSession ? Response.Empty :
         R extends Request.ChangePassword ? Response.Empty :
         R extends Request.ChangeUsername ? Response.Login :
-        R extends Request.CheckUsernameAvailable ? Response.CheckUsernameAvailable :
-        R extends Request.GetRooms ? Response.GetRooms :
+        R extends Request.CheckUsernameAvailable ? Response.UsernameAvailability :
+        R extends Request.GetRooms ? Response.Rooms :
         R extends Request.EditRoom ? Response.Empty :
         R extends Request.AddRoom ? Response.Empty :
         R extends Request.RemoveRoom ? Response.Empty :
         R extends Request.ChangeRoomOrder ? Response.Empty :
         R extends Request.RestartRoom ? Response.Empty :
-        R extends Request.GetRoomControllerTypes ? Response.GetRoomControllerTypes :
+        R extends Request.GetRoomControllerTypes ? Response.RoomControllerTypes :
         R extends Request.GetSelectFieldLazyLoadItems ? Response.SelectFieldItems :
-        R extends Request.GetDevices ? Response.GetDevices :
-        R extends Request.GetDeviceTypes ? Response.GetDeviceTypes :
+        R extends Request.GetDevices ? Response.Devices :
+        R extends Request.GetDeviceTypes ? Response.DeviceTypes :
         R extends Request.AddDevice ? Response.Empty :
         R extends Request.EditDevice ? Response.Empty :
         R extends Request.RemoveDevice ? Response.Empty :
@@ -716,8 +727,8 @@ export namespace HMApi {
         R extends Request.GetSessionsCount ? never :
         R extends Request.GetSessions ? never :
         R extends Request.LogoutSession ? Error.NotFound<"session"> | Error.SessionTooNew :
-        R extends Request.ChangePassword ? Error.LoginPasswordIncorrect :
-        R extends Request.ChangeUsername ? Error.UsernameAlreadyTaken | Error.UsernameTooShort :
+        R extends Request.ChangePassword ? Error.LoginPasswordIncorrect | Error.SessionTooNew :
+        R extends Request.ChangeUsername ? Error.UsernameAlreadyTaken | Error.UsernameTooShort | Error.SessionTooNew :
         R extends Request.CheckUsernameAvailable ? never :
         R extends Request.GetRooms ? never :
         R extends Request.EditRoom ? Error.NotFound<"room"> | Error.PluginCustomError :
@@ -885,7 +896,7 @@ export namespace HMApi {
             id: string,
             /** The room's ID */
             roomId: string,
-            /** Whether de device is in the favorites list */
+            /** Whether the device is in the favorites list */
             isFavorite: boolean,
             /** The device's name */
             name: string,
