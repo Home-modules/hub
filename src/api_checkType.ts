@@ -1,4 +1,6 @@
 import { HMApi } from "./api.js";
+import semver from 'semver';
+import { authorRegex } from "./misc.js";
 
 // This file contains the algorithm to compare an object to a schema (with a custom format)
 // It also has the schemas for types in [HMApi](./api.js)
@@ -22,6 +24,7 @@ export type ParamTypeString = {
     type: 'string',
     minLength?: number, // The minimum length of the string
     maxLength?: number, // The maximum length of the string
+    customCheck?: (string: string)=> boolean // Optional custom check, should return true for valid strings
 };
 /** The value must be a number */
 export type ParamTypeNumber = {
@@ -109,7 +112,7 @@ export type ParamTypeNoUnion =
  * @param path An object path to prepend to keys in case of an error
  */
 export function checkType(req: any, type: ParamType, path=""): HMApi.Error<HMApi.Request> | null {
-    function invalidParamError(name="", message: "INVALID_PARAMETER"|"PARAMETER_OUT_OF_RANGE" ="INVALID_PARAMETER"): HMApi.Error<HMApi.Request> {
+    function invalidParamError(name = "", message: "INVALID_PARAMETER" | "PARAMETER_OUT_OF_RANGE" = "INVALID_PARAMETER"): HMApi.Error<HMApi.Request> {
         return {
             code: 400,
             message,
@@ -130,7 +133,7 @@ export function checkType(req: any, type: ParamType, path=""): HMApi.Error<HMApi
             break;
 
         case 'string':
-            if(typeof req !== 'string') {
+            if(typeof req !== 'string' || type.customCheck?.(req) === false) {
                 return invalidParamError();
             }
             if((type.minLength && req.length < type.minLength) || (type.maxLength && req.length > type.maxLength)) {
@@ -278,7 +281,8 @@ export const HMApi_Types: {
         Device: ParamType,
         DeviceInteractionAction: ParamType,
         DeviceInteractionActionsPerInteraction: Record<HMApi.T.DeviceInteraction.Type['type'], HMApi.T.DeviceInteraction.Action['type'][]>,
-        UIColor(white?: boolean): ParamType
+        UIColor(white?: boolean): ParamType,
+        PluginInfoFile: ParamType,
     }
 } = { 
     requests: {
@@ -544,6 +548,12 @@ export const HMApi_Types: {
                 "interactionId": { type: "string" },
                 "action": { type: "lazyType", value: () => HMApi_Types.objects.DeviceInteractionAction }
             }
+        },
+        "plugins.getInstalledPlugins": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "plugins.getInstalledPlugins"}
+            }
         }
     },
     objects: {
@@ -670,6 +680,53 @@ export const HMApi_Types: {
                 }))
             };
         },
+
+
+        PluginInfoFile: {
+            type: "object",
+            properties: {
+                "name": { type: "string" },
+                "version": {
+                    type: "string",
+                    customCheck(string) {
+                        return !!semver.valid(string);
+                    },
+                },
+                "title": { type: "string" },
+                "description": { optional: true, type: "string" },
+                "tags": { optional: true, type: "array", items: { type: "string" } },
+                "main": { optional: true, type: "string", customCheck: path => path.endsWith('.js') || path.endsWith('.ts') },
+                "author": {
+                    optional: true,
+                    type: 'union',
+                    types: [
+                        { type: "string", customCheck: authorRegex.test.bind(authorRegex) },
+                        {
+                            type: "object", properties: {
+                                "name": { type: 'string' },
+                                "author": { type: 'string', optional: true }
+                            }
+                        }
+                    ]
+                },
+                "homepage": {
+                    optional: true,
+                    type: "string",
+                    customCheck(string) {
+                        try {
+                            new URL(string);
+                            return true;
+                        } catch { return false; }
+                    },
+                },
+                "compatibleWithHub": {
+                    type: "string",
+                    customCheck(string) {
+                        return !!semver.validRange(string);
+                    },
+                }
+            }
+        }
     }
 };
 

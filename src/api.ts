@@ -411,8 +411,15 @@ export namespace HMApi {
             /** Action to perform */
             action: T.DeviceInteraction.Action;
         }
+
+        /**
+         * Gets the list of installed plugins.
+         */
+        export type GetInstalledPlugins = {
+            type: "plugins.getInstalledPlugins"
+        }
     }
-    export type Request = Request.Empty | Request.GetVersion | Request.Login | Request.Logout | Request.LogoutOtherSessions | Request.GetSessionsCount | Request.GetSessions | Request.LogoutSession | Request.ChangePassword | Request.ChangeUsername | Request.CheckUsernameAvailable | Request.GetRooms | Request.EditRoom | Request.AddRoom | Request.RemoveRoom | Request.ChangeRoomOrder | Request.RestartRoom | Request.GetRoomControllerTypes | Request.GetSelectFieldLazyLoadItems | Request.GetDevices | Request.GetDeviceTypes | Request.AddDevice | Request.EditDevice | Request.RemoveDevice | Request.ChangeDeviceOrder | Request.RestartDevice | Request.GetRoomStates | Request.GetDeviceStates | Request.ToggleDeviceMainToggle | Request.GetFavoriteDeviceStates | Request.ToggleDeviceIsFavorite | Request.SendDeviceInteractionAction;
+    export type Request = Request.Empty | Request.GetVersion | Request.Login | Request.Logout | Request.LogoutOtherSessions | Request.GetSessionsCount | Request.GetSessions | Request.LogoutSession | Request.ChangePassword | Request.ChangeUsername | Request.CheckUsernameAvailable | Request.GetRooms | Request.EditRoom | Request.AddRoom | Request.RemoveRoom | Request.ChangeRoomOrder | Request.RestartRoom | Request.GetRoomControllerTypes | Request.GetSelectFieldLazyLoadItems | Request.GetDevices | Request.GetDeviceTypes | Request.AddDevice | Request.EditDevice | Request.RemoveDevice | Request.ChangeDeviceOrder | Request.RestartDevice | Request.GetRoomStates | Request.GetDeviceStates | Request.ToggleDeviceMainToggle | Request.GetFavoriteDeviceStates | Request.ToggleDeviceIsFavorite | Request.SendDeviceInteractionAction | Request.GetInstalledPlugins;
 
     export namespace Response {
         /** Nothing is returned */
@@ -482,6 +489,11 @@ export namespace HMApi {
             /** The current state of the favorite devices */
             states: T.DeviceState[]
         }
+
+        export type Plugins = {
+            /** The installed plugins */
+            plugins: T.Plugin[]
+        }
     }
     export type Response<R extends Request> = 
         R extends Request.Empty ? Response.Empty :
@@ -516,6 +528,7 @@ export namespace HMApi {
         R extends Request.GetFavoriteDeviceStates ? Response.FavoriteDeviceStates :
         R extends Request.ToggleDeviceIsFavorite ? Response.Empty :
         R extends Request.SendDeviceInteractionAction ? Response.Empty :
+        R extends Request.GetInstalledPlugins ? Response.Plugins :
         never;
 
     export namespace Error {
@@ -750,7 +763,8 @@ export namespace HMApi {
         R extends Request.ToggleDeviceMainToggle ? Error.NotFound<"room"> | Error.NotFound<"device"> | Error.NoMainToggle | Error.RoomDisabled | Error.DeviceDisabled :
         R extends Request.GetFavoriteDeviceStates ? never :
         R extends Request.ToggleDeviceIsFavorite ? Error.NotFound<"room"> | Error.NotFound<"device"> :
-        R extends Request.SendDeviceInteractionAction ? Error.NotFound<"room"|"device"|"interaction"|"action"> | Error.RoomDisabled | Error.DeviceDisabled :
+        R extends Request.SendDeviceInteractionAction ? Error.NotFound<"room" | "device" | "interaction" | "action"> | Error.RoomDisabled | Error.DeviceDisabled :
+        R extends Request.GetInstalledPlugins ? never :
         never
     ) | (
         [R extends R ? keyof Omit<R, 'type'>: never ][0] extends never ? never : (Error.MissingParameter<R> | Error.InvalidParameter<R> | Error.ParameterOutOfRange<R>)
@@ -923,6 +937,33 @@ export namespace HMApi {
             clickable: boolean,
             /** The state of the interactions for the device */
             interactions: Record<string, DeviceInteraction.State | undefined>,
+        }
+
+        /**
+         * A plugin's information
+         */
+        export type Plugin = {
+            /** Plugin machine friendly name. */
+            id: string,
+            /** Plugin name */
+            name: string,
+            /** Plugin description */
+            description?: string,
+            /** Plugin author */
+            author?: string,
+            /** Plugin author website */
+            authorWebsite?: string,
+            /** URL of the plugin's website */
+            homepage?: string,
+            /** If this object is from the installed plugins, represents the installed version.  
+             * Otherwise, represents the latest version. */
+            version: string,
+            /** Whether the plugin is compatible with the current version of the hub */
+            compatible: boolean,
+            /** Whether the plugin is activated */
+            activated: boolean,
+            /** An array of tags for use in global search */
+            tags?: string[]
         }
 
         export namespace SettingsField {

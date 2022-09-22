@@ -3,6 +3,7 @@ import { checkType, HMApi_Types } from "./api_checkType.js";
 import { changePassword, changeUsername, checkAuthToken, getSessions, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, terminateSession, usernameExists } from "./auth.js";
 import { addDevice, deleteDevice, editDevice, getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, reorderDevices, restartDevice, sendDeviceInteractionAction, toggleDeviceIsFavorite } from "./devices.js";
 import getFlatFields from "./flat-fields.js";
+import { getInstalledPlugins } from "./plugins.js";
 import { addRoom, deleteRoom, editRoom, getRoomControllerTypes, getRooms, registeredRoomControllers, reorderRooms, restartRoom, roomControllerInstances } from "./rooms.js";
 import version from "./version.js";
 
@@ -875,6 +876,13 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                         return { type: "error", error: { code: 400, message: "PARAMETER_OUT_OF_RANGE", paramName: "action.value" } };
                 }
             }
+        }
+
+        case 'plugins.getInstalledPlugins': {
+            return getInstalledPlugins().then(plugins => ({
+                type: "ok",
+                data: { plugins }
+            }));
         }
 
         default:

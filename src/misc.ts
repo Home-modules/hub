@@ -1,0 +1,1 @@
+export const authorRegex = /^\s*([^<(]*?)\s*([<(]([^>)]*?)[>)])?\s*([<(]([^>)]*?)[>)])*\s*$/; // From package author-regex, couldn't use the package because of the lack of TS typings.

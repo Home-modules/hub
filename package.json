@@ -5,20 +5,24 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "cd src && node --loader ts-node/esm index.js",
-    "test": "cd src && node --loader ts-node/esm index.test.js"
+    "start": "cd src && ts-node index.js",
+    "test": "cd src && ts-node index.test.js"
   },
   "devDependencies": {
+    "@types/semver": "^7.3.12",
     "@types/serve-handler": "^6.1.1",
     "@typescript-eslint/eslint-plugin": "^5.10.2",
     "@typescript-eslint/parser": "^5.10.2",
     "eslint": "^8.8.0",
     "eslint-plugin-import": "^2.25.4",
-    "ts-node": "^10.4.0",
+    "ts-node": "^10.9.1",
     "typescript": "^4.5.5"
   },
   "dependencies": {
     "@serialport/parser-readline": "^10.3.0",
+    "author-regex": "^1.0.0",
+    "hmp-arduino": "^0.0.1",
+    "semver": "^7.3.7",
     "serialport": "^10.4.0",
     "serve-handler": "^6.1.3"
   }

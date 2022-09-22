@@ -3,38 +3,40 @@ import { HMApi } from './api.js';
 import { DeviceInstance, DeviceTypeClass, registerDeviceType } from './devices.js';
 import { Log } from './log.js';
 import { registerRoomController, RoomControllerInstance } from './rooms.js';
+import { checkType, HMApi_Types } from './api_checkType.js';
+import semver from 'semver';
+import hubVersion from './version.js';
+import { authorRegex } from './misc.js';
+
 const log = new Log('plugins');
 
+const pluginsRoot = '../node_modules';
+
+let activatedPlugins: string[] = [ ];
 export async function initPlugins() {
-    if(fs.existsSync('../data/plugins.json')) {
-        await registerPlugins(JSON.parse(fs.readFileSync('../data/plugins.json', 'utf8')));
+    if (fs.existsSync('../data/plugins.json')) {
+        await registerPlugins(activatedPlugins = JSON.parse(fs.readFileSync('../data/plugins.json', 'utf8')));
     } else {
-        savePlugins(['builtin']);
-        await registerPlugins(['builtin']);
+        savePlugins([ ]);
+        await registerPlugins([ ]);
     }
 }
 
 function savePlugins(plugins: string[]) {
-    fs.writeFile('../data/plugins.json', JSON.stringify(plugins), ()=>undefined);
+    fs.writeFile('../data/plugins.json', JSON.stringify(activatedPlugins = plugins), ()=>undefined);
 }
 
 const deviceTypesToRegister: DeviceTypeClass[] = [];
 
 async function registerPlugins(plugins: string[]) {
     log.i('Plugins', plugins.join(', '));
-    for(const name of plugins) {
-        let pluginPath: string;
-        if(fs.existsSync(`../data/plugins/${name}`)) {
-            if(fs.existsSync(`../data/plugins/${name}/${name}.js`) || fs.existsSync(`../data/plugins/${name}/${name}.ts`)) {
-                pluginPath = `../data/plugins/${name}/${name}.js`;
-            } else {
-                throw new Error(`Failed to load plugin '${name}': Plugin main file not found`);
-            }
-        } else {
-            throw new Error(`Failed to load plugin '${name}': Plugin directory not found`);
+    for (const name of plugins) {
+        try {
+            import('hmp-' + name);
+        } catch (err) {
+            log.e(`Error loading plugin ${name}:`, err);
+            throw err;
         }
-        log.d("Plugin found at", pluginPath);
-        await import(pluginPath);
         log.d("Plugin loaded");
     }
     log.i('Registered plugins');
@@ -46,6 +48,106 @@ async function registerPlugins(plugins: string[]) {
 
 function queueDeviceTypeRegistration(def: DeviceTypeClass) {
     deviceTypesToRegister.push(def);
+}
+
+export type PluginInfo = {
+    name: string,
+    version: string,
+    title: string,
+    description?: string,
+    tags?: string[],
+    main?: string,
+    author?: string | {
+        name: string,
+        url?: string
+    },
+    homepage: string,
+    compatibleWithHub: string
+}
+
+/** Returns plugin info, or undefined if the plugin is invalid */
+export async function getPluginInfo(id: string, isFullyInstalled = true): Promise<undefined | HMApi.T.Plugin> {
+    const pluginDir = `${pluginsRoot}/hmp-${id}`;
+    
+    const infoJSON = await fs.promises.readFile(`${pluginDir}/package.json`, 'utf-8').catch(() => null);
+    if (!infoJSON) {
+        log.e("Invalid plugin: plugin", id, "does not have a package.json file");
+        return;
+    }
+
+    let info: PluginInfo;
+    try {
+        info = JSON.parse(infoJSON);
+    } catch (error) {
+        log.e("Invalid plugin: could not parse", `${pluginDir}/package.json`, error);
+        return;
+    }
+
+    const error = checkType(info, HMApi_Types.objects.PluginInfoFile);
+    if (error) {
+        log.e("Invalid plugin:", `${pluginDir}/package.json`, "is invalid:", error);
+        return;
+    }
+
+    if (info.name !== 'hmp-'+id) {
+        log.e("Invalid plugin:", `the 'name' field in ${pluginDir}/package.json is incorrect`);
+        return;
+    }
+
+    const compatible = semver.satisfies(hubVersion, info.compatibleWithHub);
+
+    info.main ||= id + '.js';
+
+    if (!info.main.endsWith('.js')) {
+        log.e("Invalid plugin: main file for", id, "is not a JS file. If the plugin is in TypeScript, you have to compile it and set `main` to point to a js file.");
+        return;
+    }
+
+    const mainFileTs = info.main.slice(0, -3) + '.ts';
+    const jsFileExists = await fs.promises.stat(`${pluginDir}/${info.main}`).catch(() => null);
+    const tsFileExists = jsFileExists ? false : await fs.promises.stat(`${pluginDir}/${mainFileTs}`).catch(() => null);
+
+    if (!(isFullyInstalled ? jsFileExists : (jsFileExists || tsFileExists))) {
+        log.e("Invalid plugin: plugin", id, `entry point file (${pluginDir}/${info.main}) not found.`);
+        return;
+    }
+
+    let author: string | undefined = undefined,
+        authorWebsite: string | undefined = undefined;
+    if (typeof info.author === 'string') {
+        const regexRes = authorRegex.exec(info.author);
+        if (regexRes) {
+            author = regexRes[1]; authorWebsite = regexRes[3];
+        }
+    } else {
+        author = info.author?.name;
+        authorWebsite = info.author?.url;
+    }
+
+    return {
+        id: info.name,
+        name: info.title,
+        version: info.version,
+        description: info.description,
+        author,
+        authorWebsite,
+        homepage: info.homepage,
+        activated: activatedPlugins.includes(id),
+        compatible,
+        tags: info.tags?.length ? info.tags : undefined
+    };
+}
+
+export async function getInstalledPlugins() {
+    log.i(`Scanning for plugins in ${pluginsRoot}`);
+    const dirs = Object.keys(JSON.parse(await fs.promises.readFile('../package.json', 'utf-8')).dependencies);
+
+    return (await Promise.all(dirs.map(async (name): Promise<HMApi.T.Plugin | undefined> => {
+        if (!name.startsWith('hmp-')) return;
+        log.i("Directory found:", name);
+
+        return getPluginInfo(name.slice('hmp-'.length));
+    }))).filter(Boolean) as HMApi.T.Plugin[];
 }
 
 export {
