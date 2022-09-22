@@ -32,7 +32,7 @@ async function registerPlugins(plugins: string[]) {
     log.i('Plugins', plugins.join(', '));
     for (const name of plugins) {
         try {
-            import('hmp-' + name);
+            await import('hmp-' + name);
         } catch (err) {
             log.e(`Error loading plugin ${name}:`, err);
             throw err;
