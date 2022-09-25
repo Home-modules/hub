@@ -14,12 +14,36 @@ const pluginsRoot = '../node_modules';
 
 let activatedPlugins: string[] = [ ];
 export async function initPlugins() {
-    if (fs.existsSync('../data/plugins.json')) {
-        await registerPlugins(activatedPlugins = JSON.parse(fs.readFileSync('../data/plugins.json', 'utf8')));
-    } else {
-        savePlugins([ ]);
-        await registerPlugins([ ]);
+    if (!(() => {
+        const corruptError = "Warning: The file containing information about the list of activated plugins is corrupt. All plugins have been deactivated.";
+        if (!fs.existsSync('../data/plugins.json'))  {
+            log.w("data/plugins.json doesn't exist. Creating it...");
+            return false;
+        }
+        const json = fs.readFileSync('../data/plugins.json', 'utf8');
+        if (!json) {
+            console.error(corruptError);
+            log.e("data/plugins.json exists but is empty. This was probably caused by a crash while saving the file. Recreating it...");
+            return false;
+        }
+        try {
+            activatedPlugins = JSON.parse(json);
+        } catch (e) {
+            console.error(corruptError);
+            log.e("data/plugins.json contains malformed JSON. Recreating it...");
+            log.e(e);
+            return false;
+        }
+        if (!(activatedPlugins instanceof Array)) {
+            console.error(corruptError);
+            log.e("data/plugins.json is corrupt: the type is not an array. Recreating it...");
+            return false;
+        }
+        return true;
+    })()) {
+        savePlugins([]);
     }
+    await registerPlugins();
 }
 
 function savePlugins(plugins: string[]) {
@@ -28,14 +52,14 @@ function savePlugins(plugins: string[]) {
 
 const deviceTypesToRegister: DeviceTypeClass[] = [];
 
-async function registerPlugins(plugins: string[]) {
-    log.i('Plugins', plugins.join(', '));
-    for (const name of plugins) {
+async function registerPlugins() {
+    log.i('Loading plugins:', activatedPlugins.join(', '));
+    for (const name of activatedPlugins) {
         try {
             await import('hmp-' + name);
         } catch (err) {
             log.e(`Error loading plugin ${name}:`, err);
-            throw err;
+            console.error(`Warning: Plugin ${name} could not be loaded.`);
         }
         log.d("Plugin loaded");
     }

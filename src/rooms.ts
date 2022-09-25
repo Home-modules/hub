@@ -3,6 +3,7 @@ import fs from "fs";
 import { SettingsFieldDef } from "./plugins.js";
 import { DeviceInstance, devices, favoriteDevices, getDeviceTypes, registeredDeviceTypes, saveDevices, setFavoriteDevices } from "./devices.js";
 import { Log } from "./log.js";
+import { checkType, HMApi_Types } from "./api_checkType.js";
 const log = new Log("rooms");
 
 export abstract class RoomControllerInstance {
@@ -29,10 +30,24 @@ export abstract class RoomControllerInstance {
         this.type = properties.controllerType.type;
         this.settings = properties.controllerType.settings;
         
-        if(devices[id]) {
+        if (devices[id]) {
+            const invalidDevices: string[] = [];
             for(const deviceId in devices[id]) {
                 const device = devices[id][deviceId];
-                this.devices[deviceId] = new (getDeviceTypes(this.type)[device.type])(device, id);
+                const deviceType = getDeviceTypes(this.type)[device.type];
+                if (!deviceType) {
+                    console.error(`Warning: The device ${device.name} (${device.id}) in the room ${this.name} (${this.id}) has an invalid type. This was probably caused by deactivating the plugin that provided this device type. The device will be deleted.`);
+                    log.e(`Device type type ${device.type} for device ${device.id} in room ${this.id} not found. This was probably caused by deactivating the plugin that registered this device type. Device will be deleted.`);
+                    invalidDevices.push(device.id);
+                    continue;
+                }
+                this.devices[deviceId] = new deviceType(device, id);
+            }
+            if (invalidDevices.length) {
+                for (const id of invalidDevices) {
+                    delete devices[this.id][id];
+                }
+                saveDevices();
             }
         }
     }
@@ -69,11 +84,60 @@ export type NonAbstractClass<T extends abstract new (...args: any)=>any> = Omit<
 let rooms: { [id: string]: HMApi.T.Room } = {};
 export let roomControllerInstances: { [id: string]: RoomControllerInstance } = {};
 
-if(fs.existsSync('../data/rooms.json')) {
-    rooms= JSON.parse(fs.readFileSync('../data/rooms.json', 'utf8'));
-} else saveRooms();
+if(!(() => {
+    if (!fs.existsSync('../data/rooms.json')) {
+        log.w("data/rooms.json doesn't exist. Creating it...");
+        return false;
+    }
+
+    const corruptError = "Warning: The file containing information about rooms is corrupt. The file will be recreated but all rooms have been lost.";
+    const roomsJSON = fs.readFileSync('../data/rooms.json', 'utf8');
+    if (!roomsJSON) { // This can happen when the hub crashes while saving rooms (it shouldn't), usually when a room controller is being initialized. This leads to a corrupted file.
+        log.e("data/rooms.json exists but is empty. This was probably caused by a crash while saving the file. Recreating it...");
+        console.error(corruptError);
+        return false;
+    }
+    let parsed: typeof rooms;
+    try {
+        parsed = JSON.parse(roomsJSON);
+    } catch(e) {
+        log.e("data/rooms.json contains malformed JSON. Recreating it...");
+        log.e(e);
+        console.error(corruptError);
+        return false;
+    }
+
+    // Check format
+    if (!((typeof parsed === 'object') && !(parsed instanceof Array))) {
+        log.e("data/rooms.json is corrupt: the type is not an object. Recreating it...");
+        console.error(corruptError);
+        return false;
+    }
+
+    // Check rooms
+    const invalidRooms: string[] = [];
+    for (const [id, room] of Object.entries(parsed)) {
+        let err: ReturnType<typeof checkType>|string = checkType(room, HMApi_Types.objects.Room);
+        if (id !== room.id) {
+            err = 'room.id is not equal to its key.';
+        }
+        if (err) {
+            console.error(`Warning: Part of the file containing information about the room ${room.name} (${id}) is corrupt. The room will be deleted.`);
+            log.e(`data/rooms.json -> room ${id} is invalid:`, err);
+            invalidRooms.push(id);
+        }
+    }
+    for (const id of invalidRooms) {
+        delete parsed[id];
+    }
+    rooms = parsed;
+    return !invalidRooms.length; // WIll be false if it isn't empty.
+})()) {
+    saveRooms();
+}
 
 function saveRooms() {
+    log.i("Saving data/rooms.json...");
     fs.writeFile('../data/rooms.json', JSON.stringify(rooms), ()=>undefined);
 }
 
@@ -195,8 +259,22 @@ export function getRoomControllerTypes(): HMApi.T.RoomControllerType[] {
 }
 
 export async function initRoomsDevices() {
-    for(const roomId in rooms) {
-        roomControllerInstances[roomId] = new registeredRoomControllers[rooms[roomId].controllerType.type](rooms[roomId]);
+    const invalidRooms: string[] = [];
+    for (const room of Object.values(rooms)) {
+        const controllerType = registeredRoomControllers[room.controllerType.type];
+        if (!controllerType) {
+            console.error(`Warning: The controller for the room ${room.name} (${room.id}) has an invalid type. This was probably caused by deactivating the plugin that provided this room controller type. The room will be deleted.`);
+            log.e(`Room controller type ${room.controllerType.type} for room ${room.id} not found. This was probably caused by deactivating the plugin that registered this room controller type. Room will be deleted.`);
+            invalidRooms.push(room.id);
+            continue;
+        }
+        roomControllerInstances[room.id] = new controllerType(room);
+    }
+    if (invalidRooms.length) {
+        for (const room of invalidRooms) {
+            delete rooms[room];
+        }
+        saveRooms();
     }
     for(const instance of Object.values(roomControllerInstances)) {
         await instance.init();
