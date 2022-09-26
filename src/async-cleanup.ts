@@ -5,6 +5,7 @@
  * - Change indentation
  * - Changed `const fn = () => { ... }` to `function fn() { ... }`
  * - Changed console messages
+ * - Add support for shutdown message from pm2
  * 
  * I understand how it works.
  */
@@ -92,3 +93,10 @@ processOnce(SHUTDOWN_SIGNALS, forceExitAfter(SHUTDOWN_TIMEOUT));
 // Register process shutdown callback
 // Will listen to incoming signal events and execute all registered handlers in the stack
 processOnce(SHUTDOWN_SIGNALS, shutdownHandler);
+
+process.on('message', (message) => {
+    if (message === 'shutdown') {
+        shutdownHandler(message);
+        forceExitAfter(SHUTDOWN_TIMEOUT)();
+    }
+});

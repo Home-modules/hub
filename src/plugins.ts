@@ -7,6 +7,7 @@ import { checkType, HMApi_Types } from './api_checkType.js';
 import semver from 'semver';
 import hubVersion from './version.js';
 import { authorRegex } from './misc.js';
+import { shutdownHandler } from './async-cleanup.js';
 
 const log = new Log('plugins');
 
@@ -46,8 +47,8 @@ export async function initPlugins() {
     await registerPlugins();
 }
 
-function savePlugins(plugins: string[]) {
-    fs.writeFile('../data/plugins.json', JSON.stringify(activatedPlugins = plugins), ()=>undefined);
+async function savePlugins(plugins: string[]) {
+    return fs.promises.writeFile('../data/plugins.json', JSON.stringify(activatedPlugins = plugins));
 }
 
 const deviceTypesToRegister: DeviceTypeClass[] = [];
@@ -149,7 +150,7 @@ export async function getPluginInfo(id: string, isFullyInstalled = true): Promis
     }
 
     return {
-        id: info.name,
+        id,
         name: info.title,
         version: info.version,
         description: info.description,
@@ -163,15 +164,24 @@ export async function getPluginInfo(id: string, isFullyInstalled = true): Promis
 }
 
 export async function getInstalledPlugins() {
+    return Object.keys(JSON.parse(await fs.promises.readFile('../package.json', 'utf-8')).dependencies).filter(p => p.startsWith('hmp-')).map(p => p.slice(4 /** 'hmp-'.length */));
+}
+
+export async function getInstalledPluginsInfo() {
     log.i(`Scanning for plugins in ${pluginsRoot}`);
-    const dirs = Object.keys(JSON.parse(await fs.promises.readFile('../package.json', 'utf-8')).dependencies);
+    const plugins = await getInstalledPlugins();
 
-    return (await Promise.all(dirs.map(async (name): Promise<HMApi.T.Plugin | undefined> => {
-        if (!name.startsWith('hmp-')) return;
-        log.i("Directory found:", name);
+    return (await Promise.all(plugins.map(async (name): Promise<HMApi.T.Plugin | undefined> => {
+        log.i("Plugin found:", name);
 
-        return getPluginInfo(name.slice('hmp-'.length));
+        return getPluginInfo(name);
     }))).filter(Boolean) as HMApi.T.Plugin[];
+}
+
+export async function togglePluginIsActivated(id: string, newActivatedState: boolean, shouldRestart = true) {
+    if (activatedPlugins.includes(id) == newActivatedState) return;
+    await savePlugins(newActivatedState ? [...activatedPlugins, id] : activatedPlugins.filter(plugin => plugin !== id));
+    shouldRestart && shutdownHandler('restart');
 }
 
 export {

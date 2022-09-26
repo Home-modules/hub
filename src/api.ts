@@ -418,8 +418,23 @@ export namespace HMApi {
         export type GetInstalledPlugins = {
             type: "plugins.getInstalledPlugins"
         }
+
+        /**
+         * Activates / deactivates a plugin.
+         * 
+         * ---
+         * @throws `NOT_FOUND` with `object="plugin"` if there is no installed plugin with that name.
+         */
+        export type TogglePluginIsActivated = {
+            type: "plugins.togglePluginIsActivated",
+            /** The ID of the plugin (excluding the `hmp-` prefix) */
+            id: string,
+            /** Whether the plugin should now be activated. If the state is the same as before, this request does nothing. */
+            isActivated: boolean;
+        }
+
     }
-    export type Request = Request.Empty | Request.GetVersion | Request.Login | Request.Logout | Request.LogoutOtherSessions | Request.GetSessionsCount | Request.GetSessions | Request.LogoutSession | Request.ChangePassword | Request.ChangeUsername | Request.CheckUsernameAvailable | Request.GetRooms | Request.EditRoom | Request.AddRoom | Request.RemoveRoom | Request.ChangeRoomOrder | Request.RestartRoom | Request.GetRoomControllerTypes | Request.GetSelectFieldLazyLoadItems | Request.GetDevices | Request.GetDeviceTypes | Request.AddDevice | Request.EditDevice | Request.RemoveDevice | Request.ChangeDeviceOrder | Request.RestartDevice | Request.GetRoomStates | Request.GetDeviceStates | Request.ToggleDeviceMainToggle | Request.GetFavoriteDeviceStates | Request.ToggleDeviceIsFavorite | Request.SendDeviceInteractionAction | Request.GetInstalledPlugins;
+    export type Request = Request.Empty | Request.GetVersion | Request.Login | Request.Logout | Request.LogoutOtherSessions | Request.GetSessionsCount | Request.GetSessions | Request.LogoutSession | Request.ChangePassword | Request.ChangeUsername | Request.CheckUsernameAvailable | Request.GetRooms | Request.EditRoom | Request.AddRoom | Request.RemoveRoom | Request.ChangeRoomOrder | Request.RestartRoom | Request.GetRoomControllerTypes | Request.GetSelectFieldLazyLoadItems | Request.GetDevices | Request.GetDeviceTypes | Request.AddDevice | Request.EditDevice | Request.RemoveDevice | Request.ChangeDeviceOrder | Request.RestartDevice | Request.GetRoomStates | Request.GetDeviceStates | Request.ToggleDeviceMainToggle | Request.GetFavoriteDeviceStates | Request.ToggleDeviceIsFavorite | Request.SendDeviceInteractionAction | Request.GetInstalledPlugins | Request.TogglePluginIsActivated;
 
     export namespace Response {
         /** Nothing is returned */
@@ -529,6 +544,7 @@ export namespace HMApi {
         R extends Request.ToggleDeviceIsFavorite ? Response.Empty :
         R extends Request.SendDeviceInteractionAction ? Response.Empty :
         R extends Request.GetInstalledPlugins ? Response.Plugins :
+        R extends Request.TogglePluginIsActivated ? Response.Empty :
         never;
 
     export namespace Error {
@@ -765,6 +781,7 @@ export namespace HMApi {
         R extends Request.ToggleDeviceIsFavorite ? Error.NotFound<"room"> | Error.NotFound<"device"> :
         R extends Request.SendDeviceInteractionAction ? Error.NotFound<"room" | "device" | "interaction" | "action"> | Error.RoomDisabled | Error.DeviceDisabled :
         R extends Request.GetInstalledPlugins ? never :
+        R extends Request.TogglePluginIsActivated ? Error.NotFound<"plugin"> :
         never
     ) | (
         [R extends R ? keyof Omit<R, 'type'>: never ][0] extends never ? never : (Error.MissingParameter<R> | Error.InvalidParameter<R> | Error.ParameterOutOfRange<R>)

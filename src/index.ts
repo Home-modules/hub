@@ -116,8 +116,6 @@ const apiServerPort = parseInt(process.argv[process.argv.indexOf('--api-port') +
 
 
 
-
-
 function handleApiRequest(req: http.IncomingMessage, res: http.ServerResponse) {
     log.i("Request received from", req.socket.remoteAddress);
     log.d("HTTP", req.httpVersion, "method", req.method, "url", req.url);

@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "cd src && ts-node index.js",
+    "start": "cd src && pm2 start --silent --shutdown-with-message --no-daemon --name Home_modules ts-node index.js --",
     "test": "cd src && ts-node index.test.js"
   },
   "devDependencies": {
@@ -20,8 +20,8 @@
   },
   "dependencies": {
     "@serialport/parser-readline": "^10.3.0",
-    "author-regex": "^1.0.0",
     "hmp-arduino": "^0.0.1",
+    "pm2": "^5.2.0",
     "semver": "^7.3.7",
     "serialport": "^10.4.0",
     "serve-handler": "^6.1.3"

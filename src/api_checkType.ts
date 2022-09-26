@@ -554,6 +554,14 @@ export const HMApi_Types: {
             properties: {
                 "type": { type: "exactValue", value: "plugins.getInstalledPlugins"}
             }
+        },
+        "plugins.togglePluginIsActivated": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "plugins.togglePluginIsActivated"},
+                "id": { type: "string" },
+                "isActivated": { type: "boolean" }
+            }
         }
     },
     objects: {
