@@ -503,12 +503,8 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
             return {
                 type: "ok",
                 data: {
-                    types: Object.values(getDeviceTypes(req.controllerType)).map((type): HMApi.T.DeviceType=> ({
-                        id: type.id,
-                        name: type.super_name,
-                        sub_name: type.sub_name,
-                        settings: type.settingsFields,
-                        icon: type.icon
+                    types: Object.values(getDeviceTypes(req.controllerType)).map(({id, super_name, sub_name, icon, settingsFields, forRoomController}): HMApi.T.DeviceType=> ({
+                        id, name: super_name, sub_name, settings: settingsFields, icon, forRoomController
                     }))
                 }
             };

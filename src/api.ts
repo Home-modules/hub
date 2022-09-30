@@ -872,7 +872,9 @@ export namespace HMApi {
             /** Settings fields */
             settings: SettingsField[],
             /** The icon to show for the device */
-            icon: IconName
+            icon: IconName,
+            /** The compatible room controller(s) for the device types. '*' means any. */
+            forRoomController: `${string}:${string}`|`${string}:*`|'*'
         };
 
         /**
