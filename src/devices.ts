@@ -401,8 +401,8 @@ export async function getDeviceState(instance: DeviceInstance, deviceType: Devic
         roomId: instance.roomId,
         isFavorite: favoriteDevices.some(([rId, dId]) => rId === instance.roomId && dId === instance.id),
         name: instance.name,
-        type: (({id, super_name, sub_name, icon, interactions, defaultInteraction, defaultInteractionWhenOff}: DeviceTypeClass)=> ({
-            id, name: super_name, sub_name, icon, interactions,
+        type: (({id, super_name, sub_name, icon, interactions, defaultInteraction, defaultInteractionWhenOff, forRoomController}: DeviceTypeClass)=> ({
+            id, name: super_name, sub_name, icon, interactions, forRoomController,
             defaultInteraction: (deviceType.hasMainToggle && !mainToggleState) ? defaultInteractionWhenOff : defaultInteraction
         }))(deviceType),
         icon,
