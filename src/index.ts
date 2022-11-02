@@ -145,6 +145,7 @@ function handleApiRequest(req: http.IncomingMessage, res: http.ServerResponse) {
     function parseRequest(token: string, data: string) {
         log.d("Parsing request");
 
+        token = decodeURIComponent(token);
         data= decodeURIComponent(data);
         let json: HMApi.Request;
         try {
