@@ -1069,7 +1069,7 @@ export namespace HMApi {
                 options: Record<string, {
                     /** Option label */
                     label: string,
-                    /** Option description. Not recommended if the radio group has a label and/or description. Ignored if direction is horizontal */
+                    /** Option description. It is recommended to add a description for either all or none of the options. Ignored if direction is horizontal */
                     description?: string,
                 }>,
                 /** The preferred orientation of the radio buttons. 'h' means they will be on the same line and 'v' means they will be on different lines. */
