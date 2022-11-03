@@ -1,5 +1,6 @@
 import { HMApi } from "./api.js";
 import { checkType, HMApi_Types } from "./api_checkType.js";
+import { shutdownHandler } from "./async-cleanup.js";
 import { changePassword, changeUsername, checkAuthToken, getSessions, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, terminateSession, usernameExists } from "./auth.js";
 import { addDevice, deleteDevice, editDevice, getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, reorderDevices, restartDevice, sendDeviceInteractionAction, toggleDeviceIsFavorite } from "./devices.js";
 import getFlatFields from "./flat-fields.js";
@@ -50,6 +51,14 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 }
             };
 
+        case "restart":
+            setTimeout(() => shutdownHandler('restart'), 100); // 100ms should be enough, since the whole process of sending the request from the frontend until receiving the result usually takes less than 100ms, let alone just sending the result from backend.
+            
+            return {
+                type: "ok",
+                data: {}
+            };
+        
         case "account.login": {
             const err= checkType(req, HMApi_Types.requests["account.login"]);
             if(err) { return { type: "error", error: err }; }
@@ -896,7 +905,7 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
 
                 setTimeout(() => {
                     togglePluginIsActivated(req.id, req.isActivated);
-                }, 100); // 100ms should be enough, since the whole process of sending the request from the frontend until receiving the result usually takes less than 100ms, let alone just sending the result from backend.
+                }, 100);
 
                 return {
                     type: "ok",

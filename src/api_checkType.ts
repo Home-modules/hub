@@ -298,6 +298,12 @@ export const HMApi_Types: {
                 "type": { type: "exactValue", value: "getVersion" }
             }
         },
+        "restart": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "restart" }
+            }
+        },
         "account.login": {
             type: "object",
             properties: {

@@ -16,6 +16,13 @@ export namespace HMApi {
             type: "getVersion"
         };
 
+        /**
+         * Restarts the hub (and as a result all rooms and devices).
+         */
+        export type Restart = {
+            type: "restart";
+        };
+
         /** 
          * Logs in to a hub account. 
          * A token is returned which must be passed to all future requests. 
@@ -434,7 +441,7 @@ export namespace HMApi {
         }
 
     }
-    export type Request = Request.Empty | Request.GetVersion | Request.Login | Request.Logout | Request.LogoutOtherSessions | Request.GetSessionsCount | Request.GetSessions | Request.LogoutSession | Request.ChangePassword | Request.ChangeUsername | Request.CheckUsernameAvailable | Request.GetRooms | Request.EditRoom | Request.AddRoom | Request.RemoveRoom | Request.ChangeRoomOrder | Request.RestartRoom | Request.GetRoomControllerTypes | Request.GetSelectFieldLazyLoadItems | Request.GetDevices | Request.GetDeviceTypes | Request.AddDevice | Request.EditDevice | Request.RemoveDevice | Request.ChangeDeviceOrder | Request.RestartDevice | Request.GetRoomStates | Request.GetDeviceStates | Request.ToggleDeviceMainToggle | Request.GetFavoriteDeviceStates | Request.ToggleDeviceIsFavorite | Request.SendDeviceInteractionAction | Request.GetInstalledPlugins | Request.TogglePluginIsActivated;
+    export type Request = Request.Empty | Request.GetVersion | Request.Restart | Request.Login | Request.Logout | Request.LogoutOtherSessions | Request.GetSessionsCount | Request.GetSessions | Request.LogoutSession | Request.ChangePassword | Request.ChangeUsername | Request.CheckUsernameAvailable | Request.GetRooms | Request.EditRoom | Request.AddRoom | Request.RemoveRoom | Request.ChangeRoomOrder | Request.RestartRoom | Request.GetRoomControllerTypes | Request.GetSelectFieldLazyLoadItems | Request.GetDevices | Request.GetDeviceTypes | Request.AddDevice | Request.EditDevice | Request.RemoveDevice | Request.ChangeDeviceOrder | Request.RestartDevice | Request.GetRoomStates | Request.GetDeviceStates | Request.ToggleDeviceMainToggle | Request.GetFavoriteDeviceStates | Request.ToggleDeviceIsFavorite | Request.SendDeviceInteractionAction | Request.GetInstalledPlugins | Request.TogglePluginIsActivated;
 
     export namespace Response {
         /** Nothing is returned */
@@ -513,6 +520,7 @@ export namespace HMApi {
     export type Response<R extends Request> = 
         R extends Request.Empty ? Response.Empty :
         R extends Request.GetVersion ? Response.Version :
+        R extends Request.Restart ? Response.Empty :
         R extends Request.Login ? Response.Login :
         R extends Request.Logout ? Response.Empty :
         R extends Request.LogoutOtherSessions ? Response.SessionCount :
@@ -750,6 +758,7 @@ export namespace HMApi {
     export type Error<R extends Request> = (
         R extends Request.Empty ? never :
         R extends Request.GetVersion ? never :
+        R extends Request.Restart ? never :
         R extends Request.Login ? Error.LoginPasswordIncorrect | Error.LoginUserNotFound :
         R extends Request.Logout ? never :
         R extends Request.LogoutOtherSessions ? Error.SessionTooNew :
