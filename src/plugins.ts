@@ -61,6 +61,7 @@ async function registerPlugins() {
         } catch (err) {
             log.e(`Error loading plugin ${name}:`, err);
             console.error(`Warning: Plugin ${name} could not be loaded.`);
+            await shutdownHandler('error');
         }
         log.d("Plugin loaded");
     }
