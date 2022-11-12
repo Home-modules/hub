@@ -1,6 +1,6 @@
 import { HMApi } from "./api.js";
 import { SettingsFieldDef } from "./plugins.js";
-import { getRoom, getRooms, NonAbstractClass, roomControllerInstances } from "./rooms.js";
+import { getRoom, getRooms, NonAbstractClass, RoomControllerInstance, roomControllerInstances } from "./rooms.js";
 import fs from "fs";
 import { Log } from "./log.js";
 import { checkType, HMApi_Types } from "./api_checkType.js";
@@ -57,12 +57,15 @@ export abstract class DeviceInstance {
     /** Interaction states */
     interactionStates: Record<string, HMApi.T.DeviceInteraction.State | undefined> = {};
 
-    constructor(public properties: HMApi.T.Device, roomId: string) {
+    #roomController: RoomControllerInstance;
+
+    constructor(public properties: HMApi.T.Device, roomController: RoomControllerInstance) {
         this.id = properties.id;
         this.name = properties.name;
         this.type = properties.type;
         this.settings = properties.params;
-        this.roomId = roomId;
+        this.#roomController = roomController;
+        this.roomId = roomController.id;
     }
 
     async init() {
@@ -76,7 +79,7 @@ export abstract class DeviceInstance {
     }
 
     get roomController() {
-        return roomControllerInstances[this.roomId];
+        return this.#roomController;
     }
 
     disable(reason: string) {
@@ -282,7 +285,7 @@ export async function addDevice(roomId: string, device: HMApi.T.Device): Promise
     if(err) return err;
 
     devices[roomId][id] = device;
-    roomControllerInstances[roomId].devices[id] = new deviceType(device, roomId);
+    roomControllerInstances[roomId].devices[id] = new deviceType(device, roomControllerInstances[roomId]);
     saveDevices();
     await roomControllerInstances[roomId].devices[id].init();
     return true;
@@ -304,7 +307,7 @@ export async function editDevice(roomId: string, device: HMApi.T.Device): Promis
 
     roomControllerInstances[roomId].devices[id].dispose();
     devices[roomId][id] = device;
-    roomControllerInstances[roomId].devices[id] = new deviceType(device, roomId);
+    roomControllerInstances[roomId].devices[id] = new deviceType(device, roomControllerInstances[roomId]);
     saveDevices();
     await roomControllerInstances[roomId].devices[id].init();
     return true;
@@ -370,7 +373,7 @@ export async function restartDevice(roomId: string, id: string): Promise<'room_n
         await device.dispose();
         delete room.devices[id];
     }
-    room.devices[id] = new (getDeviceTypes(room.type)[device.type])(devices[roomId][id], roomId);
+    room.devices[id] = new (getDeviceTypes(room.type)[device.type])(devices[roomId][id], roomControllerInstances[roomId]);
     await room.devices[id].init();
 }
 
