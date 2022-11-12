@@ -23,17 +23,21 @@ export abstract class RoomControllerInstance {
     initialized = false;
     devices: Record<string, DeviceInstance> = {};
 
-    constructor(properties: HMApi.T.Room) {
-        const id = this.id = properties.id;
+    constructor(properties: HMApi.T.Room, instantiateDevices = true) {
+        this.id = properties.id;
         this.name = properties.name;
         this.icon = properties.icon;
         this.type = properties.controllerType.type;
         this.settings = properties.controllerType.settings;
         
-        if (devices[id]) {
+        instantiateDevices && this.instantiateDevices();
+    }
+
+    instantiateDevices() {
+        if (devices[this.id]) {
             const invalidDevices: string[] = [];
-            for(const deviceId in devices[id]) {
-                const device = devices[id][deviceId];
+            for(const deviceId in devices[this.id]) {
+                const device = devices[this.id][deviceId];
                 const deviceType = getDeviceTypes(this.type)[device.type];
                 if (!deviceType) {
                     console.error(`Warning: The device ${device.name} (${device.id}) in the room ${this.name} (${this.id}) has an invalid type. This was probably caused by deactivating the plugin that provided this device type. The device will be deleted.`);
@@ -41,7 +45,7 @@ export abstract class RoomControllerInstance {
                     invalidDevices.push(device.id);
                     continue;
                 }
-                this.devices[deviceId] = new deviceType(device, id);
+                this.devices[deviceId] = new deviceType(device, this);
             }
             if (invalidDevices.length) {
                 for (const id of invalidDevices) {
