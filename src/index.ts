@@ -16,7 +16,9 @@ const log = new Log('index.ts');
 console.log("Home_modules hub", version);
 log.i("Home_modules hub", version);
 
+log.i(process.argv.join(' '));
 const allowHttps = !process.argv.includes('--disable-https');
+if (!allowHttps) log.i("HTTPS is disabled. Will use HTTP even if private key and certificate are found.");
 const httpsOptions: https.ServerOptions | null =
     (allowHttps && fs.existsSync("../data/key.pem") && fs.existsSync("../data/cert.pem")) ? {
         key: fs.readFileSync("../data/key.pem"),
