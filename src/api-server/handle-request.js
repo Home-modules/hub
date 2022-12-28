@@ -1,18 +1,27 @@
-import { HMApi } from "./api.js";
-import { checkType, HMApi_Types } from "./api_checkType.js";
-import { shutdownHandler } from "./async-cleanup.js";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+import { checkType, HMApi_Types } from "../api/api_checkType.js";
+import { shutdownHandler } from "../async-cleanup.js";
 import { changePassword, changeUsername, checkAuthToken, getSessions, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, terminateSession, usernameExists } from "./auth.js";
-import { addDevice, deleteDevice, editDevice, getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, reorderDevices, restartDevice, sendDeviceInteractionAction, toggleDeviceIsFavorite } from "./devices.js";
-import getFlatFields from "./flat-fields.js";
-import { getInstalledPlugins, getInstalledPluginsInfo, togglePluginIsActivated } from "./plugins.js";
-import { addRoom, deleteRoom, editRoom, getRoomControllerTypes, getRooms, registeredRoomControllers, reorderRooms, restartRoom, roomControllerInstances } from "./rooms.js";
-import version from "./version.js";
-
-export default function handleRequest(token: string, req: HMApi.Request, ip: string): HMApi.ResponseOrError<HMApi.Request>|Promise<HMApi.ResponseOrError<HMApi.Request>> {
-    if(req.type!=="account.login") {
+import { getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, restartDevice, sendDeviceInteractionAction, toggleDeviceIsFavorite } from "../devices/devices.js";
+import { addDevice, deleteDevice, editDevice, reorderDevices } from "../devices/editDevices.js";
+import getFlatFields from "../flat-fields.js";
+import { getInstalledPlugins, getInstalledPluginsInfo, togglePluginIsActivated } from "../plugins.js";
+import { getRoomControllerTypes, getRooms, registeredRoomControllers, restartRoom, roomControllerInstances } from "../rooms/rooms.js";
+import { addRoom, deleteRoom, editRoom, reorderRooms } from "../rooms/editRooms.js";
+import version from "../version.js";
+export default function handleRequest(token, req, ip) {
+    if (req.type !== "account.login") {
         try {
-            const tk = checkAuthToken(token)!;
-            if(!tk) {
+            const tk = checkAuthToken(token);
+            if (!tk) {
                 return {
                     type: "error",
                     error: {
@@ -21,8 +30,9 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     }
                 };
             }
-        } catch (e) {
-            if(e === 'FLOOD') {
+        }
+        catch (e) {
+            if (e === 'FLOOD') {
                 return {
                     type: "error",
                     error: {
@@ -36,13 +46,12 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
             }
         }
     }
-    switch( req.type ) {
+    switch (req.type) {
         case "empty":
             return {
                 type: "ok",
                 data: {}
             };
-
         case "getVersion":
             return {
                 type: "ok",
@@ -50,20 +59,19 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     version
                 }
             };
-
         case "restart":
             setTimeout(() => shutdownHandler('restart'), 100); // 100ms should be enough, since the whole process of sending the request from the frontend until receiving the result usually takes less than 100ms, let alone just sending the result from backend.
-            
             return {
                 type: "ok",
                 data: {}
             };
-        
         case "account.login": {
-            const err= checkType(req, HMApi_Types.requests["account.login"]);
-            if(err) { return { type: "error", error: err }; }
+            const err = checkType(req, HMApi_Types.requests["account.login"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
             try {
-                const tk= loginUser(req.username, req.password, req.device, ip);
+                const tk = loginUser(req.username, req.password, req.device, ip);
                 return {
                     type: "ok",
                     data: {
@@ -71,9 +79,9 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     }
                 };
             }
-            catch(e) {
-                if(e instanceof Error) {
-                    if(e.message==="USER_NOT_FOUND") {
+            catch (e) {
+                if (e instanceof Error) {
+                    if (e.message === "USER_NOT_FOUND") {
                         return {
                             type: "error",
                             error: {
@@ -82,7 +90,7 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             }
                         };
                     }
-                    else if(e.message==="PASSWORD_INCORRECT") {
+                    else if (e.message === "PASSWORD_INCORRECT") {
                         return {
                             type: "error",
                             error: {
@@ -100,14 +108,12 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 }
             }
         }
-
         case 'account.logout':
             logOutSession(token);
             return {
                 type: "ok",
                 data: {}
             };
-
         case 'account.logoutOtherSessions':
             try {
                 return {
@@ -116,8 +122,9 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                         sessions: logOutOtherSessions(token)
                     }
                 };
-            } catch (e) {
-                if(e === 'SESSION_TOO_NEW') {
+            }
+            catch (e) {
+                if (e === 'SESSION_TOO_NEW') {
                     return {
                         type: "error",
                         error: {
@@ -127,7 +134,6 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     };
                 }
             }
-
         case 'account.getSessionsCount':
             return {
                 type: "ok",
@@ -135,7 +141,6 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     sessions: getSessionsCount(token)
                 }
             };
-
         case 'account.getSessions':
             return {
                 type: "ok",
@@ -143,19 +148,20 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     sessions: getSessions(token)
                 }
             };
-
         case 'account.logoutSession':
-            const err= checkType(req, HMApi_Types.requests["account.logoutSession"]);
-            if(err) { return { type: "error", error: err }; }
-
+            const err = checkType(req, HMApi_Types.requests["account.logoutSession"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
             try {
                 terminateSession(token, req.id);
                 return {
                     type: "ok",
                     data: {}
                 };
-            } catch(err) {
-                if(err === 'SESSION_NOT_FOUND') {
+            }
+            catch (err) {
+                if (err === 'SESSION_NOT_FOUND') {
                     return {
                         type: "error",
                         error: {
@@ -164,7 +170,8 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             object: "session"
                         }
                     };
-                } else if(err === 'SESSION_TOO_NEW') {
+                }
+                else if (err === 'SESSION_TOO_NEW') {
                     return {
                         type: "error",
                         error: {
@@ -172,23 +179,25 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             message: "SESSION_TOO_NEW",
                         }
                     };
-                } else {
+                }
+                else {
                     throw err;
                 }
             }
-
         case 'account.changePassword': {
-            const err= checkType(req, HMApi_Types.requests["account.changePassword"]);
-            if(err) { return { type: "error", error: err }; }
-
+            const err = checkType(req, HMApi_Types.requests["account.changePassword"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
             try {
                 changePassword(token, req.oldPassword, req.newPassword);
                 return {
                     type: "ok",
                     data: {}
                 };
-            } catch(err) {
-                if(err === 'PASSWORD_INCORRECT') {
+            }
+            catch (err) {
+                if (err === 'PASSWORD_INCORRECT') {
                     return {
                         type: "error",
                         error: {
@@ -196,7 +205,8 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             message: "LOGIN_PASSWORD_INCORRECT"
                         }
                     };
-                } else if(err === 'SESSION_TOO_NEW') {
+                }
+                else if (err === 'SESSION_TOO_NEW') {
                     return {
                         type: "error",
                         error: {
@@ -204,17 +214,18 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             message: "SESSION_TOO_NEW",
                         }
                     };
-                } else {
+                }
+                else {
                     throw err;
                 }
             }
         }
-
         case 'account.changeUsername': {
-            const err= checkType(req, HMApi_Types.requests["account.changeUsername"]);
-            if(err) { return { type: "error", error: err }; }
-
-            if(req.username.length < 3) {
+            const err = checkType(req, HMApi_Types.requests["account.changeUsername"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
+            if (req.username.length < 3) {
                 return {
                     type: "error",
                     error: {
@@ -224,8 +235,8 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 };
             }
             try {
-                const newTk= changeUsername(token, req.username);
-                if(!newTk) {
+                const newTk = changeUsername(token, req.username);
+                if (!newTk) {
                     return {
                         type: "error",
                         error: {
@@ -240,8 +251,9 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                         token: newTk
                     }
                 };
-            } catch(err) {
-                if(err === 'SESSION_TOO_NEW') {
+            }
+            catch (err) {
+                if (err === 'SESSION_TOO_NEW') {
                     return {
                         type: "error",
                         error: {
@@ -249,15 +261,17 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             message: "SESSION_TOO_NEW",
                         }
                     };
-                } else {
+                }
+                else {
                     throw err;
                 }
             }
         }
-
         case 'account.checkUsernameAvailable': {
-            const err= checkType(req, HMApi_Types.requests["account.checkUsernameAvailable"]);
-            if(err) { return { type: "error", error: err }; }
+            const err = checkType(req, HMApi_Types.requests["account.checkUsernameAvailable"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
             return {
                 type: "ok",
                 data: {
@@ -265,25 +279,26 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 }
             };
         }
-
-        case 'rooms.getRooms': 
+        case 'rooms.getRooms':
             return {
                 type: "ok",
                 data: {
                     rooms: getRooms()
                 }
             };
-
         case 'rooms.editRoom': {
-            const err= checkType(req, HMApi_Types.requests["rooms.editRoom"]);
-            if(err) { return { type: "error", error: err }; }
-            return editRoom(req.room).then(res=> {
-                if(res === true) {
+            const err = checkType(req, HMApi_Types.requests["rooms.editRoom"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
+            return editRoom(req.room).then(res => {
+                if (res === true) {
                     return {
                         type: "ok",
                         data: {}
                     };
-                } else if(res) { // Res is either 'true' or a string (in which case it is an error)
+                }
+                else if (res) { // Res is either 'true' or a string (in which case it is an error)
                     return {
                         type: "error",
                         error: {
@@ -292,7 +307,8 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             text: res
                         }
                     };
-                } else {
+                }
+                else {
                     return {
                         type: "error",
                         error: {
@@ -304,17 +320,19 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 }
             });
         }
-
         case 'rooms.addRoom': {
-            const err= checkType(req, HMApi_Types.requests["rooms.addRoom"]);
-            if(err) { return { type: "error", error: err }; }
-            return addRoom(req.room).then(res=> {
-                if(res === true) {
+            const err = checkType(req, HMApi_Types.requests["rooms.addRoom"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
+            return addRoom(req.room).then(res => {
+                if (res === true) {
                     return {
                         type: "ok",
                         data: {}
                     };
-                } else if(res) { // Res is either 'true' or a string (in which case it is an error)
+                }
+                else if (res) { // Res is either 'true' or a string (in which case it is an error)
                     return {
                         type: "error",
                         error: {
@@ -323,7 +341,8 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             text: res
                         }
                     };
-                } else {
+                }
+                else {
                     return {
                         type: "error",
                         error: {
@@ -334,17 +353,19 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 }
             });
         }
-
         case 'rooms.removeRoom': {
-            const err= checkType(req, HMApi_Types.requests["rooms.removeRoom"]);
-            if(err) { return { type: "error", error: err }; }
-            return deleteRoom(req.id).then(res=> {
-                if(res) {
+            const err = checkType(req, HMApi_Types.requests["rooms.removeRoom"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
+            return deleteRoom(req.id).then(res => {
+                if (res) {
                     return {
                         type: "ok",
                         data: {}
                     };
-                } else {
+                }
+                else {
                     return {
                         type: "error",
                         error: {
@@ -356,16 +377,18 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 }
             });
         }
-
         case 'rooms.changeRoomOrder': {
-            const err= checkType(req, HMApi_Types.requests["rooms.changeRoomOrder"]);
-            if(err) { return { type: "error", error: err }; }
-            if(reorderRooms(req.ids)) {
+            const err = checkType(req, HMApi_Types.requests["rooms.changeRoomOrder"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
+            if (reorderRooms(req.ids)) {
                 return {
                     type: "ok",
                     data: {}
                 };
-            } else {
+            }
+            else {
                 return {
                     type: "error",
                     error: {
@@ -375,18 +398,19 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 };
             }
         }
-
         case 'rooms.restartRoom': {
-            const err= checkType(req, HMApi_Types.requests["rooms.restartRoom"]);
-            if(err) { return { type: "error", error: err }; }
-
-            return restartRoom(req.id).then(success=> {
-                if(success) {
+            const err = checkType(req, HMApi_Types.requests["rooms.restartRoom"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
+            return restartRoom(req.id).then(success => {
+                if (success) {
                     return {
                         type: "ok",
                         data: {}
                     };
-                } else {
+                }
+                else {
                     return {
                         type: "error",
                         error: {
@@ -398,7 +422,6 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 }
             });
         }
-
         case 'rooms.controllers.getRoomControllerTypes':
             return {
                 type: "ok",
@@ -406,35 +429,32 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     types: getRoomControllerTypes()
                 }
             };
-
         case 'plugins.fields.getSelectLazyLoadItems': {
-            const err= checkType(req, HMApi_Types.requests["plugins.fields.getSelectLazyLoadItems"]);
-            if(err) { return { type: "error", error: err }; }
-
-            const notFoundError = (o: "controller"|"deviceType"|"field") => ({
+            const err = checkType(req, HMApi_Types.requests["plugins.fields.getSelectLazyLoadItems"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
+            const notFoundError = (o) => ({
                 type: "error",
                 error: {
                     code: 404,
                     message: "NOT_FOUND",
                     object: o
                 }
-            } as const); 
-
-            if(!(req.controller in registeredRoomControllers)) {
+            });
+            if (!(req.controller in registeredRoomControllers)) {
                 return notFoundError("controller");
             }
-            if(req.for == 'device' && !(req.deviceType in registeredDeviceTypes[req.controller])) {
+            if (req.for == 'device' && !(req.deviceType in registeredDeviceTypes[req.controller])) {
                 return notFoundError("deviceType");
             }
-
             const field = req.for == 'device' ?
-                (getFlatFields(registeredDeviceTypes[req.controller][req.deviceType].settingsFields).find(f=>f.id==req.field)) :
-                (getFlatFields(registeredRoomControllers[req.controller].settingsFields).find(f=>f.id==req.field));
-            
-            if(!field) {
+                (getFlatFields(registeredDeviceTypes[req.controller][req.deviceType].settingsFields).find(f => f.id == req.field)) :
+                (getFlatFields(registeredRoomControllers[req.controller].settingsFields).find(f => f.id == req.field));
+            if (!field) {
                 return notFoundError("field");
             }
-            if(field.type!=='select' || field.options instanceof Array || !field.options.isLazy ) {
+            if (field.type !== 'select' || field.options instanceof Array || !field.options.isLazy) {
                 return {
                     type: "error",
                     error: {
@@ -443,21 +463,20 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     }
                 };
             }
-
             let res = field.options.callback();
-            if(!(res instanceof Promise)) {
+            if (!(res instanceof Promise)) {
                 res = Promise.resolve(res);
             }
-            
             return res.then((result) => {
-                if(result instanceof Array) {
+                if (result instanceof Array) {
                     return {
                         type: "ok",
                         data: {
                             items: result
                         }
                     };
-                } else {
+                }
+                else {
                     return {
                         type: "error",
                         error: {
@@ -469,13 +488,13 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 }
             });
         }
-
         case 'devices.getDevices': {
-            const err= checkType(req, HMApi_Types.requests["devices.getDevices"]);
-            if(err) { return { type: "error", error: err }; }
-            
-            const devices= getDevices(req.roomId);
-            if(devices===undefined) {
+            const err = checkType(req, HMApi_Types.requests["devices.getDevices"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
+            const devices = getDevices(req.roomId);
+            if (devices === undefined) {
                 return {
                     type: "error",
                     error: {
@@ -492,13 +511,13 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 }
             };
         }
-
         case 'devices.getDeviceTypes': {
-            const err= checkType(req, HMApi_Types.requests["devices.getDeviceTypes"]);
-            if(err) { return { type: "error", error: err }; }
-
+            const err = checkType(req, HMApi_Types.requests["devices.getDeviceTypes"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
             // Check if the room controller type is valid
-            if(!(req.controllerType in registeredRoomControllers)) {
+            if (!(req.controllerType in registeredRoomControllers)) {
                 return {
                     type: "error",
                     error: {
@@ -508,23 +527,22 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     }
                 };
             }
-
             return {
                 type: "ok",
                 data: {
-                    types: Object.values(getDeviceTypes(req.controllerType)).map(({id, super_name, sub_name, icon, settingsFields, forRoomController}): HMApi.T.DeviceType=> ({
+                    types: Object.values(getDeviceTypes(req.controllerType)).map(({ id, super_name, sub_name, icon, settingsFields, forRoomController }) => ({
                         id, name: super_name, sub_name, settings: settingsFields, icon, forRoomController
                     }))
                 }
             };
         }
-
         case 'devices.addDevice': {
-            const err= checkType(req, HMApi_Types.requests["devices.addDevice"]);
-            if(err) { return { type: "error", error: err }; }
-
-            return addDevice(req.roomId, req.device).then(res=> {
-                if(res==='device_exists') {
+            const err = checkType(req, HMApi_Types.requests["devices.addDevice"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
+            return addDevice(req.roomId, req.device).then(res => {
+                if (res === 'device_exists') {
                     return {
                         type: "error",
                         error: {
@@ -533,7 +551,7 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                         }
                     };
                 }
-                else if(res==='room_not_found') {
+                else if (res === 'room_not_found') {
                     return {
                         type: "error",
                         error: {
@@ -542,8 +560,8 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             object: "room"
                         }
                     };
-                } 
-                else if(typeof res === 'string') {
+                }
+                else if (typeof res === 'string') {
                     return {
                         type: "error",
                         error: {
@@ -552,7 +570,8 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             text: res
                         }
                     };
-                } else {
+                }
+                else {
                     return {
                         type: "ok",
                         data: {}
@@ -560,13 +579,13 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 }
             });
         }
-
         case 'devices.editDevice': {
-            const err= checkType(req, HMApi_Types.requests["devices.editDevice"]);
-            if(err) { return { type: "error", error: err }; }
-
-            return editDevice(req.roomId, req.device).then(res=> {
-                if(res==='device_not_found') {
+            const err = checkType(req, HMApi_Types.requests["devices.editDevice"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
+            return editDevice(req.roomId, req.device).then(res => {
+                if (res === 'device_not_found') {
                     return {
                         type: "error",
                         error: {
@@ -575,8 +594,8 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             object: "device"
                         }
                     };
-                } 
-                else if(res==='room_not_found') {
+                }
+                else if (res === 'room_not_found') {
                     return {
                         type: "error",
                         error: {
@@ -585,8 +604,8 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             object: "room"
                         }
                     };
-                } 
-                else if(typeof res === 'string') {
+                }
+                else if (typeof res === 'string') {
                     return {
                         type: "error",
                         error: {
@@ -595,7 +614,8 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             text: res
                         }
                     };
-                } else {
+                }
+                else {
                     return {
                         type: "ok",
                         data: {}
@@ -603,13 +623,13 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 }
             });
         }
-
         case 'devices.removeDevice': {
-            const err= checkType(req, HMApi_Types.requests["devices.removeDevice"]);
-            if(err) { return { type: "error", error: err }; }
-
-            return deleteDevice(req.roomId, req.id).then(res=> {
-                if(res==='device_not_found') {
+            const err = checkType(req, HMApi_Types.requests["devices.removeDevice"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
+            return deleteDevice(req.roomId, req.id).then(res => {
+                if (res === 'device_not_found') {
                     return {
                         type: "error",
                         error: {
@@ -619,7 +639,7 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                         }
                     };
                 }
-                else if(res==='room_not_found') {
+                else if (res === 'room_not_found') {
                     return {
                         type: "error",
                         error: {
@@ -628,7 +648,8 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             object: "room"
                         }
                     };
-                } else {
+                }
+                else {
                     return {
                         type: "ok",
                         data: {}
@@ -636,13 +657,13 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 }
             });
         }
-
         case 'devices.changeDeviceOrder': {
-            const err= checkType(req, HMApi_Types.requests["devices.changeDeviceOrder"]);
-            if(err) { return { type: "error", error: err }; }
-
+            const err = checkType(req, HMApi_Types.requests["devices.changeDeviceOrder"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
             const res = reorderDevices(req.roomId, req.ids);
-            if(res === 'devices_not_equal') {
+            if (res === 'devices_not_equal') {
                 return {
                     type: "error",
                     error: {
@@ -651,7 +672,7 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     }
                 };
             }
-            if(res === 'room_not_found') {
+            if (res === 'room_not_found') {
                 return {
                     type: "error",
                     error: {
@@ -663,16 +684,16 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
             }
             return {
                 type: "ok",
-                data: { }
+                data: {}
             };
         }
-
         case 'devices.restartDevice': {
-            const err= checkType(req, HMApi_Types.requests["devices.restartDevice"]);
-            if(err) { return { type: "error", error: err }; }
-            
-            return restartDevice(req.roomId, req.id).then(res=> {
-                if(res==='device_not_found') {
+            const err = checkType(req, HMApi_Types.requests["devices.restartDevice"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
+            return restartDevice(req.roomId, req.id).then(res => {
+                if (res === 'device_not_found') {
                     return {
                         type: "error",
                         error: {
@@ -681,8 +702,8 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             object: "device"
                         }
                     };
-                } 
-                else if(res==='room_not_found') {
+                }
+                else if (res === 'room_not_found') {
                     return {
                         type: "error",
                         error: {
@@ -691,17 +712,18 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             object: "room"
                         }
                     };
-                } 
-                else if(res==='room_disabled') {
+                }
+                else if (res === 'room_disabled') {
                     return {
                         type: "error",
                         error: {
                             code: 500,
                             message: "ROOM_DISABLED",
-                            error: roomControllerInstances[req.roomId].disabled as string
+                            error: roomControllerInstances[req.roomId].disabled
                         }
                     };
-                } else {
+                }
+                else {
                     return {
                         type: "ok",
                         data: {}
@@ -709,13 +731,11 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 }
             });
         }
-
         case 'rooms.getRoomStates':
             return {
                 type: "ok",
                 data: {
-                    states: Object.fromEntries(Object.keys(getRooms()).map(key=> [key, roomControllerInstances[key]] as const).map(([id, instance])=> [id, (
-                        instance.disabled === false ? {
+                    states: Object.fromEntries(Object.keys(getRooms()).map(key => [key, roomControllerInstances[key]]).map(([id, instance]) => [id, (instance.disabled === false ? {
                             disabled: false,
                             id: instance.id,
                             name: instance.name,
@@ -726,16 +746,15 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                             id: instance.id,
                             name: instance.name,
                             icon: instance.icon
-                        }
-                    )]))
+                        })]))
                 }
             };
-
         case 'devices.getDeviceStates': {
-            const err= checkType(req, HMApi_Types.requests["devices.getDeviceStates"]);
-            if(err) { return { type: "error", error: err }; }
-
-            if(!(req.roomId in roomControllerInstances)) {
+            const err = checkType(req, HMApi_Types.requests["devices.getDeviceStates"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
+            if (!(req.roomId in roomControllerInstances)) {
                 return {
                     type: "error",
                     error: {
@@ -745,18 +764,17 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     }
                 };
             }
-
-            return getDeviceStates(req.roomId).then(states=> ({
+            return getDeviceStates(req.roomId).then(states => ({
                 type: "ok",
                 data: { states }
             }));
         }
-
         case 'devices.toggleDeviceMainToggle': {
-            const err= checkType(req, HMApi_Types.requests["devices.toggleDeviceMainToggle"]);
-            if(err) { return { type: "error", error: err }; }
-
-            if(!(req.roomId in roomControllerInstances)) {
+            const err = checkType(req, HMApi_Types.requests["devices.toggleDeviceMainToggle"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
+            if (!(req.roomId in roomControllerInstances)) {
                 return {
                     type: "error",
                     error: {
@@ -766,9 +784,8 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     }
                 };
             }
-
             const roomController = roomControllerInstances[req.roomId];
-            if(roomController.disabled) {
+            if (roomController.disabled) {
                 return {
                     type: "error",
                     error: {
@@ -778,7 +795,7 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     }
                 };
             }
-            if(!(req.id in roomController.devices)) {
+            if (!(req.id in roomController.devices)) {
                 return {
                     type: "error",
                     error: {
@@ -788,9 +805,8 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     }
                 };
             }
-
             const device = roomController.devices[req.id];
-            if(device.disabled) {
+            if (device.disabled) {
                 return {
                     type: "error",
                     error: {
@@ -801,7 +817,7 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 };
             }
             const deviceType = getDeviceTypes(roomController.type)[device.type];
-            if(!deviceType.hasMainToggle) {
+            if (!deviceType.hasMainToggle) {
                 return {
                     type: "error",
                     error: {
@@ -810,27 +826,25 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     }
                 };
             }
-
-            return device.toggleMainToggle().then(()=> {
+            return device.toggleMainToggle().then(() => {
                 return {
                     type: "ok",
-                    data: { }
+                    data: {}
                 };
             });
         }
-
-        case 'devices.getFavoriteDeviceStates': 
-            return getFavoriteDeviceStates().then(states=> ({
+        case 'devices.getFavoriteDeviceStates':
+            return getFavoriteDeviceStates().then(states => ({
                 type: "ok",
                 data: { states }
             }));
-
         case 'devices.toggleDeviceIsFavorite': {
-            const err= checkType(req, HMApi_Types.requests["devices.toggleDeviceIsFavorite"]);
-            if(err) { return { type: "error", error: err }; }
-
+            const err = checkType(req, HMApi_Types.requests["devices.toggleDeviceIsFavorite"]);
+            if (err) {
+                return { type: "error", error: err };
+            }
             const res = toggleDeviceIsFavorite(req.roomId, req.id, req.isFavorite);
-            if(res === 'room_not_found') {
+            if (res === 'room_not_found') {
                 return {
                     type: "error",
                     error: {
@@ -840,7 +854,7 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     }
                 };
             }
-            if(res === 'device_not_found') {
+            if (res === 'device_not_found') {
                 return {
                     type: "error",
                     error: {
@@ -852,18 +866,19 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
             }
             return {
                 type: "ok",
-                data: { }
+                data: {}
             };
         }
-            
         case 'devices.interactions.sendAction': {
             const err = checkType(req, HMApi_Types.requests["devices.interactions.sendAction"]);
-            if (err) { return { type: "error", error: err }; }
-            
+            if (err) {
+                return { type: "error", error: err };
+            }
             const res = sendDeviceInteractionAction(req.roomId, req.deviceId, req.interactionId, req.action);
             if (res instanceof Promise) {
                 return res.then(() => ({ type: "ok", data: {} }));
-            } else {
+            }
+            else {
                 switch (res) {
                     case 'room_not_found':
                         return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "room" } };
@@ -872,9 +887,9 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     case 'interaction_not_found':
                         return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "interaction" } };
                     case 'room_disabled':
-                        return { type: "error", error: { code: 500, message: "ROOM_DISABLED", error: roomControllerInstances[req.roomId].disabled as string } };
+                        return { type: "error", error: { code: 500, message: "ROOM_DISABLED", error: roomControllerInstances[req.roomId].disabled } };
                     case 'device_disabled':
-                        return { type: "error", error: { code: 500, message: "DEVICE_DISABLED", error: roomControllerInstances[req.roomId].devices[req.deviceId].disabled as string } };
+                        return { type: "error", error: { code: 500, message: "DEVICE_DISABLED", error: roomControllerInstances[req.roomId].devices[req.deviceId].disabled } };
                     case 'invalid_action':
                         return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "action" } };
                     case 'value_out_of_range':
@@ -882,17 +897,15 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 }
             }
         }
-
         case 'plugins.getInstalledPlugins': {
             return getInstalledPluginsInfo().then(plugins => ({
                 type: "ok",
                 data: { plugins }
             }));
         }
-
         case 'plugins.togglePluginIsActivated': {
-            return (async () => {
-                if (!(await getInstalledPlugins()).includes(req.id)) {
+            return (() => __awaiter(this, void 0, void 0, function* () {
+                if (!(yield getInstalledPlugins()).includes(req.id)) {
                     return {
                         type: "error",
                         error: {
@@ -902,18 +915,15 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                         }
                     };
                 }
-
                 setTimeout(() => {
                     togglePluginIsActivated(req.id, req.isActivated);
                 }, 100);
-
                 return {
                     type: "ok",
                     data: {}
                 };
-            })();
+            }))();
         }
-
         default:
             return {
                 type: "error",

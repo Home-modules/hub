@@ -1,13 +1,15 @@
-import fs from 'fs';
-import { HMApi } from './api.js';
-import { DeviceInstance, DeviceTypeClass, registerDeviceType } from './devices.js';
+import { HMApi } from './api/api.js';
+import { DeviceTypeClass, registerDeviceType } from './devices/devices.js';
+import { DeviceInstance } from "./devices/DeviceInstance.js";
 import { Log } from './log.js';
-import { registerRoomController, RoomControllerInstance } from './rooms.js';
-import { checkType, HMApi_Types } from './api_checkType.js';
-import semver from 'semver';
+import { registerRoomController } from './rooms/rooms.js';
+import { RoomControllerInstance } from "./rooms/RoomControllerInstance.js";
+import { checkType, HMApi_Types } from './api/api_checkType.js';
 import hubVersion from './version.js';
 import { authorRegex } from './misc.js';
 import { shutdownHandler } from './async-cleanup.js';
+import semver from 'semver';
+import fs from 'fs';
 
 const log = new Log('plugins');
 

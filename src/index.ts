@@ -1,16 +1,16 @@
-import http from 'http';
-import https from 'https';
-import url from 'url';
-import { HMApi } from './api.js';
+import { HMApi } from './api/api.js';
 import beforeShutdown, { shutdownHandler } from './async-cleanup.js';
-import handleRequest from './handle-request.js';
+import handleRequest from './api-server/handle-request.js';
 import { Log } from './log.js';
 import './plugins.js';
 import { initPlugins } from './plugins.js';
-import { initRoomsDevices, shutDownRoomsDevices } from './rooms.js';
+import { initRoomsDevices, shutDownRoomsDevices } from './rooms/rooms.js';
 import version from './version.js';
 import fs from 'fs';
 import serveHandler from 'serve-handler';
+import http from 'http';
+import https from 'https';
+import url from 'url';
 
 const log = new Log('index.ts');
 console.log("Home_modules hub", version);

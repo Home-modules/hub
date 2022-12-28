@@ -1,6 +1,6 @@
 import { HMApi } from "./api.js";
 import semver from 'semver';
-import { authorRegex } from "./misc.js";
+import { authorRegex } from "../misc.js";
 
 // This file contains the algorithm to compare an object to a schema (with a custom format)
 // It also has the schemas for types in [HMApi](./api.js)
