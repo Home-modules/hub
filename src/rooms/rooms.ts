@@ -77,3 +77,20 @@ export async function shutDownRoomsDevices() {
         await instance.dispose();
     }
 }
+
+export function getRoomState(instance: RoomControllerInstance): HMApi.T.RoomState {
+    return (
+        instance.disabled === false ? {
+            disabled: false,
+            id: instance.id,
+            name: instance.name,
+            icon: instance.icon
+        } : {
+            disabled: true,
+            error: instance.disabled,
+            id: instance.id,
+            name: instance.name,
+            icon: instance.icon
+        }
+    )
+}

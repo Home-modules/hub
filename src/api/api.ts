@@ -811,6 +811,14 @@ export namespace HMApi {
         error: Error<R>
     };
 
+    export namespace Update {
+        export type RoomStateChanged = {
+            type: "rooms.roomStateChanged"
+            state: T.RoomState
+        }
+    }
+    export type Update = Update.RoomStateChanged;
+
     export namespace T {
         /**
          * Describes an active session.

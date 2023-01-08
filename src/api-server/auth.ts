@@ -1,6 +1,7 @@
 import { HMApi } from '../api/api.js';
 import crypto from 'crypto';
 import fs from 'fs';
+import { logoutWSConnection, WSConnections } from './websocket.js';
 
 const logins: { [username: string]: {
     /** The authentication token */
@@ -72,10 +73,24 @@ export function checkAuthToken(token: string): string | null {
     if(!login) {
         return null;
     }
-    if(login.lastRequest.getTime() + 1000 * 60 * 60 * 24 * 7 < now.getTime()) {
-        logins[username]= logins[username].filter(t => t !== login);
+    if(login.lastRequest.getTime() + 1000 * 60 * 60 * 24 * 7 < now.getTime()) { // Drop the token after a week of disuse
+        logins[username] = logins[username].filter(t => t !== login);
+        logoutWSConnection(token);
         return null;
     }
+    
+    return username;
+}
+
+export function incrementRateLimit(token: string) {
+    const now = new Date();
+
+    const [username, tk] = token.split(':');
+    const login = logins[username]?.find(t => t.token === tk);
+    if(!login) {
+        return;
+    }
+
     if (login.lastRequest.getTime() + 1000 < now.getTime()) {
         login.flood = 0; // Sometimes the flood value will get stuck without coming down, even though no requests are made.
     }
@@ -91,7 +106,6 @@ export function checkAuthToken(token: string): string | null {
             login.flood = Math.max(login.flood-1, 0);
         }
     }, 1000);
-    return username;
 }
 
 /**
@@ -101,6 +115,7 @@ export function checkAuthToken(token: string): string | null {
  */
 export function logOutSession(token: string): boolean {
     const [username, tk] = token.split(':');
+    logoutWSConnection(token);
     if(logins[username]?.some(t => t.token === tk)) {
         logins[username]= logins[username].filter(t => t.token !== tk);
         return true;
@@ -117,8 +132,9 @@ export function logOutOtherSessions(token: string): number {
     const [username, tk] = token.split(':');
     require24HoursSession(token);
     if(logins[username]) {
-        const n= logins[username].length - 1;
-        logins[username]= logins[username].filter(t => t.token === tk);
+        const n = logins[username].length - 1;
+        logins[username].filter(l => l.token !== tk).forEach(l => logoutWSConnection(username+':'+l.token));
+        logins[username]= logins[username].filter(l => l.token === tk);
         return n;
     }
     return 0;
@@ -162,6 +178,8 @@ export function changeUsername(token: string, newUsername: string): string|false
 
     require24HoursSession(token);
 
+    logins[username].filter(l => l.token !== tk).forEach(l => logoutWSConnection(username + ':' + l.token));
+    WSConnections.filter(c => c.token === token).forEach(c => c.token = `${newUsername}:${tk}`);
     users[newUsername]= users[username];
     delete users[username];
     saveUsers();
@@ -211,7 +229,8 @@ export function terminateSession(token: string, sessionId: string) {
     for(const login of logins[username]) {
         const id = crypto.createHash('sha256').update(login.token).digest('hex');
         if(id === sessionId) {
-            logins[username]= logins[username].filter(t => t.token !== login.token);
+            logins[username] = logins[username].filter(t => t.token !== login.token);
+            logoutWSConnection(username+':'+login.token);
             return;
         }
     }

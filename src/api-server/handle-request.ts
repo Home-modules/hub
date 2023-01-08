@@ -1,20 +1,20 @@
 import { HMApi } from "../api/api.js";
 import { checkType, HMApi_Types } from "../api/api_checkType.js";
 import { shutdownHandler } from "../async-cleanup.js";
-import { changePassword, changeUsername, checkAuthToken, getSessions, getSessionsCount, loginUser, logOutOtherSessions, logOutSession, terminateSession, usernameExists } from "./auth.js";
+import { changePassword, changeUsername, checkAuthToken, getSessions, getSessionsCount, incrementRateLimit, loginUser, logOutOtherSessions, logOutSession, terminateSession, usernameExists } from "./auth.js";
 import { getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, restartDevice, sendDeviceInteractionAction, toggleDeviceIsFavorite } from "../devices/devices.js";
 import { addDevice, deleteDevice, editDevice, reorderDevices } from "../devices/editDevices.js";
 import getFlatFields from "../flat-fields.js";
 import { getInstalledPlugins, getInstalledPluginsInfo, togglePluginIsActivated } from "../plugins.js";
-import { getRoomControllerTypes, getRooms, registeredRoomControllers, restartRoom, roomControllerInstances } from "../rooms/rooms.js";
+import { getRoomControllerTypes, getRooms, getRoomState, registeredRoomControllers, restartRoom, roomControllerInstances } from "../rooms/rooms.js";
 import { addRoom, deleteRoom, editRoom, reorderRooms } from "../rooms/editRooms.js";
 import version from "../version.js";
 
 export default function handleRequest(token: string, req: HMApi.Request, ip: string): HMApi.ResponseOrError<HMApi.Request>|Promise<HMApi.ResponseOrError<HMApi.Request>> {
     if(req.type!=="account.login") {
         try {
-            const tk = checkAuthToken(token)!;
-            if(!tk) {
+            const username = checkAuthToken(token)!;
+            if(!username) {
                 return {
                     type: "error",
                     error: {
@@ -23,6 +23,7 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     }
                 };
             }
+            incrementRateLimit(token);
         } catch (e) {
             if(e === 'FLOOD') {
                 return {
@@ -716,20 +717,11 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
             return {
                 type: "ok",
                 data: {
-                    states: Object.fromEntries(Object.keys(getRooms()).map(key=> [key, roomControllerInstances[key]] as const).map(([id, instance])=> [id, (
-                        instance.disabled === false ? {
-                            disabled: false,
-                            id: instance.id,
-                            name: instance.name,
-                            icon: instance.icon
-                        } : {
-                            disabled: true,
-                            error: instance.disabled,
-                            id: instance.id,
-                            name: instance.name,
-                            icon: instance.icon
-                        }
-                    )]))
+                    states: Object.fromEntries(
+                        Object.keys(getRooms())
+                            .map(key => [key, roomControllerInstances[key]] as const)
+                            .map(([id, instance]) => [id, getRoomState(instance)])
+                    )
                 }
             };
 

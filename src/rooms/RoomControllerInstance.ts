@@ -4,7 +4,8 @@ import { devices, getDeviceTypes } from "../devices/devices.js";
 import { saveDevices } from "../devices/devicesFile.js";
 import { DeviceInstance } from "../devices/DeviceInstance.js";
 import { Log } from "../log.js";
-import { log } from "./rooms.js";
+import { getRoomState, log } from "./rooms.js";
+import { sendUpdate } from "../api-server/websocket.js";
 
 
 export abstract class RoomControllerInstance {
@@ -76,6 +77,10 @@ export abstract class RoomControllerInstance {
     disable(reason: string) {
         this.disabled = reason;
         Log.e(this.constructor.name, 'Room', this.id, 'Disabled:', reason);
+        sendUpdate({
+            type: "rooms.roomStateChanged",
+            state: getRoomState(this)
+        });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
