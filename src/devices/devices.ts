@@ -75,8 +75,8 @@ export async function getDeviceStates(roomId: string): Promise<Record<string, HM
     );
 }
 
-export async function getDeviceState(instance: DeviceInstance, deviceType: DeviceTypeClass): Promise<HMApi.T.DeviceState> {
-    const {mainToggleState, icon, iconText, iconColor, activeColor, interactionStates} = await instance.getCurrentState();
+export async function getDeviceState(instance: DeviceInstance, deviceType: DeviceTypeClass, state?: Awaited<ReturnType<DeviceInstance['getCurrentState']>>): Promise<HMApi.T.DeviceState> {
+    const { mainToggleState, icon, iconText, iconColor, activeColor, interactionStates } = state || await instance.getCurrentState();
     return {
         ...(instance.disabled === false ? {
             disabled: false,

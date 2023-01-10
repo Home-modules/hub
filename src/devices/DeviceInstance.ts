@@ -2,6 +2,8 @@ import { HMApi } from "../api/api.js";
 import { SettingsFieldDef } from "../plugins.js";
 import { RoomControllerInstance } from "../rooms/RoomControllerInstance.js";
 import { Log } from "../log.js";
+import { sendUpdate } from "../api-server/websocket.js";
+import { DeviceTypeClass, getDeviceState } from "./devices.js";
 
 
 export abstract class DeviceInstance {
@@ -86,6 +88,10 @@ export abstract class DeviceInstance {
     }
 
     async getCurrentState() {
+        return this.#getState();
+    }
+
+    #getState() {
         return {
             icon: this.icon,
             iconText: this.iconText,
@@ -120,6 +126,14 @@ export abstract class DeviceInstance {
                 };
                 break;
         }
+    }
+
+    async updateState(callGetCurrentState: boolean) {
+        const state = callGetCurrentState ? await this.getCurrentState() : this.#getState();
+        sendUpdate({
+            type: "devices.deviceStateChanged",
+            state: await getDeviceState(this, this.constructor as DeviceTypeClass, state)
+        });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -867,8 +867,13 @@ export namespace HMApi {
             type: "rooms.roomStateChanged"
             state: T.RoomState
         }
+
+        export type DeviceStateChanged = {
+            type: "devices.deviceStateChanged",
+            state: T.DeviceState
+        }
     }
-    export type Update = Update.RoomStateChanged;
+    export type Update = Update.RoomStateChanged | Update.DeviceStateChanged;
 
     export namespace T {
         /**
