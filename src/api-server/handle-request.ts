@@ -2,7 +2,7 @@ import { HMApi } from "../api/api.js";
 import { checkType, HMApi_Types } from "../api/api_checkType.js";
 import { shutdownHandler } from "../async-cleanup.js";
 import { changePassword, changeUsername, checkAuthToken, getSessions, getSessionsCount, incrementRateLimit, loginUser, logOutOtherSessions, logOutSession, terminateSession, usernameExists } from "./auth.js";
-import { getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, restartDevice, sendDeviceInteractionAction, toggleDeviceIsFavorite } from "../devices/devices.js";
+import { DeviceTypeClass, endLiveSlider, getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, restartDevice, sendDeviceInteractionAction, startLiveSlider, toggleDeviceIsFavorite } from "../devices/devices.js";
 import { addDevice, deleteDevice, editDevice, reorderDevices } from "../devices/editDevices.js";
 import getFlatFields from "../flat-fields.js";
 import { getInstalledPlugins, getInstalledPluginsInfo, togglePluginIsActivated } from "../plugins.js";
@@ -874,6 +874,44 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     case 'value_out_of_range':
                         return { type: "error", error: { code: 400, message: "PARAMETER_OUT_OF_RANGE", paramName: "action.value" } };
                 }
+            }
+        }
+            
+        case 'devices.interactions.initSliderLiveValue': {
+            const room = roomControllerInstances[req.roomId];
+            if (!room) {
+                return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "room" } };
+            }
+            if (room.disabled) {
+                return { type: "error", error: { code: 500, message: "ROOM_DISABLED", error: room.disabled } };
+            }
+            const device = room.devices[req.deviceId]
+            if (!device) {
+                return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "device" } };
+            }
+            if (device.disabled) {
+                return { type: "error", error: { code: 500, message: "DEVICE_DISABLED", error: device.disabled } };
+            }
+            const interaction = (device.constructor as DeviceTypeClass).interactions[req.interactionId];
+            if (!interaction) {
+                return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "interaction" } };
+            }
+            if (interaction.type !== 'slider') {
+                return { type: "error", error: { code: 400, message: "INTERACTION_TYPE_INVALID", expected: "slider" } };
+            }
+            return {
+                type: "ok",
+                data: {
+                    id: startLiveSlider(device, req.interactionId)
+                }
+            }
+        }
+            
+        case 'devices.interactions.endSliderLiveValue': {
+            if (endLiveSlider(req.id)) {
+                return { type: "ok", data: {} };
+            } else {
+                return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "stream" } };
             }
         }
 

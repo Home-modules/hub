@@ -17,6 +17,8 @@ export function setFavoriteDevices(favorites: typeof favoriteDevices) { favorite
 loadDevicesFile();
 loadFavoriteDevices();
 
+export const liveSliderStreams: Record<number, { device: DeviceInstance, interactionId: string; }> = {};
+
 export function getDevices(roomId: string): Record<string, HMApi.T.Device> | undefined {
     if(getRoom(roomId)) { // Check if room exists
         return devices[roomId] || {};
@@ -170,4 +172,15 @@ export function sendDeviceInteractionAction(roomId: string, deviceId: string, in
     }
 
     return device.sendInteractionAction(interactionId, action);
+}
+
+export function startLiveSlider(device: DeviceInstance, interactionId: string): number {
+    const id = Math.floor(Math.random() * (2 ** 50));
+    liveSliderStreams[id] = { device, interactionId };
+    return id;
+}
+export function endLiveSlider(id: number): boolean {
+    const exists = id in liveSliderStreams;
+    delete liveSliderStreams[id];
+    return exists;
 }

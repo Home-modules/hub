@@ -555,6 +555,22 @@ export const HMApi_Types: {
                 "action": { type: "lazyType", value: () => HMApi_Types.objects.DeviceInteractionAction }
             }
         },
+        "devices.interactions.initSliderLiveValue": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "devices.interactions.initSliderLiveValue" },
+                "roomId": { type: "string" },
+                "deviceId": { type: "string" },
+                "interactionId": { type: "string" },
+            }
+        },
+        "devices.interactions.endSliderLiveValue": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "devices.interactions.endSliderLiveValue" },
+                "id": { type: "number" }
+            }
+        },
         "plugins.getInstalledPlugins": {
             type: "object",
             properties: {

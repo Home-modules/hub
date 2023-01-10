@@ -4,6 +4,7 @@ import https from 'https';
 import { Log } from '../log.js';
 import { checkAuthToken, incrementRateLimit } from './auth.js';
 import { HMApi } from '../plugins.js';
+import { liveSliderStreams } from '../devices/devices.js';
 
 const log = new Log('websocket');
 
@@ -22,9 +23,11 @@ export function createWSServer(httpServer: https.Server | http.Server) {
         log.i("New WS connection");
         const connectionObj: WSConnectionObj = { token: null, connection: ws };
         WSConnections.push(connectionObj);
-        ws.on('message', message => {
-            log.i("Message from WS:", message.toString());
-            if (message.toString().startsWith('auth ')) {
+        ws.on('message', e => {
+            const message = e.toString();
+            log.i("Message from WS:", message);
+
+            if (message.startsWith('AUTH ')) {
                 const token = message.toString().slice(5);
                 log.i("Trying to auth with token", token);
                 if (checkAuthToken(token)) {
@@ -36,6 +39,14 @@ export function createWSServer(httpServer: https.Server | http.Server) {
                     log.w("WS auth failed: Token invalid");
                     ws.send("TOKEN_INVALID");
                 }
+            }
+            else if (message.startsWith("SLIDER_VALUE ")) {
+                const [_, id, value] = message.split(' ');
+                const stream = liveSliderStreams[parseInt(id)];
+                stream.device.sendInteractionAction(stream.interactionId, {
+                    type: "setSliderValue",
+                    value: parseFloat(value)
+                });
             }
         });
         ws.on('close', () => {

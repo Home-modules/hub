@@ -420,6 +420,39 @@ export namespace HMApi {
         }
 
         /**
+         * Initializes a live slider value stream for use with WebSocket. A stream ID will be returned which should be used when sending data over WebSocket.
+         * 
+         * ---
+         * @throws `NOT_FOUND` with `object="room"` if the room containing the device doesn't exist
+         * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
+         * @throws `NOT_FOUND` with `object="interaction"` if the interaction doesn't exist
+         * @throws `INTERACTION_TYPE_INVALID` if the interaction is not a slider
+         * @throws `ROOM_DISABLED` if the room controller is disabled because of an error
+         * @throws `DEVICE_DISABLED` if the device is disabled because of an error
+         */
+        export type InitSliderLiveValue = {
+            type: "devices.interactions.initSliderLiveValue",
+            /** Room ID */
+            roomId: string,
+            /** Device ID */
+            deviceId: string,
+            /** Interaction ID */
+            interactionId: string,
+        }
+
+        /**
+         * Ends a live slider value stream.
+         * 
+         * ---
+         * @throws `NOT_FOUND` with `object="stream"` if the ID is not found or has been already closed.
+         */
+        export type EndSliderLiveValue = {
+            type: "devices.interactions.endSliderLiveValue",
+            /** The stream ID returned from initSliderLiveValue */
+            id: number
+        }
+
+        /**
          * Gets the list of installed plugins.
          */
         export type GetInstalledPlugins = {
@@ -441,7 +474,7 @@ export namespace HMApi {
         }
 
     }
-    export type Request = Request.Empty | Request.GetVersion | Request.Restart | Request.Login | Request.Logout | Request.LogoutOtherSessions | Request.GetSessionsCount | Request.GetSessions | Request.LogoutSession | Request.ChangePassword | Request.ChangeUsername | Request.CheckUsernameAvailable | Request.GetRooms | Request.EditRoom | Request.AddRoom | Request.RemoveRoom | Request.ChangeRoomOrder | Request.RestartRoom | Request.GetRoomControllerTypes | Request.GetSelectFieldLazyLoadItems | Request.GetDevices | Request.GetDeviceTypes | Request.AddDevice | Request.EditDevice | Request.RemoveDevice | Request.ChangeDeviceOrder | Request.RestartDevice | Request.GetRoomStates | Request.GetDeviceStates | Request.ToggleDeviceMainToggle | Request.GetFavoriteDeviceStates | Request.ToggleDeviceIsFavorite | Request.SendDeviceInteractionAction | Request.GetInstalledPlugins | Request.TogglePluginIsActivated;
+    export type Request = Request.Empty | Request.GetVersion | Request.Restart | Request.Login | Request.Logout | Request.LogoutOtherSessions | Request.GetSessionsCount | Request.GetSessions | Request.LogoutSession | Request.ChangePassword | Request.ChangeUsername | Request.CheckUsernameAvailable | Request.GetRooms | Request.EditRoom | Request.AddRoom | Request.RemoveRoom | Request.ChangeRoomOrder | Request.RestartRoom | Request.GetRoomControllerTypes | Request.GetSelectFieldLazyLoadItems | Request.GetDevices | Request.GetDeviceTypes | Request.AddDevice | Request.EditDevice | Request.RemoveDevice | Request.ChangeDeviceOrder | Request.RestartDevice | Request.GetRoomStates | Request.GetDeviceStates | Request.ToggleDeviceMainToggle | Request.GetFavoriteDeviceStates | Request.ToggleDeviceIsFavorite | Request.SendDeviceInteractionAction | Request.InitSliderLiveValue | Request.EndSliderLiveValue | Request.GetInstalledPlugins | Request.TogglePluginIsActivated;
 
     export namespace Response {
         /** Nothing is returned */
@@ -512,6 +545,11 @@ export namespace HMApi {
             states: T.DeviceState[]
         }
 
+        export type SliderLiveValueID = {
+            /** The ID to use when updating the value via WebSocket */
+            id: number
+        }
+
         export type Plugins = {
             /** The installed plugins */
             plugins: T.Plugin[]
@@ -551,6 +589,8 @@ export namespace HMApi {
         R extends Request.GetFavoriteDeviceStates ? Response.FavoriteDeviceStates :
         R extends Request.ToggleDeviceIsFavorite ? Response.Empty :
         R extends Request.SendDeviceInteractionAction ? Response.Empty :
+        R extends Request.InitSliderLiveValue ? Response.SliderLiveValueID :
+        R extends Request.EndSliderLiveValue ? Response.Empty :
         R extends Request.GetInstalledPlugins ? Response.Plugins :
         R extends Request.TogglePluginIsActivated ? Response.Empty :
         never;
@@ -754,6 +794,15 @@ export namespace HMApi {
             message: "DEVICE_DISABLED",
             error: string
         }
+
+        /** 
+         * The device interaction is of the wrong type. 
+         */
+        export type InteractionTypeInvalid = {
+            code: 400,
+            message: "INTERACTION_TYPE_INVALID",
+            expected: T.DeviceInteraction.Type['type'];
+        }
     }
     export type Error<R extends Request> = (
         R extends Request.Empty ? never :
@@ -789,6 +838,8 @@ export namespace HMApi {
         R extends Request.GetFavoriteDeviceStates ? never :
         R extends Request.ToggleDeviceIsFavorite ? Error.NotFound<"room"> | Error.NotFound<"device"> :
         R extends Request.SendDeviceInteractionAction ? Error.NotFound<"room" | "device" | "interaction" | "action"> | Error.RoomDisabled | Error.DeviceDisabled :
+        R extends Request.InitSliderLiveValue ? Error.NotFound<"room" | "device" | "interaction"> | Error.InteractionTypeInvalid | Error.RoomDisabled | Error.DeviceDisabled :
+        R extends Request.EndSliderLiveValue ? Error.NotFound<"stream"> :
         R extends Request.GetInstalledPlugins ? never :
         R extends Request.TogglePluginIsActivated ? Error.NotFound<"plugin"> :
         never
