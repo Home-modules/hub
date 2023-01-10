@@ -82,7 +82,7 @@ export function checkAuthToken(token: string): string | null {
     return username;
 }
 
-export function incrementRateLimit(token: string) {
+export function incrementRateLimit(token: string, times = 1, throwIfExceeded = true) {
     const now = new Date();
 
     const [username, tk] = token.split(':');
@@ -95,15 +95,15 @@ export function incrementRateLimit(token: string) {
         login.flood = 0; // Sometimes the flood value will get stuck without coming down, even though no requests are made.
     }
     login.lastRequest= now;
-    login.flood++;
-    if(login.flood > 10) {
+    login.flood += times;
+    if(login.flood > 10 && throwIfExceeded) {
         throw 'FLOOD';
     }
     setTimeout(()=>{
         // Find the token again, because it may have moved in the array, or been removed
         const login = logins[username]?.find(t => t.token === tk);
         if(login) {
-            login.flood = Math.max(login.flood-1, 0);
+            login.flood = Math.max(login.flood - times, 0);
         }
     }, 1000);
 }

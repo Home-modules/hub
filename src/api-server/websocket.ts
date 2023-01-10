@@ -28,7 +28,7 @@ export function createWSServer(httpServer: https.Server | http.Server) {
                 const token = message.toString().slice(5);
                 log.i("Trying to auth with token", token);
                 if (checkAuthToken(token)) {
-                    incrementRateLimit(token);
+                    incrementRateLimit(token, 1, false);
                     connectionObj.token = token;
                     ws.send("AUTH_OK");
                     log.i("Authorized with token", token);
