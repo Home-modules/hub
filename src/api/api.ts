@@ -23,496 +23,507 @@ export namespace HMApi {
             type: "restart";
         };
 
-        /** 
-         * Logs in to a hub account. 
-         * A token is returned which must be passed to all future requests. 
-         * (this is the only request that doesn't require an auth token, you can pass any value for it) 
-         * ---
-         * @throws `LOGIN_USER_NOT_FOUND` if the user doesn't exist
-         * @throws `LOGIN_PASSWORD_INCORRECT` if the password is incorrect
-         */
-        export type Login = {
-            type: "account.login",
-            /** The username. If it doesn't exist, the error LOGIN_USER_NOT_FOUND will be returned. */
-            username: string,
-            /** The password. If it is incorrect, the error LOGIN_PASSWORD_INCORRECT will be returned with a 1 second delay. */
-            password: string,
-            /** Device info, should contain device info, OS info or browser info, whichever is applicable. Should not be empty. */
-            device: string
-        };
+        export namespace Account {
+            /** 
+             * Logs in to a hub account. 
+             * A token is returned which must be passed to all future requests. 
+             * (this is the only request that doesn't require an auth token, you can pass any value for it) 
+             * ---
+             * @throws `LOGIN_USER_NOT_FOUND` if the user doesn't exist
+             * @throws `LOGIN_PASSWORD_INCORRECT` if the password is incorrect
+             */
+            export type Login = {
+                type: "account.login",
+                /** The username. If it doesn't exist, the error LOGIN_USER_NOT_FOUND will be returned. */
+                username: string,
+                /** The password. If it is incorrect, the error LOGIN_PASSWORD_INCORRECT will be returned with a 1 second delay. */
+                password: string,
+                /** Device info, should contain device info, OS info or browser info, whichever is applicable. Should not be empty. */
+                device: string;
+            };
 
-        /** 
-         * Logs out from the hub account. 
-         * App state should be updated to show the login screen. 
-         */
-        export type Logout = {
-            type: "account.logout"
-        };
+            /** 
+             * Logs out from the hub account. 
+             * App state should be updated to show the login screen. 
+             */
+            export type Logout = {
+                type: "account.logout";
+            };
 
-        /** 
-         * Terminates all sessions for this account except the one from which the request was made. 
-         * 
-         * ---
-         * @throws `SESSION_TOO_NEW` if the current session is less than 24 hours old.
-         */
-        export type LogoutOtherSessions = {
-            type: "account.logoutOtherSessions"
-        };
+            /** 
+             * Terminates all sessions for this account except the one from which the request was made. 
+             * 
+             * ---
+             * @throws `SESSION_TOO_NEW` if the current session is less than 24 hours old.
+             */
+            export type LogoutOtherSessions = {
+                type: "account.logoutOtherSessions";
+            };
 
-        /** 
-         * Counts the number of sessions for this account, including this one. 
-         */
-        export type GetSessionsCount = {
-            type: "account.getSessionsCount"
-        }
+            /** 
+             * Counts the number of sessions for this account, including this one. 
+             */
+            export type GetSessionsCount = {
+                type: "account.getSessionsCount";
+            };
 
-        /**
-         * Gets the list of all sessions for this account.
-         */
-        export type GetSessions = {
-            type: "account.getSessions"
-        }
+            /**
+             * Gets the list of all sessions for this account.
+             */
+            export type GetSessions = {
+                type: "account.getSessions";
+            };
 
-        /**
-         * Terminates a specific session.
-         * 
-         * ---
-         * @throws `SESSION_TOO_NEW` if the current session is less than 24 hours old.
-         */
-        export type LogoutSession = {
-            type: "account.logoutSession",
-            /** The session ID to terminate. */
-            id: string
-        }
+            /**
+             * Terminates a specific session.
+             * 
+             * ---
+             * @throws `SESSION_TOO_NEW` if the current session is less than 24 hours old.
+             */
+            export type LogoutSession = {
+                type: "account.logoutSession",
+                /** The session ID to terminate. */
+                id: string;
+            };
 
-        /** 
-         * Changes the password of the current account. 
-         * 
-         * ---
-         * @throws LOGIN_PASSWORD_INCORRECT if the current password is incorrect.
-         * @throws `SESSION_TOO_NEW` if the current session is less than 24 hours old.
-         */
-        export type ChangePassword = {
-            type: "account.changePassword",
-            /** The password currently in use in the account. If wrong, the error LOGIN_PASSWORD_INCORRECT will be returned with a 1 second delay. */
-            oldPassword: string,
-            /** The new password to be set. The app must have a second 'confirm password' field. An error will NOT be returned if new password is the same as the current password. */
-            newPassword: string
-        }
+            /** 
+             * Changes the password of the current account. 
+             * 
+             * ---
+             * @throws LOGIN_PASSWORD_INCORRECT if the current password is incorrect.
+             * @throws `SESSION_TOO_NEW` if the current session is less than 24 hours old.
+             */
+            export type ChangePassword = {
+                type: "account.changePassword",
+                /** The password currently in use in the account. If wrong, the error LOGIN_PASSWORD_INCORRECT will be returned with a 1 second delay. */
+                oldPassword: string,
+                /** The new password to be set. The app must have a second 'confirm password' field. An error will NOT be returned if new password is the same as the current password. */
+                newPassword: string;
+            };
 
-        /** 
-         * Changes the username of the current account.  
-         * A new token will be returned for future requests and the previous one will be invalidated.  
-         * WARNING: This causes all other sessions to be logged out, because there is no way the new token can be sent to other sessions. 
-         * ---
-         * @throws USERNAME_ALREADY_TAKEN if the username is already taken.
-         * @throws USERNAME_TOO_SHORT if the username is shorter than 3 characters.
-         * @throws `SESSION_TOO_NEW` if the current session is less than 24 hours old.
-         */
-        export type ChangeUsername = {
-            type: "account.changeUsername",
-            /** The new username. 
-             * Should not be already taken or else the error USERNAME_ALREADY_TAKEN will be returned. 
-             * Use `account.checkUsernameAvailable` to check if a username is available or taken.
-             * Should be 3 or more characters, or else the error USERNAME_TOO_SHORT will be returned. */
-            username: string
-        }
+            /** 
+             * Changes the username of the current account.  
+             * A new token will be returned for future requests and the previous one will be invalidated.  
+             * WARNING: This causes all other sessions to be logged out, because there is no way the new token can be sent to other sessions. 
+             * ---
+             * @throws USERNAME_ALREADY_TAKEN if the username is already taken.
+             * @throws USERNAME_TOO_SHORT if the username is shorter than 3 characters.
+             * @throws `SESSION_TOO_NEW` if the current session is less than 24 hours old.
+             */
+            export type ChangeUsername = {
+                type: "account.changeUsername",
+                /** The new username. 
+                 * Should not be already taken or else the error USERNAME_ALREADY_TAKEN will be returned. 
+                 * Use `account.checkUsernameAvailable` to check if a username is available or taken.
+                 * Should be 3 or more characters, or else the error USERNAME_TOO_SHORT will be returned. */
+                username: string;
+            };
         
-        /** 
-         * Checks if a username is available or already taken. 
-         * Useful for changing username. 
-         * Note: This does NOT check for too short usernames. You must check yourself. 
-         */
-        export type CheckUsernameAvailable = {
-            type: "account.checkUsernameAvailable",
-            /** The username to check. */
-            username: string
+            /** 
+             * Checks if a username is available or already taken. 
+             * Useful for changing username. 
+             * Note: This does NOT check for too short usernames. You must check yourself. 
+             */
+            export type CheckUsernameAvailable = {
+                type: "account.checkUsernameAvailable",
+                /** The username to check. */
+                username: string;
+            };
         }
 
-        /** 
-         * Gets the rooms in the house 
-         */
-        export type GetRooms = {
-            type: "rooms.getRooms",
+        export namespace Rooms {
+            /** 
+             * Gets the rooms in the house 
+             */
+            export type GetRooms = {
+                type: "rooms.getRooms",
+            };
+
+            /**
+             * Edits the properties of a room.
+             * All properties except ID can be changed.  
+             * The room will be restarted. (all devices will be turned off, the connection to the controller will be dropped and the room will be initialized again)
+             * ---
+             * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
+             */
+            export type EditRoom = {
+                type: "rooms.editRoom",
+                /** The modified room. The room to edit will be determined from the `id` property. */
+                room: T.Room;
+            };
+
+            /**
+             * Adds a new room to the house.
+             * 
+             * ---
+             * @throws `ROOM_ALREADY_EXISTS` if a room with the same ID already exists.
+             */
+            export type AddRoom = {
+                type: "rooms.addRoom",
+                /** The new room to add. */
+                room: T.Room;
+            };
+
+            /**
+             * Shuts down and removes a room from the house.
+             * 
+             * ---
+             * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
+             */
+            export type RemoveRoom = {
+                type: "rooms.removeRoom",
+                /** Room ID */
+                id: string;
+            };
+
+            /**
+             * Changes the order of the rooms. The new ids must not have any new or deleted room IDs.
+             * 
+             * ---
+             * @throws `ROOMS_NOT_EQUAL` if the passed IDs have new or deleted room IDs.
+             */
+            export type ChangeRoomOrder = {
+                type: "rooms.changeRoomOrder",
+                /** The new order of the rooms. */
+                ids: string[];
+            };
+
+            /**
+             * Restarts a room.
+             * 
+             * ---
+             * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
+             */
+            export type RestartRoom = {
+                type: "rooms.restartRoom",
+                /** The ID of the room to restart */
+                id: string;
+            };
+
+
+            /**
+             * Gets the available room controller types.
+             */
+            export type GetRoomControllerTypes = {
+                type: "rooms.controllers.getRoomControllerTypes";
+            };
+
+            /**
+             * Gets the current state of the rooms
+             */
+            export type GetRoomStates = {
+                type: "rooms.getRoomStates"
+            }
         }
 
-        /**
-         * Edits the properties of a room.
-         * All properties except ID can be changed.  
-         * The room will be restarted. (all devices will be turned off, the connection to the controller will be dropped and the room will be initialized again)
-         * ---
-         * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
-         */
-        export type EditRoom = {
-            type: "rooms.editRoom",
-            /** The modified room. The room to edit will be determined from the `id` property. */
-            room: T.Room
+        export namespace Plugins {
+            export namespace Fields {
+                /**
+                 * Gets the items of a lazy-loading dropdown. (for room controller and device options)
+                 * 
+                 * ---
+                 * @throws `NOT_FOUND` with `object="controller"` if the controller doesn't exist
+                 * @throws `NOT_FOUND` with `object="deviceType"` if the device type doesn't exist
+                 * @throws `NOT_FOUND` with `object="field"` if the field doesn't exist
+                 * @throws `FIELD_NOT_LAZY_SELECT` if the field is not a lazy-loading dropdown
+                 */
+                export type GetSelectFieldLazyLoadItems = {
+                    type: "plugins.fields.getSelectLazyLoadItems",
+                    /** Whether the field is for a room controller or a device */
+                    for: "roomController",
+                    /** Room controller type */
+                    controller: string,
+                    /** Field name */
+                    field: string;
+                } | {
+                    type: "plugins.fields.getSelectLazyLoadItems",
+                    /** Whether the field is for a room controller or a device */
+                    for: "device",
+                    /** The controller type of the room in which the device is */
+                    controller: string,
+                    /** Device type */
+                    deviceType: string,
+                    /** Field name */
+                    field: string;
+                };
+            }
+
+            /**
+             * Gets the list of installed plugins.
+             */
+            export type GetInstalledPlugins = {
+                type: "plugins.getInstalledPlugins"
+            }
+    
+            /**
+             * Activates / deactivates a plugin.
+             * 
+             * ---
+             * @throws `NOT_FOUND` with `object="plugin"` if there is no installed plugin with that name.
+             */
+            export type TogglePluginIsActivated = {
+                type: "plugins.togglePluginIsActivated",
+                /** The ID of the plugin (excluding the `hmp-` prefix) */
+                id: string,
+                /** Whether the plugin should now be activated. If the state is the same as before, this request does nothing. */
+                isActivated: boolean;
+            }
         }
 
-        /**
-         * Adds a new room to the house.
-         * 
-         * ---
-         * @throws `ROOM_ALREADY_EXISTS` if a room with the same ID already exists.
-         */
-        export type AddRoom = {
-            type: "rooms.addRoom",
-            /** The new room to add. */
-            room: T.Room
+        export namespace Devices {
+            /**
+             * Gets the devices in a room.
+             * 
+             * ---
+             * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
+             */
+            export type GetDevices = {
+                type: "devices.getDevices",
+                /** Room ID */
+                roomId: string;
+            };
+
+            /**
+             * Gets the device types for the given room controller type.
+             * 
+             * ---
+             * @throws `NOT_FOUND` with `object="controller"` if the room controller doesn't exist
+             */
+            export type GetDeviceTypes = {
+                type: "devices.getDeviceTypes",
+                /** Room controller type */
+                controllerType: string;
+            };
+
+            /**
+             * Adds a new device to a room.
+             * 
+             * ---
+             * @throws `DEVICE_ALREADY_EXISTS` if a device with the same ID already exists
+             * @throws `NOT_FOUND` with `object="room"` if the room (to which the device is to be added) doesn't exist
+             */
+            export type AddDevice = {
+                type: "devices.addDevice",
+                /** Room ID */
+                roomId: string,
+                /** The new device to add. */
+                device: T.Device;
+            };
+
+            /**
+             * Edits the properties of a device.
+             * All properties except ID can be changed.
+             * 
+             * ---
+             * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
+             * @throws `NOT_FOUND` with `object="room"` if the room (which contains the device) doesn't exist
+             */
+            export type EditDevice = {
+                type: "devices.editDevice",
+                /** Room ID */
+                roomId: string,
+                /** The modified device. The device to edit will be determined from the `id` property. */
+                device: T.Device;
+            };
+
+            /**
+             * Shuts down and removes a device from a room.
+             * 
+             * ---
+             * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
+             * @throws `NOT_FOUND` with `object="room"` if the room (which contains the device) doesn't exist
+             */
+            export type RemoveDevice = {
+                type: "devices.removeDevice",
+                /** Room ID */
+                roomId: string,
+                /** Device ID */
+                id: string;
+            };
+
+            /**
+             * Changes the order of the devices in a room. The new ids must not have any new or deleted device IDs.
+             * 
+             * ---
+             * @throws `NOT_FOUND` with `object="room"` if the room was not found.
+             * @throws `DEVICES_NOT_EQUAL` if the passed IDs have new or deleted device IDs. 
+             */
+            export type ChangeDeviceOrder = {
+                type: "devices.changeDeviceOrder",
+                /** The ID of the room in which the devices are */
+                roomId: string,
+                /** The new order of the devices */
+                ids: string[];
+            };
+
+            /**
+             * Restarts a device.
+             * 
+             * ---
+             * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
+             * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
+             */
+            export type RestartDevice = {
+                type: "devices.restartDevice",
+                /** Room ID */
+                roomId: string,
+                /** Device ID */
+                id: string;
+            };
+        
+            /**
+             * Gets the current state of the devices in a room
+             * 
+             * ---
+             * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
+             */
+            export type GetDeviceStates = {
+                type: "devices.getDeviceStates",
+                /** Room ID */
+                roomId: string;
+            };
+
+            /**
+             * Gets the current state of the favorite devices
+             */
+            export type GetFavoriteDeviceStates = {
+                type: "devices.getFavoriteDeviceStates";
+            };
+
+            /**
+             * Toggles the main toggle of a device.
+             * 
+             * ---
+             * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
+             * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
+             * @throws `NO_MAIN_TOGGLE` if the device doesn't have a main toggle
+             * @throws `ROOM_DISABLED` if the room controller is disabled because of an error
+             * @throws `DEVICE_DISABLED` if the device is disabled because of an error
+             */
+            export type ToggleDeviceMainToggle = {
+                type: "devices.toggleDeviceMainToggle",
+                /** Room ID */
+                roomId: string,
+                /** Device ID */
+                id: string;
+            };
+
+            /**
+             * Adds/removes a device to/from the favorites list.
+             * 
+             * ---
+             * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
+             * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist  
+             * @throws Does **not** throw any error if `isFavorite===true` and the device is already in the favorites list, or if `isFavorite===false` and the device is not in the favorites list.
+             */
+            export type ToggleDeviceIsFavorite = {
+                type: "devices.toggleDeviceIsFavorite",
+                /** Room ID */
+                roomId: string,
+                /** Device ID */
+                id: string,
+                /** Whether the device is now a favorite */
+                isFavorite: boolean;
+            };
+
+            export namespace Interactions {
+                /**
+                 * Performs an action on a device interaction.
+                 * 
+                 * ---
+                 * @throws `NOT_FOUND` with `object="room"` if the room containing the device doesn't exist
+                 * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
+                 * @throws `NOT_FOUND` with `object="interaction"` if the interaction doesn't exist
+                 * @throws `NOT_FOUND` with `object="action"` if there is no action with the given type or if the action is not available for the device
+                 * @throws `ROOM_DISABLED` if the room controller is disabled because of an error
+                 * @throws `DEVICE_DISABLED` if the device is disabled because of an error
+                 */
+                export type SendDeviceInteractionAction = {
+                    type: "devices.interactions.sendAction",
+                    /** Room ID */
+                    roomId: string,
+                    /** Device ID */
+                    deviceId: string,
+                    /** Interaction ID */
+                    interactionId: string,
+                    /** Action to perform */
+                    action: T.DeviceInteraction.Action;
+                };
+
+                /**
+                 * Initializes a live slider value stream for use with WebSocket. A stream ID will be returned which should be used when sending data over WebSocket.
+                 * 
+                 * ---
+                 * @throws `NOT_FOUND` with `object="room"` if the room containing the device doesn't exist
+                 * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
+                 * @throws `NOT_FOUND` with `object="interaction"` if the interaction doesn't exist
+                 * @throws `INTERACTION_TYPE_INVALID` if the interaction is not a slider
+                 * @throws `ROOM_DISABLED` if the room controller is disabled because of an error
+                 * @throws `DEVICE_DISABLED` if the device is disabled because of an error
+                 */
+                export type InitSliderLiveValue = {
+                    type: "devices.interactions.initSliderLiveValue",
+                    /** Room ID */
+                    roomId: string,
+                    /** Device ID */
+                    deviceId: string,
+                    /** Interaction ID */
+                    interactionId: string,
+                };
+
+                /**
+                 * Ends a live slider value stream.
+                 * 
+                 * ---
+                 * @throws `NOT_FOUND` with `object="stream"` if the ID is not found or has been already closed.
+                 */
+                export type EndSliderLiveValue = {
+                    type: "devices.interactions.endSliderLiveValue",
+                    /** The stream ID returned from initSliderLiveValue */
+                    id: number;
+                };
+            }
         }
-
-        /**
-         * Shuts down and removes a room from the house.
-         * 
-         * ---
-         * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
-         */
-        export type RemoveRoom = {
-            type: "rooms.removeRoom",
-            /** Room ID */
-            id: string
-        }
-
-        /**
-         * Changes the order of the rooms. The new ids must not have any new or deleted room IDs.
-         * 
-         * ---
-         * @throws `ROOMS_NOT_EQUAL` if the passed IDs have new or deleted room IDs.
-         */
-        export type ChangeRoomOrder = {
-            type: "rooms.changeRoomOrder",
-            /** The new order of the rooms. */
-            ids: string[]
-        }
-
-        /**
-         * Restarts a room.
-         * 
-         * ---
-         * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
-         */
-        export type RestartRoom = {
-            type: "rooms.restartRoom",
-            /** The ID of the room to restart */
-            id: string
-        }
-
-
-        /**
-         * Gets the available room controller types.
-         */
-        export type GetRoomControllerTypes = {
-            type: "rooms.controllers.getRoomControllerTypes"
-        }
-
-        /**
-         * Gets the items of a lazy-loading dropdown. (for room controller and device options)
-         * 
-         * ---
-         * @throws `NOT_FOUND` with `object="controller"` if the controller doesn't exist
-         * @throws `NOT_FOUND` with `object="deviceType"` if the device type doesn't exist
-         * @throws `NOT_FOUND` with `object="field"` if the field doesn't exist
-         * @throws `FIELD_NOT_LAZY_SELECT` if the field is not a lazy-loading dropdown
-         */
-        export type GetSelectFieldLazyLoadItems = {
-            type: "plugins.fields.getSelectLazyLoadItems",
-            /** Whether the field is for a room controller or a device */
-            for: "roomController",
-            /** Room controller type */
-            controller: string,
-            /** Field name */
-            field: string
-        } | {
-            type: "plugins.fields.getSelectLazyLoadItems",
-            /** Whether the field is for a room controller or a device */
-            for: "device",
-            /** The controller type of the room in which the device is */
-            controller: string,
-            /** Device type */
-            deviceType: string,
-            /** Field name */
-            field: string
-        }
-
-        /**
-         * Gets the devices in a room.
-         * 
-         * ---
-         * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
-         */
-        export type GetDevices = {
-            type: "devices.getDevices",
-            /** Room ID */
-            roomId: string
-        }
-
-        /**
-         * Gets the device types for the given room controller type.
-         * 
-         * ---
-         * @throws `NOT_FOUND` with `object="controller"` if the room controller doesn't exist
-         */
-        export type GetDeviceTypes = {
-            type: "devices.getDeviceTypes",
-            /** Room controller type */
-            controllerType: string
-        }
-
-        /**
-         * Adds a new device to a room.
-         * 
-         * ---
-         * @throws `DEVICE_ALREADY_EXISTS` if a device with the same ID already exists
-         * @throws `NOT_FOUND` with `object="room"` if the room (to which the device is to be added) doesn't exist
-         */
-        export type AddDevice = {
-            type: "devices.addDevice",
-            /** Room ID */
-            roomId: string,
-            /** The new device to add. */
-            device: T.Device
-        }
-
-        /**
-         * Edits the properties of a device.
-         * All properties except ID can be changed.
-         * 
-         * ---
-         * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
-         * @throws `NOT_FOUND` with `object="room"` if the room (which contains the device) doesn't exist
-         */
-        export type EditDevice = {
-            type: "devices.editDevice",
-            /** Room ID */
-            roomId: string,
-            /** The modified device. The device to edit will be determined from the `id` property. */
-            device: T.Device
-        }
-
-        /**
-         * Shuts down and removes a device from a room.
-         * 
-         * ---
-         * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
-         * @throws `NOT_FOUND` with `object="room"` if the room (which contains the device) doesn't exist
-         */
-        export type RemoveDevice = {
-            type: "devices.removeDevice",
-            /** Room ID */
-            roomId: string,
-            /** Device ID */
-            id: string
-        }
-
-        /**
-         * Changes the order of the devices in a room. The new ids must not have any new or deleted device IDs.
-         * 
-         * ---
-         * @throws `NOT_FOUND` with `object="room"` if the room was not found.
-         * @throws `DEVICES_NOT_EQUAL` if the passed IDs have new or deleted device IDs. 
-         */
-        export type ChangeDeviceOrder = {
-            type: "devices.changeDeviceOrder",
-            /** The ID of the room in which the devices are */
-            roomId: string,
-            /** The new order of the devices */
-            ids: string[]
-        }
-
-        /**
-         * Restarts a device.
-         * 
-         * ---
-         * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
-         * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
-         */
-        export type RestartDevice = {
-            type: "devices.restartDevice",
-            /** Room ID */
-            roomId: string,
-            /** Device ID */
-            id: string
-        }
-
-        /**
-         * Gets the current state of the rooms
-         */
-        export type GetRoomStates = {
-            type: "rooms.getRoomStates"
-        }
-
-        /**
-         * Gets the current state of the devices in a room
-         * 
-         * ---
-         * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
-         */
-        export type GetDeviceStates = {
-            type: "devices.getDeviceStates",
-            /** Room ID */
-            roomId: string
-        }
-
-        /**
-         * Gets the current state of the favorite devices
-         */
-        export type GetFavoriteDeviceStates = {
-            type: "devices.getFavoriteDeviceStates"
-        }
-
-        /**
-         * Toggles the main toggle of a device.
-         * 
-         * ---
-         * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
-         * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
-         * @throws `NO_MAIN_TOGGLE` if the device doesn't have a main toggle
-         * @throws `ROOM_DISABLED` if the room controller is disabled because of an error
-         * @throws `DEVICE_DISABLED` if the device is disabled because of an error
-         */
-        export type ToggleDeviceMainToggle = {
-            type: "devices.toggleDeviceMainToggle",
-            /** Room ID */
-            roomId: string,
-            /** Device ID */
-            id: string
-        }
-
-        /**
-         * Adds/removes a device to/from the favorites list.
-         * 
-         * ---
-         * @throws `NOT_FOUND` with `object="room"` if the room doesn't exist
-         * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist  
-         * @throws Does **not** throw any error if `isFavorite===true` and the device is already in the favorites list, or if `isFavorite===false` and the device is not in the favorites list.
-         */
-        export type ToggleDeviceIsFavorite = {
-            type: "devices.toggleDeviceIsFavorite",
-            /** Room ID */
-            roomId: string,
-            /** Device ID */
-            id: string,
-            /** Whether the device is now a favorite */
-            isFavorite: boolean
-        }
-
-        /**
-         * Performs an action on a device interaction.
-         * 
-         * ---
-         * @throws `NOT_FOUND` with `object="room"` if the room containing the device doesn't exist
-         * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
-         * @throws `NOT_FOUND` with `object="interaction"` if the interaction doesn't exist
-         * @throws `NOT_FOUND` with `object="action"` if there is no action with the given type or if the action is not available for the device
-         * @throws `ROOM_DISABLED` if the room controller is disabled because of an error
-         * @throws `DEVICE_DISABLED` if the device is disabled because of an error
-         */
-        export type SendDeviceInteractionAction = {
-            type: "devices.interactions.sendAction",
-            /** Room ID */
-            roomId: string,
-            /** Device ID */
-            deviceId: string,
-            /** Interaction ID */
-            interactionId: string,
-            /** Action to perform */
-            action: T.DeviceInteraction.Action;
-        }
-
-        /**
-         * Initializes a live slider value stream for use with WebSocket. A stream ID will be returned which should be used when sending data over WebSocket.
-         * 
-         * ---
-         * @throws `NOT_FOUND` with `object="room"` if the room containing the device doesn't exist
-         * @throws `NOT_FOUND` with `object="device"` if the device doesn't exist
-         * @throws `NOT_FOUND` with `object="interaction"` if the interaction doesn't exist
-         * @throws `INTERACTION_TYPE_INVALID` if the interaction is not a slider
-         * @throws `ROOM_DISABLED` if the room controller is disabled because of an error
-         * @throws `DEVICE_DISABLED` if the device is disabled because of an error
-         */
-        export type InitSliderLiveValue = {
-            type: "devices.interactions.initSliderLiveValue",
-            /** Room ID */
-            roomId: string,
-            /** Device ID */
-            deviceId: string,
-            /** Interaction ID */
-            interactionId: string,
-        }
-
-        /**
-         * Ends a live slider value stream.
-         * 
-         * ---
-         * @throws `NOT_FOUND` with `object="stream"` if the ID is not found or has been already closed.
-         */
-        export type EndSliderLiveValue = {
-            type: "devices.interactions.endSliderLiveValue",
-            /** The stream ID returned from initSliderLiveValue */
-            id: number
-        }
-
-        /**
-         * Gets the list of installed plugins.
-         */
-        export type GetInstalledPlugins = {
-            type: "plugins.getInstalledPlugins"
-        }
-
-        /**
-         * Activates / deactivates a plugin.
-         * 
-         * ---
-         * @throws `NOT_FOUND` with `object="plugin"` if there is no installed plugin with that name.
-         */
-        export type TogglePluginIsActivated = {
-            type: "plugins.togglePluginIsActivated",
-            /** The ID of the plugin (excluding the `hmp-` prefix) */
-            id: string,
-            /** Whether the plugin should now be activated. If the state is the same as before, this request does nothing. */
-            isActivated: boolean;
-        }
-
     }
     //#region Request union type
     export type Request =
         Request.Empty |
         Request.GetVersion |
         Request.Restart |
-        Request.Login |
-        Request.Logout |
-        Request.LogoutOtherSessions |
-        Request.GetSessionsCount |
-        Request.GetSessions |
-        Request.LogoutSession |
-        Request.ChangePassword |
-        Request.ChangeUsername |
-        Request.CheckUsernameAvailable |
-        Request.GetRooms |
-        Request.EditRoom |
-        Request.AddRoom |
-        Request.RemoveRoom |
-        Request.ChangeRoomOrder |
-        Request.RestartRoom |
-        Request.GetRoomControllerTypes |
-        Request.GetSelectFieldLazyLoadItems |
-        Request.GetDevices |
-        Request.GetDeviceTypes |
-        Request.AddDevice |
-        Request.EditDevice |
-        Request.RemoveDevice |
-        Request.ChangeDeviceOrder |
-        Request.RestartDevice |
-        Request.GetRoomStates |
-        Request.GetDeviceStates |
-        Request.ToggleDeviceMainToggle |
-        Request.GetFavoriteDeviceStates |
-        Request.ToggleDeviceIsFavorite |
-        Request.SendDeviceInteractionAction |
-        Request.InitSliderLiveValue |
-        Request.EndSliderLiveValue |
-        Request.GetInstalledPlugins |
-        Request.TogglePluginIsActivated;
+        Request.Account.Login |
+        Request.Account.Logout |
+        Request.Account.LogoutOtherSessions |
+        Request.Account.GetSessionsCount |
+        Request.Account.GetSessions |
+        Request.Account.LogoutSession |
+        Request.Account.ChangePassword |
+        Request.Account.ChangeUsername |
+        Request.Account.CheckUsernameAvailable |
+        Request.Rooms.GetRooms |
+        Request.Rooms.EditRoom |
+        Request.Rooms.AddRoom |
+        Request.Rooms.RemoveRoom |
+        Request.Rooms.ChangeRoomOrder |
+        Request.Rooms.RestartRoom |
+        Request.Rooms.GetRoomControllerTypes |
+        Request.Rooms.GetRoomStates |
+        Request.Plugins.Fields.GetSelectFieldLazyLoadItems |
+        Request.Plugins.GetInstalledPlugins |
+        Request.Plugins.TogglePluginIsActivated |
+        Request.Devices.GetDevices |
+        Request.Devices.GetDeviceTypes |
+        Request.Devices.AddDevice |
+        Request.Devices.EditDevice |
+        Request.Devices.RemoveDevice |
+        Request.Devices.ChangeDeviceOrder |
+        Request.Devices.RestartDevice |
+        Request.Devices.GetDeviceStates |
+        Request.Devices.ToggleDeviceMainToggle |
+        Request.Devices.GetFavoriteDeviceStates |
+        Request.Devices.ToggleDeviceIsFavorite |
+        Request.Devices.Interactions.SendDeviceInteractionAction |
+        Request.Devices.Interactions.InitSliderLiveValue |
+        Request.Devices.Interactions.EndSliderLiveValue;
     //#endregion
 
     export namespace Response {
@@ -599,40 +610,40 @@ export namespace HMApi {
         R extends Request.Empty ? Response.Empty :
         R extends Request.GetVersion ? Response.Version :
         R extends Request.Restart ? Response.Empty :
-        R extends Request.Login ? Response.Login :
-        R extends Request.Logout ? Response.Empty :
-        R extends Request.LogoutOtherSessions ? Response.SessionCount :
-        R extends Request.GetSessionsCount ? Response.SessionCount :
-        R extends Request.GetSessions ? Response.Sessions :
-        R extends Request.LogoutSession ? Response.Empty :
-        R extends Request.ChangePassword ? Response.Empty :
-        R extends Request.ChangeUsername ? Response.Login :
-        R extends Request.CheckUsernameAvailable ? Response.UsernameAvailability :
-        R extends Request.GetRooms ? Response.Rooms :
-        R extends Request.EditRoom ? Response.Empty :
-        R extends Request.AddRoom ? Response.Empty :
-        R extends Request.RemoveRoom ? Response.Empty :
-        R extends Request.ChangeRoomOrder ? Response.Empty :
-        R extends Request.RestartRoom ? Response.Empty :
-        R extends Request.GetRoomControllerTypes ? Response.RoomControllerTypes :
-        R extends Request.GetSelectFieldLazyLoadItems ? Response.SelectFieldItems :
-        R extends Request.GetDevices ? Response.Devices :
-        R extends Request.GetDeviceTypes ? Response.DeviceTypes :
-        R extends Request.AddDevice ? Response.Empty :
-        R extends Request.EditDevice ? Response.Empty :
-        R extends Request.RemoveDevice ? Response.Empty :
-        R extends Request.ChangeDeviceOrder ? Response.Empty :
-        R extends Request.RestartDevice ? Response.Empty :
-        R extends Request.GetRoomStates ? Response.RoomStates :
-        R extends Request.GetDeviceStates ? Response.DeviceStates :
-        R extends Request.ToggleDeviceMainToggle ? Response.Empty :
-        R extends Request.GetFavoriteDeviceStates ? Response.FavoriteDeviceStates :
-        R extends Request.ToggleDeviceIsFavorite ? Response.Empty :
-        R extends Request.SendDeviceInteractionAction ? Response.Empty :
-        R extends Request.InitSliderLiveValue ? Response.SliderLiveValueID :
-        R extends Request.EndSliderLiveValue ? Response.Empty :
-        R extends Request.GetInstalledPlugins ? Response.Plugins :
-        R extends Request.TogglePluginIsActivated ? Response.Empty :
+        R extends Request.Account.Login ? Response.Login :
+        R extends Request.Account.Logout ? Response.Empty :
+        R extends Request.Account.LogoutOtherSessions ? Response.SessionCount :
+        R extends Request.Account.GetSessionsCount ? Response.SessionCount :
+        R extends Request.Account.GetSessions ? Response.Sessions :
+        R extends Request.Account.LogoutSession ? Response.Empty :
+        R extends Request.Account.ChangePassword ? Response.Empty :
+        R extends Request.Account.ChangeUsername ? Response.Login :
+        R extends Request.Account.CheckUsernameAvailable ? Response.UsernameAvailability :
+        R extends Request.Rooms.GetRooms ? Response.Rooms :
+        R extends Request.Rooms.EditRoom ? Response.Empty :
+        R extends Request.Rooms.AddRoom ? Response.Empty :
+        R extends Request.Rooms.RemoveRoom ? Response.Empty :
+        R extends Request.Rooms.ChangeRoomOrder ? Response.Empty :
+        R extends Request.Rooms.RestartRoom ? Response.Empty :
+        R extends Request.Rooms.GetRoomControllerTypes ? Response.RoomControllerTypes :
+        R extends Request.Rooms.GetRoomStates ? Response.RoomStates :
+        R extends Request.Plugins.Fields.GetSelectFieldLazyLoadItems ? Response.SelectFieldItems :
+        R extends Request.Plugins.GetInstalledPlugins ? Response.Plugins :
+        R extends Request.Plugins.TogglePluginIsActivated ? Response.Empty :
+        R extends Request.Devices.GetDevices ? Response.Devices :
+        R extends Request.Devices.GetDeviceTypes ? Response.DeviceTypes :
+        R extends Request.Devices.AddDevice ? Response.Empty :
+        R extends Request.Devices.EditDevice ? Response.Empty :
+        R extends Request.Devices.RemoveDevice ? Response.Empty :
+        R extends Request.Devices.ChangeDeviceOrder ? Response.Empty :
+        R extends Request.Devices.RestartDevice ? Response.Empty :
+        R extends Request.Devices.GetDeviceStates ? Response.DeviceStates :
+        R extends Request.Devices.ToggleDeviceMainToggle ? Response.Empty :
+        R extends Request.Devices.GetFavoriteDeviceStates ? Response.FavoriteDeviceStates :
+        R extends Request.Devices.ToggleDeviceIsFavorite ? Response.Empty :
+        R extends Request.Devices.Interactions.SendDeviceInteractionAction ? Response.Empty :
+        R extends Request.Devices.Interactions.InitSliderLiveValue ? Response.SliderLiveValueID :
+        R extends Request.Devices.Interactions.EndSliderLiveValue ? Response.Empty :
         never;
     //#endregion
 
@@ -850,40 +861,40 @@ export namespace HMApi {
         R extends Request.Empty ? never :
         R extends Request.GetVersion ? never :
         R extends Request.Restart ? never :
-        R extends Request.Login ? Error.LoginPasswordIncorrect | Error.LoginUserNotFound :
-        R extends Request.Logout ? never :
-        R extends Request.LogoutOtherSessions ? Error.SessionTooNew :
-        R extends Request.GetSessionsCount ? never :
-        R extends Request.GetSessions ? never :
-        R extends Request.LogoutSession ? Error.NotFound<"session"> | Error.SessionTooNew :
-        R extends Request.ChangePassword ? Error.LoginPasswordIncorrect | Error.SessionTooNew :
-        R extends Request.ChangeUsername ? Error.UsernameAlreadyTaken | Error.UsernameTooShort | Error.SessionTooNew :
-        R extends Request.CheckUsernameAvailable ? never :
-        R extends Request.GetRooms ? never :
-        R extends Request.EditRoom ? Error.NotFound<"room"> | Error.PluginCustomError :
-        R extends Request.AddRoom ? Error.RoomAlreadyExists | Error.PluginCustomError :
-        R extends Request.RemoveRoom ? Error.NotFound<"room"> :
-        R extends Request.ChangeRoomOrder ? Error.RoomsNotEqual :
-        R extends Request.RestartRoom ? Error.NotFound<"room"> :
-        R extends Request.GetRoomControllerTypes ? never :
-        R extends Request.GetSelectFieldLazyLoadItems ? Error.NotFound<"controller"|"deviceType"|"field"> | Error.FieldNotLazySelect | Error.PluginCustomError :
-        R extends Request.GetDevices ? Error.NotFound<"room"> :
-        R extends Request.GetDeviceTypes ? Error.NotFound<"controller"> :
-        R extends Request.AddDevice ? Error.DeviceAlreadyExists | Error.NotFound<"room"> | Error.PluginCustomError :
-        R extends Request.EditDevice ? Error.NotFound<"device"|"room"> | Error.PluginCustomError :
-        R extends Request.RemoveDevice ? Error.NotFound<"device"|"room"> :
-        R extends Request.ChangeDeviceOrder ? Error.NotFound<"room"> | Error.DevicesNotEqual :
-        R extends Request.RestartDevice ? Error.NotFound<"device"|"room"> | Error.RoomDisabled :
-        R extends Request.GetRoomStates ? never :
-        R extends Request.GetDeviceStates ? Error.NotFound<"room"> :
-        R extends Request.ToggleDeviceMainToggle ? Error.NotFound<"room"> | Error.NotFound<"device"> | Error.NoMainToggle | Error.RoomDisabled | Error.DeviceDisabled :
-        R extends Request.GetFavoriteDeviceStates ? never :
-        R extends Request.ToggleDeviceIsFavorite ? Error.NotFound<"room"> | Error.NotFound<"device"> :
-        R extends Request.SendDeviceInteractionAction ? Error.NotFound<"room" | "device" | "interaction" | "action"> | Error.RoomDisabled | Error.DeviceDisabled :
-        R extends Request.InitSliderLiveValue ? Error.NotFound<"room" | "device" | "interaction"> | Error.InteractionTypeInvalid | Error.RoomDisabled | Error.DeviceDisabled :
-        R extends Request.EndSliderLiveValue ? Error.NotFound<"stream"> :
-        R extends Request.GetInstalledPlugins ? never :
-        R extends Request.TogglePluginIsActivated ? Error.NotFound<"plugin"> :
+        R extends Request.Account.Login ? Error.LoginPasswordIncorrect | Error.LoginUserNotFound :
+        R extends Request.Account.Logout ? never :
+        R extends Request.Account.LogoutOtherSessions ? Error.SessionTooNew :
+        R extends Request.Account.GetSessionsCount ? never :
+        R extends Request.Account.GetSessions ? never :
+        R extends Request.Account.LogoutSession ? Error.NotFound<"session"> | Error.SessionTooNew :
+        R extends Request.Account.ChangePassword ? Error.LoginPasswordIncorrect | Error.SessionTooNew :
+        R extends Request.Account.ChangeUsername ? Error.UsernameAlreadyTaken | Error.UsernameTooShort | Error.SessionTooNew :
+        R extends Request.Account.CheckUsernameAvailable ? never :
+        R extends Request.Rooms.GetRooms ? never :
+        R extends Request.Rooms.EditRoom ? Error.NotFound<"room"> | Error.PluginCustomError :
+        R extends Request.Rooms.AddRoom ? Error.RoomAlreadyExists | Error.PluginCustomError :
+        R extends Request.Rooms.RemoveRoom ? Error.NotFound<"room"> :
+        R extends Request.Rooms.ChangeRoomOrder ? Error.RoomsNotEqual :
+        R extends Request.Rooms.RestartRoom ? Error.NotFound<"room"> :
+        R extends Request.Rooms.GetRoomControllerTypes ? never :
+        R extends Request.Rooms.GetRoomStates ? never :
+        R extends Request.Plugins.Fields.GetSelectFieldLazyLoadItems ? Error.NotFound<"controller"|"deviceType"|"field"> | Error.FieldNotLazySelect | Error.PluginCustomError :
+        R extends Request.Plugins.GetInstalledPlugins ? never :
+        R extends Request.Plugins.TogglePluginIsActivated ? Error.NotFound<"plugin"> :
+        R extends Request.Devices.GetDevices ? Error.NotFound<"room"> :
+        R extends Request.Devices.GetDeviceTypes ? Error.NotFound<"controller"> :
+        R extends Request.Devices.AddDevice ? Error.DeviceAlreadyExists | Error.NotFound<"room"> | Error.PluginCustomError :
+        R extends Request.Devices.EditDevice ? Error.NotFound<"device"|"room"> | Error.PluginCustomError :
+        R extends Request.Devices.RemoveDevice ? Error.NotFound<"device"|"room"> :
+        R extends Request.Devices.ChangeDeviceOrder ? Error.NotFound<"room"> | Error.DevicesNotEqual :
+        R extends Request.Devices.RestartDevice ? Error.NotFound<"device"|"room"> | Error.RoomDisabled :
+        R extends Request.Devices.GetDeviceStates ? Error.NotFound<"room"> :
+        R extends Request.Devices.ToggleDeviceMainToggle ? Error.NotFound<"room"> | Error.NotFound<"device"> | Error.NoMainToggle | Error.RoomDisabled | Error.DeviceDisabled :
+        R extends Request.Devices.GetFavoriteDeviceStates ? never :
+        R extends Request.Devices.ToggleDeviceIsFavorite ? Error.NotFound<"room"> | Error.NotFound<"device"> :
+        R extends Request.Devices.Interactions.SendDeviceInteractionAction ? Error.NotFound<"room" | "device" | "interaction" | "action"> | Error.RoomDisabled | Error.DeviceDisabled :
+        R extends Request.Devices.Interactions.InitSliderLiveValue ? Error.NotFound<"room" | "device" | "interaction"> | Error.InteractionTypeInvalid | Error.RoomDisabled | Error.DeviceDisabled :
+        R extends Request.Devices.Interactions.EndSliderLiveValue ? Error.NotFound<"stream"> :
         never
     ) | (
         [R extends R ? keyof Omit<R, 'type'>: never ][0] extends never ? never : (Error.MissingParameter<R> | Error.InvalidParameter<R> | Error.ParameterOutOfRange<R>)
@@ -893,7 +904,7 @@ export namespace HMApi {
         Error.InvalidRequestType |
         Error.InternalServerError |
         Error.TooManyRequests | (
-        R extends Request.Login ? never : Error.TokenInvalid
+        R extends Request.Account.Login ? never : Error.TokenInvalid
     );
     //#endregion
 
