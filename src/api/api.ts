@@ -474,7 +474,46 @@ export namespace HMApi {
         }
 
     }
-    export type Request = Request.Empty | Request.GetVersion | Request.Restart | Request.Login | Request.Logout | Request.LogoutOtherSessions | Request.GetSessionsCount | Request.GetSessions | Request.LogoutSession | Request.ChangePassword | Request.ChangeUsername | Request.CheckUsernameAvailable | Request.GetRooms | Request.EditRoom | Request.AddRoom | Request.RemoveRoom | Request.ChangeRoomOrder | Request.RestartRoom | Request.GetRoomControllerTypes | Request.GetSelectFieldLazyLoadItems | Request.GetDevices | Request.GetDeviceTypes | Request.AddDevice | Request.EditDevice | Request.RemoveDevice | Request.ChangeDeviceOrder | Request.RestartDevice | Request.GetRoomStates | Request.GetDeviceStates | Request.ToggleDeviceMainToggle | Request.GetFavoriteDeviceStates | Request.ToggleDeviceIsFavorite | Request.SendDeviceInteractionAction | Request.InitSliderLiveValue | Request.EndSliderLiveValue | Request.GetInstalledPlugins | Request.TogglePluginIsActivated;
+    //#region Request union type
+    export type Request =
+        Request.Empty |
+        Request.GetVersion |
+        Request.Restart |
+        Request.Login |
+        Request.Logout |
+        Request.LogoutOtherSessions |
+        Request.GetSessionsCount |
+        Request.GetSessions |
+        Request.LogoutSession |
+        Request.ChangePassword |
+        Request.ChangeUsername |
+        Request.CheckUsernameAvailable |
+        Request.GetRooms |
+        Request.EditRoom |
+        Request.AddRoom |
+        Request.RemoveRoom |
+        Request.ChangeRoomOrder |
+        Request.RestartRoom |
+        Request.GetRoomControllerTypes |
+        Request.GetSelectFieldLazyLoadItems |
+        Request.GetDevices |
+        Request.GetDeviceTypes |
+        Request.AddDevice |
+        Request.EditDevice |
+        Request.RemoveDevice |
+        Request.ChangeDeviceOrder |
+        Request.RestartDevice |
+        Request.GetRoomStates |
+        Request.GetDeviceStates |
+        Request.ToggleDeviceMainToggle |
+        Request.GetFavoriteDeviceStates |
+        Request.ToggleDeviceIsFavorite |
+        Request.SendDeviceInteractionAction |
+        Request.InitSliderLiveValue |
+        Request.EndSliderLiveValue |
+        Request.GetInstalledPlugins |
+        Request.TogglePluginIsActivated;
+    //#endregion
 
     export namespace Response {
         /** Nothing is returned */
@@ -555,6 +594,7 @@ export namespace HMApi {
             plugins: T.Plugin[]
         }
     }
+    //#region Response generic type
     export type Response<R extends Request> = 
         R extends Request.Empty ? Response.Empty :
         R extends Request.GetVersion ? Response.Version :
@@ -594,6 +634,7 @@ export namespace HMApi {
         R extends Request.GetInstalledPlugins ? Response.Plugins :
         R extends Request.TogglePluginIsActivated ? Response.Empty :
         never;
+    //#endregion
 
     export namespace Error {
         /**
@@ -804,6 +845,7 @@ export namespace HMApi {
             expected: T.DeviceInteraction.Type['type'];
         }
     }
+    //#region Error generic type
     export type Error<R extends Request> = (
         R extends Request.Empty ? never :
         R extends Request.GetVersion ? never :
@@ -853,6 +895,7 @@ export namespace HMApi {
         Error.TooManyRequests | (
         R extends Request.Login ? never : Error.TokenInvalid
     );
+    //#endregion
 
     export type ResponseOrError<R extends Request> = {
         type: "ok",
@@ -873,7 +916,11 @@ export namespace HMApi {
             state: T.DeviceState
         }
     }
-    export type Update = Update.RoomStateChanged | Update.DeviceStateChanged;
+    //#region Update union
+    export type Update =
+        Update.RoomStateChanged |
+        Update.DeviceStateChanged;
+    //#endregion
 
     export namespace T {
         /**
