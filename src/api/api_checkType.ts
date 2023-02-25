@@ -629,8 +629,8 @@ export const HMApi_Types: {
         Device: {
             type: 'object',
             properties: {
-                'id': {type: 'string'},
-                'name': {type: 'string'},
+                'id': {type: 'string', minLength: 1, maxLength: 255},
+                'name': {type: 'string', minLength: 1, maxLength: 255},
                 'type': {type: 'string'},
                 'params': {
                     'type': 'record',
