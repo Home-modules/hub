@@ -1185,19 +1185,24 @@ export namespace HMApi {
             /**
              * A radio-button group
              */
-            export type TypeRadio = Omit<GeneralProps<string>, 'label'> & {
+            export type TypeRadio = GeneralProps<string> & {
                 type: 'radio',
-                /** THe list of radio buttons */
-                options: Record<string, {
-                    /** Option label */
-                    label: string,
-                    /** Option description. It is recommended to add a description for either all or none of the options. Ignored if direction is horizontal */
-                    description?: string,
-                }>,
-                /** The preferred orientation of the radio buttons. 'h' means they will be on the same line and 'v' means they will be on different lines. */
-                direction: 'h' | 'v',
-                /** Label before the radio buttons */
-                label?: string;
+                /** 
+                 * The list of radio buttons.
+                 * 
+                 * ---
+                 * #### Example
+                 * ```json
+                 * {
+                 *     "value": "label",
+                 *     "option-1": "Option 1",
+                 *     "option-2": "Option 2",
+                 *     "option-3": "Option 3",
+                 *     ...
+                 * }
+                 * ```
+                 */
+                options: Record<string, string>,
             };
 
             /**
@@ -1345,32 +1350,6 @@ export namespace HMApi {
             }
 
             /**
-             * A horizontal wrapper that contains several columns of fields
-             */
-            export type TypeHorizontalWrapper = {
-                type: 'horizontal_wrapper',
-                /** The columns */
-                columns: HorizontalWrapperColumn[],
-                /** Whether the columns should collapse into one for mobile device (default: true) */
-                responsive?: boolean,
-            }
-
-            /**
-             * A column in a horizontal wrapper
-             */
-            export type HorizontalWrapperColumn = {
-                /** The fields in the column */
-                fields: SettingsField[],
-                /** 
-                 * The width of the column. 
-                 * The total width of all columns is mapped to the wrapper's width. 
-                 * If not specified, the width will be automatically determined by the content. 
-                 * You can set the width to 1 while the other columns have auto width to fill the remaining space.
-                 */
-                width?: number,
-            }
-
-            /**
              * A group of fields with a border and legend
              */
             export type TypeContainer = {
@@ -1386,7 +1365,7 @@ export namespace HMApi {
          */
         export type SettingsField<IncludeContainers extends boolean = true> = 
             SettingsField.TypeText | SettingsField.TypeNumber | SettingsField.TypeCheckbox | SettingsField.TypeRadio | SettingsField.TypeSelect | SettingsField.TypeSlider |
-            (IncludeContainers extends true ? (SettingsField.TypeHorizontalWrapper | SettingsField.TypeContainer) : never);
+            (IncludeContainers extends true ? SettingsField.TypeContainer : never);
 
         export namespace DeviceInteraction {
             export namespace Type {

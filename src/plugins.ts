@@ -198,13 +198,8 @@ export {
 
 // Similar to an array of HMApi.SettingsField, but SettingsFieldSelect.options when isLazy=true requires a function to be called to get the options
 export type SettingsFieldDef = (
-    Exclude<HMApi.T.SettingsField, HMApi.T.SettingsField.TypeSelect | HMApi.T.SettingsField.TypeHorizontalWrapper | HMApi.T.SettingsField.TypeContainer> | // Exclude HMApi.SettingsFieldSelect and add the modified version
+    Exclude<HMApi.T.SettingsField, HMApi.T.SettingsField.TypeSelect | HMApi.T.SettingsField.TypeContainer> | // Exclude HMApi.SettingsFieldSelect and add the modified version
     SettingsFieldSelectDef |
-    (Omit<HMApi.T.SettingsField.TypeHorizontalWrapper, 'columns'> & {
-        columns: (Omit<HMApi.T.SettingsField.HorizontalWrapperColumn, 'fields'> & {
-            fields: SettingsFieldDef[]
-        })[]
-    }) |
     (Omit<HMApi.T.SettingsField.TypeContainer, 'children'> & {
         children:  SettingsFieldDef[]
     })
