@@ -12,7 +12,7 @@ type WSConnectionObj = {
     token: string | null;
     connection: WebSocket;
 };
-export let WSConnections: WSConnectionObj[] = [];
+export const WSConnections: WSConnectionObj[] = [];
 
 export function createWSServer(httpServer: https.Server | http.Server) {
     log.d("Creating WebSocket server");
@@ -43,7 +43,7 @@ export function createWSServer(httpServer: https.Server | http.Server) {
             else if (message.startsWith("SLIDER_VALUE ")) {
                 const [_, id, value] = message.split(' ');
                 const stream = liveSliderStreams[parseInt(id)];
-                stream.device.sendInteractionAction(stream.interactionId, {
+                stream?.device.sendInteractionAction(stream.interactionId, {
                     type: "setSliderValue",
                     value: parseFloat(value)
                 });
