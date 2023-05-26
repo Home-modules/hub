@@ -5,9 +5,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "cd src && pm2 start --silent --shutdown-with-message --no-daemon --name Home_modules ts-node index.js --",
-    "start-no-pm2": "cd src && ts-node index.js",
-    "test": "cd src && ts-node index.test.js"
+    "start": "cd src && pm2 start --silent --shutdown-with-message --no-daemon --name Home_modules node index.js --",
+    "start-no-pm2": "cd src && node index.js",
+    "test": "cd src && node index.test.js"
   },
   "devDependencies": {
     "@types/semver": "^7.3.12",
