@@ -10,13 +10,14 @@ import { initRoomsDevices, shutDownRoomsDevices } from './rooms/rooms.js';
 import version from './version.js';
 import { handleApiRequest } from './api-server/api-server.js';
 import { createWSServer } from './api-server/websocket.js';
+import { settings } from './settings.js';
 
 const log = new Log('index.ts');
 console.log("Home_modules hub", version);
 log.i("Home_modules hub", version);
 
 log.i(process.argv.join(' '));
-const allowHttps = !process.argv.includes('--disable-https');
+const allowHttps = !(settings.forceHTTP||false);
 if (!allowHttps) log.i("HTTPS is disabled. Will use HTTP even if private key and certificate are found.");
 const httpsOptions: https.ServerOptions | null =
     (allowHttps && fs.existsSync("../data/key.pem") && fs.existsSync("../data/cert.pem")) ? {
@@ -37,8 +38,8 @@ function createServer(handler: (req: http.IncomingMessage, res: http.ServerRespo
     }
 }
 
-const apiServerPort = parseInt(process.argv[process.argv.indexOf('--api-port') + 1]) || 703,
-    webAppServerPort = parseInt(process.argv[process.argv.indexOf('--webapp-port') + 1]) || (httpsOptions? 443 : 80);
+const apiServerPort = settings.apiPort || 703,
+    webAppServerPort = settings.webAppPort || (httpsOptions? 443 : 80);
 
 (async ()=> {
     log.i("Starting Home_modules hub");
