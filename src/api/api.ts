@@ -1117,6 +1117,58 @@ export namespace HMApi {
         }
 
         export namespace SettingsField {
+
+            export namespace Condition {
+                export type Condition = ConditionTypeCompare | ConditionTypeFieldVisible | ConditionTypeOr | ConditionTypeAnd | ConditionTypeNot;
+
+                /** Compare two expressions */
+                export type ConditionTypeCompare = {
+                    type: "compare"
+                    /** The type of comparison */
+                    op: "<" | "<=" | "==" | "!=" | ">=" | ">",
+                    /** The left operand */
+                    a: Expression,
+                    /** The right operand */
+                    b: Expression,
+                }
+                /** Check the visibility of another field */
+                export type ConditionTypeFieldVisible = {
+                    type: "fieldVisible",
+                    /** The ID of the field to check */
+                    id: string
+                }
+                /** Evaluates to true if any of the conditions are true */
+                export type ConditionTypeOr = {
+                    type: "or",
+                    /** The list of conditions */
+                    in: Condition[]
+                }
+                /** Evaluates to true if all of the conditions are true */
+                export type ConditionTypeAnd = {
+                    type: "and",
+                    /** The list of conditions */
+                    in: Condition[]
+                }
+                /** Evaluates to true if a condition is false */
+                export type ConditionTypeNot = {
+                    type: "not",
+                    in: Condition
+                }
+
+                export type Expression = ExpressionFieldValue | ExpressionConstant;
+                /** Another field's value */
+                export type ExpressionFieldValue = {
+                    type: "fieldValue",
+                    /** The ID of the field to check */
+                    id: string
+                }
+                /** A constant value */
+                export type ExpressionConstant = number | boolean | string | {
+                    type: "constant",
+                    constant: string | number | boolean;
+                }
+            }
+
             /**
              * Properties shared by most of SettingsField* types
              */
@@ -1131,6 +1183,8 @@ export namespace HMApi {
                 default?: T,
                 /** True if the field is required */
                 required?: boolean,
+                /** The condition to show this field. */
+                condition?: Condition.Condition,
             };
 
             /**
