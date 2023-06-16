@@ -38,8 +38,7 @@ function createServer(handler: (req: http.IncomingMessage, res: http.ServerRespo
     }
 }
 
-const apiServerPort = settings.apiPort || 703,
-    webAppServerPort = settings.webAppPort || (httpsOptions? 443 : 80);
+const serverPort = settings.port || (httpsOptions? 443 : 80);
 
 (async ()=> {
     log.i("Starting Home_modules hub");
@@ -58,10 +57,10 @@ const apiServerPort = settings.apiPort || 703,
     log.d("Added cleanup function for rooms and devices");
 
     process.stdout.write("[3/3] Starting API server... ");
-    log.i(`Init 3/3 Starting API server on port ${apiServerPort}...`);
+    log.i(`Init 3/3 Starting API server on port ${serverPort}...`);
 
     const server = createServer(handleApiRequest).listen({
-        port: webAppServerPort,
+        port: serverPort,
     }, async () => {
         createWSServer(server);
         console.log('✔');

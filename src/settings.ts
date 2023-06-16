@@ -5,15 +5,10 @@ const log = new Log('settings');
 
 export type Settings = {
     /**
-     * The port on which to host the API server
-     * @default 703
+     * The port on which to host the API and web app (if available)
+     * @default 80 for HTTP, 443 for HTTPS
      */
-    apiPort?: number;
-    /**
-     * The port on which to host the web app (if available)
-     * @defalt 80 for HTTP, 443 for HTTPS
-     */
-    webAppPort?: number;
+    port?: number;
     /**
      * Whether to use HTTP even if certificate was found
      * @default false
