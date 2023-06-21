@@ -1,5 +1,7 @@
 import fs from 'fs';
-import serveHandler from 'serve-handler';
+
+if (!fs.existsSync("../data")) fs.mkdirSync("../data");
+
 import http from 'http';
 import https from 'https';
 import beforeShutdown, { shutdownHandler } from './async-cleanup.js';
