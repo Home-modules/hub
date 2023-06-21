@@ -1032,6 +1032,10 @@ export namespace HMApi {
             disabled: true,
             /** The error message */
             error: string,
+            /** The number of times this room was restarted. If it is lower than maxRetries, it is being restarted when this data is returned. */
+            retries: number,
+            /** The maximum number of times this room can be restarted. 0 means it can't be restarted. */
+            maxRetries: number
         } | {
             /** Whether the room is disabled because of a failure */
             disabled: false,

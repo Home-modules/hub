@@ -6,6 +6,7 @@ import { DeviceInstance } from "../devices/DeviceInstance.js";
 import { Log } from "../log.js";
 import { getRoomState, log } from "./rooms.js";
 import { sendUpdate } from "../api-server/websocket.js";
+import { roomFailed, roomSucceeded } from "./autoRestart.js";
 
 
 export abstract class RoomControllerInstance {
@@ -23,6 +24,7 @@ export abstract class RoomControllerInstance {
 
     disabled: false | string = false;
     initialized = false;
+    retryCount = 0;
     devices: Record<string, DeviceInstance> = {};
 
     constructor(properties: HMApi.T.Room, instantiateDevices = true) {
@@ -64,6 +66,7 @@ export abstract class RoomControllerInstance {
             await this.devices[deviceId].init();
         }
         this.initialized = true;
+        if (!this.disabled) roomSucceeded(this.id);
     }
 
     async dispose() {
@@ -76,6 +79,7 @@ export abstract class RoomControllerInstance {
 
     disable(reason: string) {
         this.disabled = reason;
+        roomFailed(this.id);
         Log.e(this.constructor.name, 'Room', this.id, 'Disabled:', reason);
         sendUpdate({
             type: "rooms.roomStateChanged",

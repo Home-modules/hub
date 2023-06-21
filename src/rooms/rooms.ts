@@ -1,6 +1,8 @@
 import { HMApi } from "../api/api.js";
 import { Log } from "../log.js";
+import { getSetting } from "../settings.js";
 import { RoomControllerInstance, NonAbstractClass } from "./RoomControllerInstance.js";
+import { autoRestartMaxTries } from "./autoRestart.js";
 import { loadRoomsFile, saveRooms } from "./roomsFile.js";
 export const log = new Log("rooms");
 
@@ -90,7 +92,9 @@ export function getRoomState(instance: RoomControllerInstance): HMApi.T.RoomStat
             error: instance.disabled,
             id: instance.id,
             name: instance.name,
-            icon: instance.icon
+            icon: instance.icon,
+            retries: instance.retryCount,
+            maxRetries: autoRestartMaxTries
         }
-    )
+    );
 }

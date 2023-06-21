@@ -14,6 +14,17 @@ export type Settings = {
      * @default false
      */
     forceHTTP?: boolean;
+    /**
+     * How many times a device or room can restart automatically if it encounters an error.
+     * 0 disables automatic restarts.
+     * @default 5
+     */
+    autoRestartMaxTries?: number;
+    /**
+     * The amount of time to wait before restarting a failed device or room each time, in seconds
+     * @default 5
+     */
+    autoRestartDelay?: number
 };
 
 export let settings: Settings;
@@ -46,4 +57,10 @@ if (!(() => {
     saveSettings();
     log.i("Using default settings");
     console.log("The settings file is corrupt. Using default settings. Check logs for details.");
+}
+
+export function getSetting<T extends (keyof Settings)>(id: T, def: Settings[T]): Exclude<Settings[T], undefined> {
+    let res = settings[id];
+    if (res === undefined) res = def;
+    return res as Exclude<Settings[T], undefined>; // dumb TS
 }
