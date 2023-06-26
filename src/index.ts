@@ -1,5 +1,7 @@
 import fs from 'fs';
-import serveHandler from 'serve-handler';
+
+if (!fs.existsSync("../data")) fs.mkdirSync("../data");
+
 import http from 'http';
 import https from 'https';
 import beforeShutdown, { shutdownHandler } from './async-cleanup.js';
@@ -38,38 +40,36 @@ function createServer(handler: (req: http.IncomingMessage, res: http.ServerRespo
     }
 }
 
-const apiServerPort = settings.apiPort || 703,
-    webAppServerPort = settings.webAppPort || (httpsOptions? 443 : 80);
+const serverPort = settings.port || (httpsOptions? 443 : 80);
 
 (async ()=> {
     log.i("Starting Home_modules hub");
-    process.stdout.write('[1/4] Loading plugins... ');
-    log.i("Init 1/4 Loading plugins...");
+    process.stdout.write('[1/3] Loading plugins... ');
+    log.i("Init 1/3 Loading plugins...");
     await initPlugins();
     console.log('✔');
-    log.i("Init 1/4 Loading plugins... Done");
-    process.stdout.write("[2/4] Starting rooms and devices... ");
-    log.i("Init 2/4 Starting rooms and devices...");
+    log.i("Init 1/3 Loading plugins... Done");
+    process.stdout.write("[2/3] Starting rooms and devices... ");
+    log.i("Init 2/3 Starting rooms and devices...");
     await initRoomsDevices();
     console.log('✔');
-    log.i("Init 2/4 Starting rooms and devices... Done");
+    log.i("Init 2/3 Starting rooms and devices... Done");
 
     beforeShutdown(shutDownRoomsDevices);
     log.d("Added cleanup function for rooms and devices");
 
-    process.stdout.write("[3/4] Starting API server... ");
-    log.i(`Init 3/4 Starting API server on port ${apiServerPort}...`);
+    process.stdout.write("[3/3] Starting API server... ");
+    log.i(`Init 3/3 Starting API server on port ${serverPort}...`);
 
     const server = createServer(handleApiRequest).listen({
-        port: apiServerPort,
+        port: serverPort,
     }, async () => {
         createWSServer(server);
         console.log('✔');
-        log.i("Init 3/4 Starting API server... Done");
+        log.i("Init 3/3 Starting API server... Done");
         if (allowHttps && !httpsOptions) {
             console.log("Warning: SSL certificate and/or private key not found. Falling back to HTTP.");
         }
-        await startWebAppServer();
         console.log('Home_modules hub is now running');
         log.i("Init finished");
     }).on('error', error => {
@@ -79,38 +79,38 @@ const apiServerPort = settings.apiPort || 703,
         throw error;
     });
 
-    async function startWebAppServer() {
-        return new Promise<void>(resolve => { // This promise will resolve even if server creation fails.
-            process.stdout.write("[4/4] Staring web app server... ");
-            log.i(`Init 3/4 Starting web app server on port ${webAppServerPort}...`);
-            if (!fs.existsSync('../data/webapp')) {
-                console.log('❌');
-                console.log('Web app server cancelled: Web app folder not found (this is NOT a fatal error)');
-                log.w("Web app server cancelled: 'data/webapp' not found");
-                resolve();
-                return;
-            }
-            createServer((req, res) => {
-                serveHandler(req, res, {
-                    directoryListing: false,
-                    public: "../data/webapp",
-                    rewrites: [{
-                        source: "/**",
-                        destination: "index.html"
-                    }]
-                });
-            }).listen({
-                port: webAppServerPort
-            }, () => {
-                console.log('✔');
-                log.i("Init 4/4 Starting web app server... Done");
-                resolve();
-            }).on('error', error => {
-                console.log('❌');
-                console.log('Web app server cancelled:', error);
-                log.e("Error starting web app server:", error);
-                resolve();
-            });
-        });
-    }
+    // async function startWebAppServer() {
+    //     return new Promise<void>(resolve => { // This promise will resolve even if server creation fails.
+    //         process.stdout.write("[4/4] Staring web app server... ");
+    //         log.i(`Init 3/4 Starting web app server on port ${webAppServerPort}...`);
+    //         if (!fs.existsSync('../data/webapp')) {
+    //             console.log('❌');
+    //             console.log('Web app server cancelled: Web app folder not found (this is NOT a fatal error)');
+    //             log.w("Web app server cancelled: 'data/webapp' not found");
+    //             resolve();
+    //             return;
+    //         }
+    //         createServer((req, res) => {
+    //             serveHandler(req, res, {
+    //                 directoryListing: false,
+    //                 public: "../data/webapp",
+    //                 rewrites: [{
+    //                     source: "/**",
+    //                     destination: "index.html"
+    //                 }]
+    //             });
+    //         }).listen({
+    //             port: webAppServerPort
+    //         }, () => {
+    //             console.log('✔');
+    //             log.i("Init 4/4 Starting web app server... Done");
+    //             resolve();
+    //         }).on('error', error => {
+    //             console.log('❌');
+    //             console.log('Web app server cancelled:', error);
+    //             log.e("Error starting web app server:", error);
+    //             resolve();
+    //         });
+    //     });
+    // }
 })();
