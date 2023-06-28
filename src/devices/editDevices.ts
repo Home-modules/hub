@@ -44,6 +44,7 @@ export async function editDevice(roomId: string, device: HMApi.T.Device): Promis
     const err = await deviceType.validateSettings(device.params);
     if (err)
         return err;
+    device.params = { ...device.params, '@extra': oldDevice.params['@extra'] };
 
     roomControllerInstances[roomId].devices[id].dispose();
     devices[roomId][id] = device;

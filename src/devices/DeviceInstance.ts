@@ -4,6 +4,7 @@ import { RoomControllerInstance } from "../rooms/RoomControllerInstance.js";
 import { Log } from "../log.js";
 import { sendUpdate } from "../api-server/websocket.js";
 import { DeviceTypeClass, getDeviceState } from "./devices.js";
+import { saveDevices } from "./devicesFile.js";
 
 
 export abstract class DeviceInstance {
@@ -85,6 +86,19 @@ export abstract class DeviceInstance {
     disable(reason: string) {
         this.disabled = reason;
         Log.e(this.constructor.name, 'Device', this.id, 'Disabled:', reason);
+    }
+    
+    get extraData() {
+        return (this.settings['@extra'] || {}) as Record<string, unknown>;
+    }
+    set extraData(value) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        //@ts-ignore
+        this.settings['@extra'] = value;
+        saveDevices();
+    }
+    writeExtraData(data: Record<string, unknown>) {
+        this.extraData = { ...this.extraData, ...data };
     }
 
     async getCurrentState() {

@@ -21,7 +21,10 @@ export const liveSliderStreams: Record<number, { device: DeviceInstance, interac
 
 export function getDevices(roomId: string): Record<string, HMApi.T.Device> | undefined {
     if(getRoom(roomId)) { // Check if room exists
-        return devices[roomId] || {};
+        return Object.fromEntries(Object.entries(devices[roomId]).map(([k, v]) => {
+            const { '@extra': _, ...params } = v.params;
+            return [k, { ...v, params }] as const;
+        })) || {};
     }
 }
 

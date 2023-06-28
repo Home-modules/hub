@@ -44,7 +44,8 @@ export function loadDevicesFile() {
             } else {
                 const invalidDevices: string[] = [];
                 for (const [id, device] of Object.entries(object)) {
-                    let err: ReturnType<typeof checkType> | string = checkType(device, HMApi_Types.objects.Device);
+                    const { '@extra': _, ...params } = device.params;
+                    let err: ReturnType<typeof checkType> | string = checkType({...device, params}, HMApi_Types.objects.Device);
                     if (id !== device.id) {
                         err = 'device.id is not equal to its key.';
                     }
