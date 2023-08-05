@@ -5,10 +5,14 @@ import { changePassword, changeUsername, checkAuthToken, getSessions, getSession
 import { DeviceTypeClass, endLiveSlider, getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, restartDevice, sendDeviceInteractionAction, startLiveSlider, toggleDeviceIsFavorite } from "../devices/devices.js";
 import { addDevice, deleteDevice, editDevice, reorderDevices } from "../devices/editDevices.js";
 import getFlatFields from "../flat-fields.js";
-import { getInstalledPlugins, getInstalledPluginsInfo, togglePluginIsActivated } from "../plugins.js";
+import { getInstalledPlugins, getInstalledPluginsInfo, SettingsFieldDef, togglePluginIsActivated } from "../plugins.js";
 import { getRoomControllerTypes, getRooms, getRoomState, registeredRoomControllers, restartRoom, roomControllerInstances } from "../rooms/rooms.js";
 import { addRoom, deleteRoom, editRoom, reorderRooms } from "../rooms/editRooms.js";
 import version from "../version.js";
+import { routines } from "../automation/automation.js";
+import { addRoutine, deleteRoutine, editRoutine, reorderRoutines } from "../automation/editRoutines.js";
+import { registeredGlobalActions, registeredGlobalTriggers } from "../automation/global-actions-events.js";
+import { disableRoutine, enableRoutine, runRoutine } from "../automation/run-routine.js";
 
 export default function handleRequest(token: string, req: HMApi.Request, ip: string): HMApi.ResponseOrError<HMApi.Request>|Promise<HMApi.ResponseOrError<HMApi.Request>> {
     if(req.type!=="account.login") {
@@ -414,7 +418,9 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
             const err= checkType(req, HMApi_Types.requests["plugins.fields.getSelectLazyLoadItems"]);
             if(err) { return { type: "error", error: err }; }
 
-            const notFoundError = (o: "controller"|"deviceType"|"field") => ({
+            type isNotFound<T> = T extends HMApi.Error.NotFound<infer K> ? K : never;
+            type o = isNotFound<HMApi.Error<HMApi.Request.Plugins.Fields.GetSelectFieldLazyLoadItems>>
+            const notFoundError = (o: o) => ({
                 type: "error",
                 error: {
                     code: 404,
@@ -423,17 +429,27 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 }
             } as const); 
 
-            if(!(req.controller in registeredRoomControllers)) {
-                return notFoundError("controller");
+            let field: SettingsFieldDef|undefined;
+
+            if (req.for === "device" || req.for === "roomController") {
+                if (!(req.controller in registeredRoomControllers)) {
+                    return notFoundError("controller");
+                }
+                if (req.for == 'device' && !(req.deviceType in registeredDeviceTypes[req.controller])) {
+                    return notFoundError("deviceType");
+                }
+
+                field = req.for == 'device' ?
+                    (getFlatFields(registeredDeviceTypes[req.controller][req.deviceType].settingsFields).find(f => f.id == req.field)) :
+                    (getFlatFields(registeredRoomControllers[req.controller].settingsFields).find(f => f.id == req.field));
             }
-            if(req.for == 'device' && !(req.deviceType in registeredDeviceTypes[req.controller])) {
-                return notFoundError("deviceType");
+            else {
+                const types = req.for === "globalAction" ? registeredGlobalActions : registeredGlobalTriggers;
+                const type = types[req.id];
+                if (!type) return notFoundError(req.for);
+                field = getFlatFields(type.fields).find(f=> f.id=== req.field);
             }
 
-            const field = req.for == 'device' ?
-                (getFlatFields(registeredDeviceTypes[req.controller][req.deviceType].settingsFields).find(f=>f.id==req.field)) :
-                (getFlatFields(registeredRoomControllers[req.controller].settingsFields).find(f=>f.id==req.field));
-            
             if(!field) {
                 return notFoundError("field");
             }
@@ -515,9 +531,78 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
             return {
                 type: "ok",
                 data: {
-                    types: Object.values(getDeviceTypes(req.controllerType)).map(({id, super_name, sub_name, icon, settingsFields, forRoomController}): HMApi.T.DeviceType=> ({
-                        id, name: super_name, sub_name, settings: settingsFields, icon, forRoomController
+                    types: Object.values(getDeviceTypes(req.controllerType)).map(({id, super_name, sub_name, icon, settingsFields, forRoomController, hasMainToggle}): HMApi.T.DeviceType=> ({
+                        id, name: super_name, sub_name, settings: settingsFields, icon, forRoomController, hasMainToggle
                     }))
+                }
+            };
+        }
+
+        case 'devices.getDeviceTypes': {
+            const err= checkType(req, HMApi_Types.requests["devices.getDeviceTypes"]);
+            if(err) { return { type: "error", error: err }; }
+
+            // Check if the room controller type is valid
+            if(!(req.controllerType in registeredRoomControllers)) {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND",
+                        object: "controller"
+                    }
+                };
+            }
+
+            return {
+                type: "ok",
+                data: {
+                    types: Object.values(getDeviceTypes(req.controllerType)).map(({id, super_name, sub_name, icon, settingsFields, forRoomController, hasMainToggle}): HMApi.T.DeviceType=> ({
+                        id, name: super_name, sub_name, settings: settingsFields, icon, forRoomController, hasMainToggle
+                    }))
+                }
+            };
+        }
+
+        case 'devices.getDeviceType': {
+            const err= checkType(req, HMApi_Types.requests["devices.getDeviceType"]);
+            if(err) { return { type: "error", error: err }; }
+
+            const room = getRooms()[req.roomId];
+            if(!room) {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND",
+                        object: "room"
+                    }
+                };
+            }
+            const device = getDevices(req.roomId)?.[req.deviceId];
+            if(!device) {
+                return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND",
+                        object: "device"
+                    }
+                };
+            }
+            const {
+                id, super_name, sub_name, icon,
+                settingsFields, forRoomController, hasMainToggle
+            } = getDeviceTypes(room.controllerType.type)[device.type];
+
+            return {
+                type: "ok",
+                data: {
+                    type: {
+                        id, name: super_name, sub_name,
+                        settings: settingsFields, icon,
+                        forRoomController, hasMainToggle
+                    }
                 }
             };
         }
@@ -885,7 +970,7 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
             if (room.disabled) {
                 return { type: "error", error: { code: 500, message: "ROOM_DISABLED", error: room.disabled } };
             }
-            const device = room.devices[req.deviceId]
+            const device = room.devices[req.deviceId];
             if (!device) {
                 return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "device" } };
             }
@@ -904,7 +989,7 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                 data: {
                     id: startLiveSlider(device, req.interactionId)
                 }
-            }
+            };
         }
             
         case 'devices.interactions.endSliderLiveValue': {
@@ -944,6 +1029,201 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     data: {}
                 };
             })();
+        }
+
+        case "automation.getRoutines": {
+            return {
+                type: "ok",
+                data: <HMApi.Response.Routines>{
+                    routines: routines.routines,
+                    order: routines.order
+                }
+            };
+        }
+            
+        case "automation.addRoutine": {
+            const err = checkType(req, HMApi_Types.requests["automation.addRoutine"]);
+            if (err) { return { type: "error", error: err }; }
+            
+            return addRoutine(req.routine).then(res =>
+                (res >= 0 ? {
+                    type: "ok",
+                    data: {
+                        id: res
+                    }
+                } : {
+                    type: "error",
+                    error: {
+                        code: 400,
+                        message: "ROUTINE_ALREADY_EXISTS"
+                    }
+                })
+            );
+        }
+            
+        case "automation.editRoutine": {
+            const err = checkType(req, HMApi_Types.requests["automation.editRoutine"]);
+            if (err) { return { type: "error", error: err }; }
+            
+            return editRoutine(req.routine).then(res =>
+                ((!res) ? {
+                    type: "ok",
+                    data: {}
+                } : res === "NOT_DISABLED" ? {
+                    type: "error",
+                    error: {
+                        code: 400,
+                        message: "ROUTINE_NOT_DISABLED"
+                    }
+                } : {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND",
+                        object: "routine"
+                    }
+                })
+            );
+        }
+            
+        case "automation.removeRoutine": {
+            const err = checkType(req, HMApi_Types.requests["automation.removeRoutine"]);
+            if (err) { return { type: "error", error: err }; }
+            
+            return deleteRoutine(req.id).then(res =>
+                ((!res) ? {
+                    type: "ok",
+                    data: {}
+                } : res === "NOT_DISABLED" ? {
+                    type: "error",
+                    error: {
+                        code: 400,
+                        message: "ROUTINE_NOT_DISABLED"
+                    }
+                } : {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND",
+                        object: "routine"
+                    }
+                })
+            );
+        }
+            
+        case "automation.changeRoutineOrder": {
+            const err = checkType(req, HMApi_Types.requests["automation.changeRoutineOrder"]);
+            if (err) { return { type: "error", error: err }; }
+            
+            return reorderRoutines(req.ids).then(res =>
+                (res ? {
+                    type: "ok",
+                    data: {}
+                } : {
+                    type: "error",
+                    error: {
+                        code: 400,
+                        message: "ROUTINES_NOT_EQUAL"
+                    }
+                })
+            );
+        }
+
+        case "automation.getGlobalTriggers": {
+            return {
+                type: "ok",
+                data: {
+                    triggers: Object.values(registeredGlobalTriggers).map(({ fields, id, name }) => ({ fields, id, name }))
+                }
+            };
+        }
+
+        case "automation.getGlobalActions": {
+            return {
+                type: "ok",
+                data: {
+                    actions: Object.values(registeredGlobalActions).map(({ fields, id, name }) => ({ fields, id, name }))
+                }
+            };
+        }
+            
+        case "automation.getRoutinesEnabled": {
+            return {
+                type: "ok",
+                data: <HMApi.Response.RoutinesEnabled>{
+                    enabled: routines.enabled
+                }
+            };
+        }
+
+        case "automation.setRoutinesEnabled": {
+            const err = checkType(req, HMApi_Types.requests["automation.setRoutinesEnabled"]);
+            if (err) { return { type: "error", error: err }; }
+
+            for (const id of req.routines) {
+                if (!(id in routines.routines)) return {
+                    type: "error",
+                    error: {
+                        code: 404,
+                        message: "NOT_FOUND",
+                        object: "routine"
+                    }
+                };
+                if (req.enabled) enableRoutine(id);
+                else disableRoutine(id);
+            }
+
+            return { type: "ok", data: {} };
+        }
+
+        case "automation.getManualTriggerRoutines": {
+            return {
+                type: "ok",
+                data: {
+                    routines: routines.order
+                        .map(id => routines.routines[id])
+                        .map(routine => (
+                            routine.triggers
+                                .filter(trigger => trigger.type === "manual")
+                                .map(trigger => ({
+                                    id: routine.id,
+                                    label: (trigger as HMApi.T.Automation.Trigger.Manual).label
+                                }))
+                        ))
+                        .flat()
+                }
+            };
+        }
+            
+        case "automation.triggerManualRoutine": {
+            const err = checkType(req, HMApi_Types.requests["automation.triggerManualRoutine"]);
+            if (err) { return { type: "error", error: err }; }
+
+            const routine = routines.routines[req.routine];
+            if (!routine) return {
+                type: "error",
+                error: {
+                    code: 404,
+                    message: "NOT_FOUND",
+                    object: "routine"
+                }
+            };
+            if (!routine.triggers.some(tr=> tr.type === "manual")) return {
+                type: "error",
+                error: {
+                    code: 400,
+                    message: "ROUTINE_NOT_MANUAL"
+                }
+            };
+            if(!routines.enabled[req.routine]) return {
+                type: "error",
+                error: {
+                    code: 400,
+                    message: "ROUTINE_NOT_ENABLED"
+                }
+            };
+
+            return runRoutine(req.routine).then(() => ({ type: "ok", data: {} }));
         }
 
         default:

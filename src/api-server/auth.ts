@@ -18,7 +18,7 @@ const logins: { [username: string]: {
     ip: string,
 }[] } = {};
 
-let users: { [username: string]: string } = {
+export let users: { [username: string]: string } = {
     admin: crypto.createHash('sha256').update('admin').digest('hex')
 };
 

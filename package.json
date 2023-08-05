@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@serialport/parser-readline": "^10.3.0",
-    "hmp-arduino": "^0.0.3",
+    "hmp-arduino": "^0.0.7-dev3",
     "hmp-test": "1.0.0",
     "pm2": "^5.2.0",
     "semver": "^7.3.7",

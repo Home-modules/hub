@@ -8,6 +8,7 @@ import { checkType, HMApi_Types } from './api/api_checkType.js';
 import hubVersion from './version.js';
 import { authorRegex } from './misc.js';
 import { shutdownHandler } from './async-cleanup.js';
+import { registerGlobalAction, registerGlobalTrigger } from "./automation/global-actions-events.js";
 import semver from 'semver';
 import fs from 'fs';
 
@@ -193,7 +194,9 @@ export {
     RoomControllerInstance,
     DeviceInstance,
     registerRoomController,
-    queueDeviceTypeRegistration as registerDeviceType
+    queueDeviceTypeRegistration as registerDeviceType,
+    registerGlobalAction,
+    registerGlobalTrigger,
 };
 
 // Similar to an array of HMApi.SettingsField, but SettingsFieldSelect.options when isLazy=true requires a function to be called to get the options

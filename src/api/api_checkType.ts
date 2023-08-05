@@ -283,6 +283,7 @@ export const HMApi_Types: {
         DeviceInteractionActionsPerInteraction: Record<HMApi.T.DeviceInteraction.Type['type'], HMApi.T.DeviceInteraction.Action['type'][]>,
         UIColor(white?: boolean): ParamType,
         PluginInfoFile: ParamType,
+        Routine: ParamType,
     }
 } = { 
     requests: {
@@ -443,7 +444,20 @@ export const HMApi_Types: {
                         "deviceType": { type: "string" },
                         "field": { type: "string" }
                     }
-                }
+                },
+                {
+                    type: "object",
+                    properties: {
+                        "type": { type: "exactValue", value: "plugins.fields.getSelectLazyLoadItems" },
+                        "for": {
+                            type: "union", types: [
+                                { type: "exactValue", value: "globalTrigger" },
+                                { type: "exactValue", value: "globalAction" }
+                            ]
+                        },
+                        "id": { type: "string" }
+                    }
+                },
             ]
         },
         "devices.getDevices": {
@@ -458,6 +472,14 @@ export const HMApi_Types: {
             properties: {
                 "type": { type: "exactValue", value: "devices.getDeviceTypes" },
                 "controllerType": { type: "string" }
+            }
+        },
+        "devices.getDeviceType": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "devices.getDeviceType" },
+                "roomId": { type: "string" },
+                "deviceId": { type: "string" }
             }
         },
         "devices.addDevice": {
@@ -584,7 +606,89 @@ export const HMApi_Types: {
                 "id": { type: "string" },
                 "isActivated": { type: "boolean" }
             }
-        }
+        },
+        "automation.getRoutines": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "automation.getRoutines" }
+            }
+        },
+        "automation.editRoutine": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "automation.editRoutine" },
+                "routine": {
+                    type: "lazyType",
+                    value: () => HMApi_Types.objects.Routine
+                }
+            }
+        },
+        "automation.addRoutine": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "automation.addRoutine" },
+                "routine": {
+                    type: "lazyType",
+                    value: () => HMApi_Types.objects.Routine
+                }
+            }
+        },
+        "automation.removeRoutine": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "automation.removeRoutine" },
+                "id": { type: "string" }
+            }
+        },
+        "automation.changeRoutineOrder": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "automation.changeRoutineOrder" },
+                "ids": {
+                    type: "array",
+                    items: { type: "string" }
+                }
+            }
+        },
+        "automation.getGlobalTriggers": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "automation.getGlobalTriggers" }
+            }
+        },
+        "automation.getGlobalActions": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "automation.getGlobalActions" }
+            }
+        },
+        "automation.getRoutinesEnabled": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "automation.getRoutinesEnabled" }
+            }
+        },
+        "automation.setRoutinesEnabled": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "automation.setRoutinesEnabled" },
+                "routines": { type: "array", items: { type: "number" } },
+                "enabled": { type: "boolean" }
+            }
+        },
+        "automation.getManualTriggerRoutines": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "automation.getManualTriggerRoutines" },
+            }
+        },
+        "automation.triggerManualRoutine": {
+            type: "object",
+            properties: {
+                "type": { type: "exactValue", value: "automation.triggerManualRoutine" },
+                "routine": { type: "number" }
+            }
+        },
     },
     objects: {
         Room: {
@@ -709,6 +813,139 @@ export const HMApi_Types: {
                     type: "exactValue", value: color
                 }))
             };
+        },
+        Routine: {
+            type: "object",
+            properties: {
+                id: { type: "number" },
+                name: { type: "string" },
+                triggers: {
+                    type: "array",
+                    minItems: 0,
+                    maxItems: 10,
+                    items: {
+                        type: "union",
+                        types: [
+                            {
+                                type: "object",
+                                properties: {
+                                    type: { type: "exactValue", value: "deviceEvent" },
+                                    room: { type: "string" },
+                                    device: { type: "string" },
+                                    event: { type: "string" },
+                                }
+                            },
+                            {
+                                type: "object",
+                                properties: {
+                                    type: { type: "exactValue", value: "roomEvent" },
+                                    room: { type: "string" },
+                                    event: { type: "string" },
+                                }
+                            },
+                            {
+                                type: "object",
+                                properties: {
+                                    type: { type: "exactValue", value: "globalTrigger" },
+                                    name: { type: "string" },
+                                    options: {
+                                        'type': 'record',
+                                        keys: { type: 'string' },
+                                        values: {
+                                            type: 'union',
+                                            types: [
+                                                { type: 'string' },
+                                                { type: 'number' },
+                                                { type: 'boolean' },
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                type: "object",
+                                properties: {
+                                    type: { type: "exactValue", value: "manual" },
+                                    label: { type: "string" },
+                                }
+                            },
+                        ]
+                    }
+                },
+                actions: {
+                    type: "array",
+                    minItems: 1,
+                    maxItems: 50,
+                    items: {
+                        type: "union",
+                        types: [
+                            {
+                                type: "object",
+                                properties: {
+                                    type: { type: "exactValue", value: "globalAction" },
+                                    name: { type: "string" },
+                                    options: {
+                                        'type': 'record',
+                                        keys: { type: 'string' },
+                                        values: {
+                                            type: 'union',
+                                            types: [
+                                                { type: 'string' },
+                                                { type: 'number' },
+                                                { type: 'boolean' },
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                type: "object",
+                                properties: {
+                                    type: { type: "exactValue", value: "toggleDeviceMainToggle" },
+                                    room: { type: "string" },
+                                    device: { type: "string" },
+                                    setTo: { type: "boolean", optional: true },
+                                }
+                            },
+                            {
+                                type: "object",
+                                properties: {
+                                    type: { type: "exactValue", value: "deviceAction" },
+                                    room: { type: "string" },
+                                    device: { type: "string" },
+                                    action: { type: "string" },
+                                    options: {
+                                        'type': 'record',
+                                        keys: { type: 'string' },
+                                        values: {
+                                            type: 'union',
+                                            types: [
+                                                { type: 'string' },
+                                                { type: 'number' },
+                                                { type: 'boolean' },
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                type: "object",
+                                properties: {
+                                    type: { type: "exactValue", value: "triggerRoutine" },
+                                    routine: { type: "number" }
+                                }
+                            }
+                        ]
+                    }
+                },
+                allowTriggerByOtherRoutine: { type: "boolean" },
+                actionExecution: {
+                    type: "union", types: [
+                        {type: "exactValue", value: "parallel"},
+                        {type: "exactValue", value: "sequential"},
+                    ]
+                }
+            }
         },
 
 
