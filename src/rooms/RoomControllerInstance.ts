@@ -78,8 +78,10 @@ export abstract class RoomControllerInstance {
     }
 
     disable(reason: string) {
+        const previousDisabled = this.disabled;
         this.disabled = reason;
-        roomFailed(this.id);
+        if(previousDisabled===false)
+            roomFailed(this.id);
         Log.e(this.constructor.name, 'Room', this.id, 'Disabled:', reason);
         sendUpdate({
             type: "rooms.roomStateChanged",
