@@ -14,11 +14,538 @@ import { addRoutine, deleteRoutine, editRoutine, reorderRoutines } from "../auto
 import { registeredGlobalActions, registeredGlobalTriggers } from "../automation/global-actions-events.js";
 import { disableRoutine, enableRoutine, runRoutine } from "../automation/run-routine.js";
 
-export default function handleRequest(token: string, req: HMApi.Request, ip: string): HMApi.ResponseOrError<HMApi.Request>|Promise<HMApi.ResponseOrError<HMApi.Request>> {
-    if(req.type!=="account.login") {
+function ok<R extends HMApi.Request>(data: HMApi.Response<R>): HMApi.ResponseOrError<R> {
+    return { type: "ok", data };
+}
+function error<R extends HMApi.Request>(error: HMApi.Error<R>): HMApi.ResponseOrError<R> {
+    return { type: "error", error };
+}
+type ExtractError<R extends HMApi.Request, E extends HMApi.Error<R>> = R extends any ? E extends HMApi.Error<R> ? R : never : never;
+type RequestWith404 = ExtractError<HMApi.Request, HMApi.Error.NotFound<any>>;
+type Get404Object<R extends HMApi.Request, E extends HMApi.Error<R>> = E extends HMApi.Error.NotFound<infer T> ? T : never
+function error404<R extends RequestWith404>(object: Get404Object<R, HMApi.Error<R>>) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //@ts-ignore
+    return error<R>({ code: 404, message: "NOT_FOUND", object });
+}
+
+type ExtractRequest<T extends HMApi.Request, U extends T['type']> =
+    T extends { type: U; } ? T : never;
+type RequestHandler<R extends HMApi.Request> = 
+    (req: R, extra: {token:string, ip: string}) => Promise<HMApi.ResponseOrError<R>>;
+const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<ExtractRequest<HMApi.Request, K>>} = {
+    
+    
+    async "empty"() {
+        return ok({});
+    },
+
+    async "getVersion"() {
+        return ok({ version });
+    },
+
+    async "restart"() {
+        setTimeout(() => shutdownHandler('restart'), 100); // 100ms should be enough, since the whole process of sending the request from the frontend until receiving the result usually takes less than 100ms, let alone just sending the result from backend.
+        return ok({});
+    },
+
+
+    async "account.login"(req, {ip}) {
+        try {
+            const token = loginUser(req.username, req.password, req.device, ip);
+            return ok({ token });
+        }
+        catch (e) {
+            if (e instanceof Error) {
+                if (e.message === "USER_NOT_FOUND") {
+                    return error({ code: 401, message: "LOGIN_USER_NOT_FOUND" });
+                }
+                else if (e.message === "PASSWORD_INCORRECT") {
+                    return error({ code: 401, message: "LOGIN_PASSWORD_INCORRECT" });
+                }
+                else throw e;
+            }
+            else throw e;
+        }
+    },
+
+    async "account.logout"(_, { token }) {
+        logOutSession(token);
+        return ok({});
+    },
+
+    async "account.logoutOtherSessions"(_, { token }) {
+        try {
+            return ok({ sessions: logOutOtherSessions(token) });
+        } catch (e) {
+            if (e === 'SESSION_TOO_NEW')
+                return error({ code: 403, message: "SESSION_TOO_NEW" });
+            else throw e;
+        }
+    },
+
+    async "account.getSessionsCount"(_, { token }) {
+        return ok({ sessions: getSessionsCount(token) });
+    },
+
+    async "account.getSessions"(_, { token }) {
+        return ok({ sessions: getSessions(token) });
+    },
+
+    async "account.logoutSession"(req, { token }) {
+        try {
+            terminateSession(token, req.id);
+            return ok({});
+        } catch (err) {
+            if (err === 'SESSION_NOT_FOUND') 
+                return error404("session");
+            else if (err === 'SESSION_TOO_NEW') 
+                return error({ code: 403, message: "SESSION_TOO_NEW" });
+            else 
+                throw err;
+        }
+    },
+
+    async "account.changePassword"(req, { token }) {
+        try {
+            changePassword(token, req.oldPassword, req.newPassword);
+            return ok({});
+        } catch (err) {
+            if (err === 'PASSWORD_INCORRECT') 
+                return error({ code: 401, message: "LOGIN_PASSWORD_INCORRECT" });
+            else if (err === 'SESSION_TOO_NEW') 
+                return error({ code: 403, message: "SESSION_TOO_NEW" });
+            else
+                throw err;
+        }
+    },
+
+    async "account.changeUsername"(req, { token }) {
+        if (req.username.length < 3)
+            return error({ code: 400, message: "USERNAME_TOO_SHORT" });
+        
+        try {
+            const newTk = changeUsername(token, req.username);
+            if (!newTk) {
+                return error({ code: 400, message: "USERNAME_ALREADY_TAKEN" });
+            }
+            return ok({ token: newTk });
+        } catch (err) {
+            if (err === 'SESSION_TOO_NEW') 
+                return error({ code: 403, message: "SESSION_TOO_NEW" });
+            else throw err;
+        }
+    },
+
+    async "account.checkUsernameAvailable"(req, { token }){
+        return ok({ available: !usernameExists(token, req.username) });
+    },
+
+
+    async "rooms.getRooms"() {
+        return ok({ rooms: getRooms() });
+    },
+
+    async "rooms.editRoom"(req) {
+        const res = await editRoom(req.room);
+        if (res === true)
+            return ok({});
+        else if (res) // Res is either 'true' or a string (in which case it is an error)
+            return error({ code: 400, message: "CUSTOM_PLUGIN_ERROR", text: res });
+        else
+            return error404("room");
+    },
+
+    async "rooms.addRoom"(req) {
+        const res = await addRoom(req.room);
+        if (res === true)
+            return ok({});
+        else if (res) // Res is either 'true' or a string (in which case it is an error)
+            return error({ code: 400, message: "CUSTOM_PLUGIN_ERROR", text: res });
+        else
+            return error({ code: 400, message: "ROOM_ALREADY_EXISTS" });
+    },
+
+    async "rooms.removeRoom"(req) {
+        const res = await deleteRoom(req.id);
+        if (res)
+            return ok({});
+        else
+            return error404("room");
+    },
+
+    async "rooms.changeRoomOrder"(req) {
+        if (reorderRooms(req.ids))
+            return ok({});
+        else
+            return error({ code: 400, message: "ROOMS_NOT_EQUAL" });
+    },
+
+    async "rooms.restartRoom"(req) {
+        const success = await restartRoom(req.id);
+        if (success)
+            return ok({});
+        else
+            return error404("room");
+    },
+
+    async "rooms.controllers.getRoomControllerTypes"() {
+        return ok({ types: getRoomControllerTypes() });
+    },
+
+    async "plugins.fields.getSelectLazyLoadItems"(req) {
+        let field: SettingsFieldDef | undefined;
+
+        if (req.for === "device" || req.for === "roomController") {
+            if (!(req.controller in registeredRoomControllers))
+                return error404("controller");
+            if (req.for == 'device' && !(req.deviceType in registeredDeviceTypes[req.controller]))
+                return error404("deviceType");
+
+            field = req.for == 'device' ?
+                (getFlatFields(registeredDeviceTypes[req.controller][req.deviceType].settingsFields).find(f => f.id == req.field)) :
+                (getFlatFields(registeredRoomControllers[req.controller].settingsFields).find(f => f.id == req.field));
+        }
+        else {
+            const types = req.for === "globalAction" ? registeredGlobalActions : registeredGlobalTriggers;
+            const type = types[req.id];
+            if (!type) return error404(req.for);
+            field = getFlatFields(type.fields).find(f => f.id === req.field);
+        }
+
+        if (!field) return error404("field");
+
+        if (field.type !== 'select' || field.options instanceof Array || !field.options.isLazy)
+            return error({ code: 400, message: "FIELD_NOT_LAZY_SELECT" });
+
+        const result = await field.options.callback();
+
+        if (result instanceof Array)
+            return ok({ items: result });
+        else
+            return error({ code: 400, message: "CUSTOM_PLUGIN_ERROR", text: result.text });
+    },
+
+
+    async "devices.getDevices"(req) {
+        const devices = getDevices(req.roomId);
+        if (devices === undefined)
+            return error404("room");
+        return ok({ devices });
+    },
+
+    async "devices.getDeviceTypes"(req) {
+        // Check if the room controller type is valid
+        if (!(req.controllerType in registeredRoomControllers))
+            return error404("controller");
+
+        return ok({
+            types: Object.values(getDeviceTypes(req.controllerType))
+                .map(({ id, super_name, sub_name, icon, settingsFields, forRoomController, hasMainToggle }): HMApi.T.DeviceType => ({
+                    id, name: super_name, sub_name, settings: settingsFields, icon, forRoomController, hasMainToggle
+                }))
+        });
+    },
+
+    async "devices.getDeviceType"(req) {
+        const room = getRooms()[req.roomId];
+        if (!room) return error404("room");
+        const device = getDevices(req.roomId)?.[req.deviceId];
+        if (!device) return error404("room");
+
+        const {
+            id, super_name, sub_name, icon,
+            settingsFields, forRoomController, hasMainToggle
+        } = getDeviceTypes(room.controllerType.type)[device.type];
+
+        return ok({
+            type: {
+                id, name: super_name, sub_name,
+                settings: settingsFields, icon,
+                forRoomController, hasMainToggle
+            }
+        });
+    },
+
+    async "devices.addDevice"(req) {
+        const res = await addDevice(req.roomId, req.device);
+        if (res === 'device_exists')
+            return error({ code: 400, message: "DEVICE_ALREADY_EXISTS" });
+        else if (res === 'room_not_found')
+            return error404("room");
+        else if (typeof res === 'string')
+            return error({ code: 400, message: "CUSTOM_PLUGIN_ERROR", text: res });
+        else
+            return ok({});
+    },
+
+    async "devices.editDevice"(req) {
+        const res = await editDevice(req.roomId, req.device);
+        if (res === 'device_not_found')
+            return error404("device");
+        else if (res === 'room_not_found')
+            return error404("room");
+        else if (typeof res === 'string')
+            return error({ code: 400, message: "CUSTOM_PLUGIN_ERROR", text: res });
+        else
+            return ok({});
+    },
+
+    async "devices.removeDevice"(req) {
+        const res = await deleteDevice(req.roomId, req.id);
+        if (res === 'device_not_found')
+            return error404("device");
+        else if (res === 'room_not_found')
+            return error404("room");
+        else
+            return ok({});
+    },
+
+    async "devices.changeDeviceOrder"(req) {
+        const res = reorderDevices(req.roomId, req.ids);
+        if (res === 'devices_not_equal')
+            return error({ code: 400, message: "DEVICES_NOT_EQUAL" });
+        if (res === 'room_not_found')
+            return error404("room");
+        return ok({});
+    },
+
+    async "devices.restartDevice"(req) {
+        const res = await restartDevice(req.roomId, req.id);
+        if (res === 'device_not_found')
+            return error404("device");
+        else if (res === 'room_not_found')
+            return error404("room");
+        else if (res === 'room_disabled')
+            return error({
+                code: 500, message: "ROOM_DISABLED",
+                error: roomControllerInstances[req.roomId].disabled as string
+            });
+        else
+            return ok({});
+    },
+
+    
+    async "rooms.getRoomStates"() {
+        return ok({
+            states: Object.fromEntries(
+                Object.keys(getRooms())
+                    .map(key => [key, roomControllerInstances[key]] as const)
+                    .map(([id, instance]) => [id, getRoomState(instance)])
+            )
+        });
+    },
+
+    async "devices.getDeviceStates"(req) {
+        if (!(req.roomId in roomControllerInstances))
+            return error404("room");
+
+        return ok({ states: await getDeviceStates(req.roomId) });
+    },
+
+    async "devices.toggleDeviceMainToggle"(req) {
+        if (!(req.roomId in roomControllerInstances))
+            return error404("room");
+        
+        const roomController = roomControllerInstances[req.roomId];
+        if (roomController.disabled)
+            return error({ code: 500, message: "ROOM_DISABLED", error: roomController.disabled });
+        
+        if (!(req.id in roomController.devices))
+            return error404("device");
+        
+        const device = roomController.devices[req.id];
+        if (device.disabled)
+            return error({ code: 500, message: "DEVICE_DISABLED", error: device.disabled });
+        
+        const deviceType = getDeviceTypes(roomController.type)[device.type];
+        if (!deviceType.hasMainToggle)
+            return error({ code: 400, message: "NO_MAIN_TOGGLE" });
+
+        await device.toggleMainToggle();
+        return ok({});
+    },
+
+    async "devices.getFavoriteDeviceStates"() {
+        return ok({ states: await getFavoriteDeviceStates() });
+    },
+
+    async "devices.toggleDeviceIsFavorite"(req) {
+        const res = await toggleDeviceIsFavorite(req.roomId, req.id, req.isFavorite);
+        if (res === 'room_not_found')
+            return error404("room");
+        if (res === 'device_not_found')
+            return error404("device");
+        return ok({});
+    },
+
+    async "devices.interactions.sendAction"(req) {
+        const res = await sendDeviceInteractionAction(req.roomId, req.deviceId, req.interactionId, req.action);
+        switch (res) {
+            case 'room_not_found':
+                return error404("room");
+            case 'device_not_found':
+                return error404("device");
+            case 'interaction_not_found':
+                return error404("interaction");
+            case 'room_disabled':
+                return error({ code: 500, message: "ROOM_DISABLED", error: roomControllerInstances[req.roomId].disabled as string });
+            case 'device_disabled':
+                return error({ code: 500, message: "DEVICE_DISABLED", error: roomControllerInstances[req.roomId].devices[req.deviceId].disabled as string });
+            case 'invalid_action':
+                return error404("action");
+            case 'value_out_of_range':
+                return error({ code: 400, message: "PARAMETER_OUT_OF_RANGE", paramName: "action.value" });
+            default:
+                return ok({});
+        }
+    },
+
+    async "devices.interactions.initSliderLiveValue"(req) {
+        const room = roomControllerInstances[req.roomId];
+        if (!room)
+            return error404("room");
+        if (room.disabled)
+            return error({ code: 500, message: "ROOM_DISABLED", error: room.disabled });
+        const device = room.devices[req.deviceId];
+        if (!device)
+            return error404("device");
+        if (device.disabled)
+            return error({ code: 500, message: "DEVICE_DISABLED", error: device.disabled });
+        const interaction = (device.constructor as DeviceTypeClass).interactions[req.interactionId];
+        if (!interaction)
+            return error404("interaction");
+        if (interaction.type !== 'slider')
+            return error({ code: 400, message: "INTERACTION_TYPE_INVALID", expected: "slider" });
+        return ok({ id: startLiveSlider(device, req.interactionId) });
+    },
+
+    async "devices.interactions.endSliderLiveValue"(req) {
+        if (endLiveSlider(req.id))
+            return ok({});
+        else
+            return error404("stream");
+    },
+
+
+    async "plugins.getInstalledPlugins"() {
+        return ok({ plugins: await getInstalledPluginsInfo() });
+    },
+
+    async "plugins.togglePluginIsActivated"(req) {
+        if (!(await getInstalledPlugins()).includes(req.id)) {
+            return error404("plugin");
+        }
+
+        setTimeout(() => {
+            togglePluginIsActivated(req.id, req.isActivated);
+        }, 100);
+
+        return ok({});
+    },
+
+    async "automation.getRoutines"() {
+        return ok({
+            routines: routines.routines,
+            order: routines.order
+        });
+    },
+
+    async "automation.addRoutine"(req) {
+        const res = await addRoutine(req.routine);
+        if (res >= 0)
+            return ok({ id: res });
+        else
+            return error({ code: 400, message: "ROUTINE_ALREADY_EXISTS" });
+    },
+
+    async "automation.editRoutine"(req) {
+        const res = await editRoutine(req.routine);
+        if (!res)
+            return ok({});
+        else if (res === "NOT_DISABLED")
+            return error({ code: 400, message: "ROUTINE_NOT_DISABLED" });
+        else return error404("routine");
+    },
+
+    async "automation.removeRoutine"(req) {
+        const res = await deleteRoutine(req.id);
+        if (!res)
+            return ok({});
+        else if (res === "NOT_DISABLED")
+            return error({ code: 400, message: "ROUTINE_NOT_DISABLED" });
+        else return error404("routine");
+    },
+
+    async "automation.changeRoutineOrder"(req) {
+        if (await reorderRoutines(req.ids))
+            return ok({});
+        else
+            return error({ code: 400, message: "ROUTINES_NOT_EQUAL" });
+    },
+
+    async "automation.getGlobalTriggers"() {
+        return ok({
+            triggers: Object.values(registeredGlobalTriggers).
+                map(({ fields, id, name }) => ({ fields, id, name }))
+        });
+    },
+
+    async "automation.getGlobalActions"() {
+        return ok({
+            actions: Object.values(registeredGlobalActions).
+                map(({ fields, id, name }) => ({ fields, id, name }))
+        });
+    },
+
+    async "automation.getRoutinesEnabled"() {
+        return ok({ enabled: routines.enabled });
+    },
+
+    async "automation.setRoutinesEnabled"(req) {
+        for (const id of req.routines) {
+            if (!(id in routines.routines))
+                return error404("routine");
+            if (req.enabled) enableRoutine(id);
+            else disableRoutine(id);
+        }
+        return ok({});
+    },
+
+    async "automation.getManualTriggerRoutines"() {
+        return ok({
+            routines: routines.order
+                .map(id => routines.routines[id])
+                .map(routine => (
+                    routine.triggers
+                        .filter(trigger => trigger.type === "manual")
+                        .map(trigger => ({
+                            id: routine.id,
+                            label: (trigger as HMApi.T.Automation.Trigger.Manual).label
+                        }))
+                ))
+                .flat()
+        });
+    },
+
+    async "automation.triggerManualRoutine"(req) {
+        const routine = routines.routines[req.routine];
+        if (!routine) return error404("routine");
+        if (!routine.triggers.some(tr => tr.type === "manual"))
+            return error({ code: 400, message: "ROUTINE_NOT_MANUAL" });
+        if (!routines.enabled[req.routine])
+            return error({ code: 400, message: "ROUTINE_NOT_ENABLED" });
+
+        await runRoutine(req.routine);
+        return ok({});
+    },
+};
+
+export default function handleRequest(token: string, req: HMApi.Request, ip: string): HMApi.ResponseOrError<HMApi.Request> | Promise<HMApi.ResponseOrError<HMApi.Request>> {
+    if (req.type !== "account.login") {
         try {
             const username = checkAuthToken(token)!;
-            if(!username) {
+            if (!username) {
                 return {
                     type: "error",
                     error: {
@@ -29,7 +556,7 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
             }
             incrementRateLimit(token);
         } catch (e) {
-            if(e === 'FLOOD') {
+            if (e === 'FLOOD') {
                 return {
                     type: "error",
                     error: {
@@ -43,1196 +570,12 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
             }
         }
     }
-    switch( req.type ) {
-        case "empty":
-            return {
-                type: "ok",
-                data: {}
-            };
 
-        case "getVersion":
-            return {
-                type: "ok",
-                data: {
-                    version
-                }
-            };
+    if (!(req.type in HMApi_Types.requests) || !(req.type in handleRequestFunctions))
+        return error({ code: 400, message: "INVALID_REQUEST_TYPE" });
+    
+    const err = checkType(req, HMApi_Types.requests[req.type]);
+    if (err) return error(err);
 
-        case "restart":
-            setTimeout(() => shutdownHandler('restart'), 100); // 100ms should be enough, since the whole process of sending the request from the frontend until receiving the result usually takes less than 100ms, let alone just sending the result from backend.
-            
-            return {
-                type: "ok",
-                data: {}
-            };
-        
-        case "account.login": {
-            const err= checkType(req, HMApi_Types.requests["account.login"]);
-            if(err) { return { type: "error", error: err }; }
-            try {
-                const tk= loginUser(req.username, req.password, req.device, ip);
-                return {
-                    type: "ok",
-                    data: {
-                        token: tk
-                    }
-                };
-            }
-            catch(e) {
-                if(e instanceof Error) {
-                    if(e.message==="USER_NOT_FOUND") {
-                        return {
-                            type: "error",
-                            error: {
-                                code: 401,
-                                message: "LOGIN_USER_NOT_FOUND"
-                            }
-                        };
-                    }
-                    else if(e.message==="PASSWORD_INCORRECT") {
-                        return {
-                            type: "error",
-                            error: {
-                                code: 401,
-                                message: "LOGIN_PASSWORD_INCORRECT"
-                            }
-                        };
-                    }
-                    else {
-                        throw e;
-                    }
-                }
-                else {
-                    throw e;
-                }
-            }
-        }
-
-        case 'account.logout':
-            logOutSession(token);
-            return {
-                type: "ok",
-                data: {}
-            };
-
-        case 'account.logoutOtherSessions':
-            try {
-                return {
-                    type: "ok",
-                    data: {
-                        sessions: logOutOtherSessions(token)
-                    }
-                };
-            } catch (e) {
-                if(e === 'SESSION_TOO_NEW') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 403,
-                            message: "SESSION_TOO_NEW"
-                        }
-                    };
-                }
-            }
-
-        case 'account.getSessionsCount':
-            return {
-                type: "ok",
-                data: {
-                    sessions: getSessionsCount(token)
-                }
-            };
-
-        case 'account.getSessions':
-            return {
-                type: "ok",
-                data: {
-                    sessions: getSessions(token)
-                }
-            };
-
-        case 'account.logoutSession':
-            const err= checkType(req, HMApi_Types.requests["account.logoutSession"]);
-            if(err) { return { type: "error", error: err }; }
-
-            try {
-                terminateSession(token, req.id);
-                return {
-                    type: "ok",
-                    data: {}
-                };
-            } catch(err) {
-                if(err === 'SESSION_NOT_FOUND') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 404,
-                            message: "NOT_FOUND",
-                            object: "session"
-                        }
-                    };
-                } else if(err === 'SESSION_TOO_NEW') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 403,
-                            message: "SESSION_TOO_NEW",
-                        }
-                    };
-                } else {
-                    throw err;
-                }
-            }
-
-        case 'account.changePassword': {
-            const err= checkType(req, HMApi_Types.requests["account.changePassword"]);
-            if(err) { return { type: "error", error: err }; }
-
-            try {
-                changePassword(token, req.oldPassword, req.newPassword);
-                return {
-                    type: "ok",
-                    data: {}
-                };
-            } catch(err) {
-                if(err === 'PASSWORD_INCORRECT') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 401,
-                            message: "LOGIN_PASSWORD_INCORRECT"
-                        }
-                    };
-                } else if(err === 'SESSION_TOO_NEW') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 403,
-                            message: "SESSION_TOO_NEW",
-                        }
-                    };
-                } else {
-                    throw err;
-                }
-            }
-        }
-
-        case 'account.changeUsername': {
-            const err= checkType(req, HMApi_Types.requests["account.changeUsername"]);
-            if(err) { return { type: "error", error: err }; }
-
-            if(req.username.length < 3) {
-                return {
-                    type: "error",
-                    error: {
-                        code: 400,
-                        message: "USERNAME_TOO_SHORT"
-                    }
-                };
-            }
-            try {
-                const newTk= changeUsername(token, req.username);
-                if(!newTk) {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 400,
-                            message: "USERNAME_ALREADY_TAKEN"
-                        }
-                    };
-                }
-                return {
-                    type: "ok",
-                    data: {
-                        token: newTk
-                    }
-                };
-            } catch(err) {
-                if(err === 'SESSION_TOO_NEW') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 403,
-                            message: "SESSION_TOO_NEW",
-                        }
-                    };
-                } else {
-                    throw err;
-                }
-            }
-        }
-
-        case 'account.checkUsernameAvailable': {
-            const err= checkType(req, HMApi_Types.requests["account.checkUsernameAvailable"]);
-            if(err) { return { type: "error", error: err }; }
-            return {
-                type: "ok",
-                data: {
-                    available: !usernameExists(token, req.username)
-                }
-            };
-        }
-
-        case 'rooms.getRooms': 
-            return {
-                type: "ok",
-                data: {
-                    rooms: getRooms()
-                }
-            };
-
-        case 'rooms.editRoom': {
-            const err= checkType(req, HMApi_Types.requests["rooms.editRoom"]);
-            if(err) { return { type: "error", error: err }; }
-            return editRoom(req.room).then(res=> {
-                if(res === true) {
-                    return {
-                        type: "ok",
-                        data: {}
-                    };
-                } else if(res) { // Res is either 'true' or a string (in which case it is an error)
-                    return {
-                        type: "error",
-                        error: {
-                            code: 400,
-                            message: 'CUSTOM_PLUGIN_ERROR',
-                            text: res
-                        }
-                    };
-                } else {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 404,
-                            message: "NOT_FOUND",
-                            object: "room"
-                        }
-                    };
-                }
-            });
-        }
-
-        case 'rooms.addRoom': {
-            const err= checkType(req, HMApi_Types.requests["rooms.addRoom"]);
-            if(err) { return { type: "error", error: err }; }
-            return addRoom(req.room).then(res=> {
-                if(res === true) {
-                    return {
-                        type: "ok",
-                        data: {}
-                    };
-                } else if(res) { // Res is either 'true' or a string (in which case it is an error)
-                    return {
-                        type: "error",
-                        error: {
-                            code: 400,
-                            message: 'CUSTOM_PLUGIN_ERROR',
-                            text: res
-                        }
-                    };
-                } else {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 400,
-                            message: "ROOM_ALREADY_EXISTS"
-                        }
-                    };
-                }
-            });
-        }
-
-        case 'rooms.removeRoom': {
-            const err= checkType(req, HMApi_Types.requests["rooms.removeRoom"]);
-            if(err) { return { type: "error", error: err }; }
-            return deleteRoom(req.id).then(res=> {
-                if(res) {
-                    return {
-                        type: "ok",
-                        data: {}
-                    };
-                } else {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 404,
-                            message: "NOT_FOUND",
-                            object: "room"
-                        }
-                    };
-                }
-            });
-        }
-
-        case 'rooms.changeRoomOrder': {
-            const err= checkType(req, HMApi_Types.requests["rooms.changeRoomOrder"]);
-            if(err) { return { type: "error", error: err }; }
-            if(reorderRooms(req.ids)) {
-                return {
-                    type: "ok",
-                    data: {}
-                };
-            } else {
-                return {
-                    type: "error",
-                    error: {
-                        code: 400,
-                        message: "ROOMS_NOT_EQUAL"
-                    }
-                };
-            }
-        }
-
-        case 'rooms.restartRoom': {
-            const err= checkType(req, HMApi_Types.requests["rooms.restartRoom"]);
-            if(err) { return { type: "error", error: err }; }
-
-            return restartRoom(req.id).then(success=> {
-                if(success) {
-                    return {
-                        type: "ok",
-                        data: {}
-                    };
-                } else {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 404,
-                            message: "NOT_FOUND",
-                            object: "room"
-                        }
-                    };
-                }
-            });
-        }
-
-        case 'rooms.controllers.getRoomControllerTypes':
-            return {
-                type: "ok",
-                data: {
-                    types: getRoomControllerTypes()
-                }
-            };
-
-        case 'plugins.fields.getSelectLazyLoadItems': {
-            const err= checkType(req, HMApi_Types.requests["plugins.fields.getSelectLazyLoadItems"]);
-            if(err) { return { type: "error", error: err }; }
-
-            type isNotFound<T> = T extends HMApi.Error.NotFound<infer K> ? K : never;
-            type o = isNotFound<HMApi.Error<HMApi.Request.Plugins.Fields.GetSelectFieldLazyLoadItems>>
-            const notFoundError = (o: o) => ({
-                type: "error",
-                error: {
-                    code: 404,
-                    message: "NOT_FOUND",
-                    object: o
-                }
-            } as const); 
-
-            let field: SettingsFieldDef|undefined;
-
-            if (req.for === "device" || req.for === "roomController") {
-                if (!(req.controller in registeredRoomControllers)) {
-                    return notFoundError("controller");
-                }
-                if (req.for == 'device' && !(req.deviceType in registeredDeviceTypes[req.controller])) {
-                    return notFoundError("deviceType");
-                }
-
-                field = req.for == 'device' ?
-                    (getFlatFields(registeredDeviceTypes[req.controller][req.deviceType].settingsFields).find(f => f.id == req.field)) :
-                    (getFlatFields(registeredRoomControllers[req.controller].settingsFields).find(f => f.id == req.field));
-            }
-            else {
-                const types = req.for === "globalAction" ? registeredGlobalActions : registeredGlobalTriggers;
-                const type = types[req.id];
-                if (!type) return notFoundError(req.for);
-                field = getFlatFields(type.fields).find(f=> f.id=== req.field);
-            }
-
-            if(!field) {
-                return notFoundError("field");
-            }
-            if(field.type!=='select' || field.options instanceof Array || !field.options.isLazy ) {
-                return {
-                    type: "error",
-                    error: {
-                        code: 400,
-                        message: "FIELD_NOT_LAZY_SELECT"
-                    }
-                };
-            }
-
-            let res = field.options.callback();
-            if(!(res instanceof Promise)) {
-                res = Promise.resolve(res);
-            }
-            
-            return res.then((result) => {
-                if(result instanceof Array) {
-                    return {
-                        type: "ok",
-                        data: {
-                            items: result
-                        }
-                    };
-                } else {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 400,
-                            message: "CUSTOM_PLUGIN_ERROR",
-                            text: result.text
-                        }
-                    };
-                }
-            });
-        }
-
-        case 'devices.getDevices': {
-            const err= checkType(req, HMApi_Types.requests["devices.getDevices"]);
-            if(err) { return { type: "error", error: err }; }
-            
-            const devices= getDevices(req.roomId);
-            if(devices===undefined) {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "room"
-                    }
-                };
-            }
-            return {
-                type: "ok",
-                data: {
-                    devices
-                }
-            };
-        }
-
-        case 'devices.getDeviceTypes': {
-            const err= checkType(req, HMApi_Types.requests["devices.getDeviceTypes"]);
-            if(err) { return { type: "error", error: err }; }
-
-            // Check if the room controller type is valid
-            if(!(req.controllerType in registeredRoomControllers)) {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "controller"
-                    }
-                };
-            }
-
-            return {
-                type: "ok",
-                data: {
-                    types: Object.values(getDeviceTypes(req.controllerType)).map(({id, super_name, sub_name, icon, settingsFields, forRoomController, hasMainToggle}): HMApi.T.DeviceType=> ({
-                        id, name: super_name, sub_name, settings: settingsFields, icon, forRoomController, hasMainToggle
-                    }))
-                }
-            };
-        }
-
-        case 'devices.getDeviceTypes': {
-            const err= checkType(req, HMApi_Types.requests["devices.getDeviceTypes"]);
-            if(err) { return { type: "error", error: err }; }
-
-            // Check if the room controller type is valid
-            if(!(req.controllerType in registeredRoomControllers)) {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "controller"
-                    }
-                };
-            }
-
-            return {
-                type: "ok",
-                data: {
-                    types: Object.values(getDeviceTypes(req.controllerType)).map(({id, super_name, sub_name, icon, settingsFields, forRoomController, hasMainToggle}): HMApi.T.DeviceType=> ({
-                        id, name: super_name, sub_name, settings: settingsFields, icon, forRoomController, hasMainToggle
-                    }))
-                }
-            };
-        }
-
-        case 'devices.getDeviceType': {
-            const err= checkType(req, HMApi_Types.requests["devices.getDeviceType"]);
-            if(err) { return { type: "error", error: err }; }
-
-            const room = getRooms()[req.roomId];
-            if(!room) {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "room"
-                    }
-                };
-            }
-            const device = getDevices(req.roomId)?.[req.deviceId];
-            if(!device) {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "device"
-                    }
-                };
-            }
-            const {
-                id, super_name, sub_name, icon,
-                settingsFields, forRoomController, hasMainToggle
-            } = getDeviceTypes(room.controllerType.type)[device.type];
-
-            return {
-                type: "ok",
-                data: {
-                    type: {
-                        id, name: super_name, sub_name,
-                        settings: settingsFields, icon,
-                        forRoomController, hasMainToggle
-                    }
-                }
-            };
-        }
-
-        case 'devices.addDevice': {
-            const err= checkType(req, HMApi_Types.requests["devices.addDevice"]);
-            if(err) { return { type: "error", error: err }; }
-
-            return addDevice(req.roomId, req.device).then(res=> {
-                if(res==='device_exists') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 400,
-                            message: "DEVICE_ALREADY_EXISTS"
-                        }
-                    };
-                }
-                else if(res==='room_not_found') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 404,
-                            message: "NOT_FOUND",
-                            object: "room"
-                        }
-                    };
-                } 
-                else if(typeof res === 'string') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 400,
-                            message: "CUSTOM_PLUGIN_ERROR",
-                            text: res
-                        }
-                    };
-                } else {
-                    return {
-                        type: "ok",
-                        data: {}
-                    };
-                }
-            });
-        }
-
-        case 'devices.editDevice': {
-            const err= checkType(req, HMApi_Types.requests["devices.editDevice"]);
-            if(err) { return { type: "error", error: err }; }
-
-            return editDevice(req.roomId, req.device).then(res=> {
-                if(res==='device_not_found') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 404,
-                            message: "NOT_FOUND",
-                            object: "device"
-                        }
-                    };
-                } 
-                else if(res==='room_not_found') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 404,
-                            message: "NOT_FOUND",
-                            object: "room"
-                        }
-                    };
-                } 
-                else if(typeof res === 'string') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 400,
-                            message: "CUSTOM_PLUGIN_ERROR",
-                            text: res
-                        }
-                    };
-                } else {
-                    return {
-                        type: "ok",
-                        data: {}
-                    };
-                }
-            });
-        }
-
-        case 'devices.removeDevice': {
-            const err= checkType(req, HMApi_Types.requests["devices.removeDevice"]);
-            if(err) { return { type: "error", error: err }; }
-
-            return deleteDevice(req.roomId, req.id).then(res=> {
-                if(res==='device_not_found') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 404,
-                            message: "NOT_FOUND",
-                            object: "device"
-                        }
-                    };
-                }
-                else if(res==='room_not_found') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 404,
-                            message: "NOT_FOUND",
-                            object: "room"
-                        }
-                    };
-                } else {
-                    return {
-                        type: "ok",
-                        data: {}
-                    };
-                }
-            });
-        }
-
-        case 'devices.changeDeviceOrder': {
-            const err= checkType(req, HMApi_Types.requests["devices.changeDeviceOrder"]);
-            if(err) { return { type: "error", error: err }; }
-
-            const res = reorderDevices(req.roomId, req.ids);
-            if(res === 'devices_not_equal') {
-                return {
-                    type: "error",
-                    error: {
-                        code: 400,
-                        message: "DEVICES_NOT_EQUAL"
-                    }
-                };
-            }
-            if(res === 'room_not_found') {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "room"
-                    }
-                };
-            }
-            return {
-                type: "ok",
-                data: { }
-            };
-        }
-
-        case 'devices.restartDevice': {
-            const err= checkType(req, HMApi_Types.requests["devices.restartDevice"]);
-            if(err) { return { type: "error", error: err }; }
-            
-            return restartDevice(req.roomId, req.id).then(res=> {
-                if(res==='device_not_found') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 404,
-                            message: "NOT_FOUND",
-                            object: "device"
-                        }
-                    };
-                } 
-                else if(res==='room_not_found') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 404,
-                            message: "NOT_FOUND",
-                            object: "room"
-                        }
-                    };
-                } 
-                else if(res==='room_disabled') {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 500,
-                            message: "ROOM_DISABLED",
-                            error: roomControllerInstances[req.roomId].disabled as string
-                        }
-                    };
-                } else {
-                    return {
-                        type: "ok",
-                        data: {}
-                    };
-                }
-            });
-        }
-
-        case 'rooms.getRoomStates':
-            return {
-                type: "ok",
-                data: {
-                    states: Object.fromEntries(
-                        Object.keys(getRooms())
-                            .map(key => [key, roomControllerInstances[key]] as const)
-                            .map(([id, instance]) => [id, getRoomState(instance)])
-                    )
-                }
-            };
-
-        case 'devices.getDeviceStates': {
-            const err= checkType(req, HMApi_Types.requests["devices.getDeviceStates"]);
-            if(err) { return { type: "error", error: err }; }
-
-            if(!(req.roomId in roomControllerInstances)) {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: 'room'
-                    }
-                };
-            }
-
-            return getDeviceStates(req.roomId).then(states=> ({
-                type: "ok",
-                data: { states }
-            }));
-        }
-
-        case 'devices.toggleDeviceMainToggle': {
-            const err= checkType(req, HMApi_Types.requests["devices.toggleDeviceMainToggle"]);
-            if(err) { return { type: "error", error: err }; }
-
-            if(!(req.roomId in roomControllerInstances)) {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: 'room'
-                    }
-                };
-            }
-
-            const roomController = roomControllerInstances[req.roomId];
-            if(roomController.disabled) {
-                return {
-                    type: "error",
-                    error: {
-                        code: 500,
-                        message: "ROOM_DISABLED",
-                        error: roomController.disabled
-                    }
-                };
-            }
-            if(!(req.id in roomController.devices)) {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: 'device'
-                    }
-                };
-            }
-
-            const device = roomController.devices[req.id];
-            if(device.disabled) {
-                return {
-                    type: "error",
-                    error: {
-                        code: 500,
-                        message: "DEVICE_DISABLED",
-                        error: device.disabled
-                    }
-                };
-            }
-            const deviceType = getDeviceTypes(roomController.type)[device.type];
-            if(!deviceType.hasMainToggle) {
-                return {
-                    type: "error",
-                    error: {
-                        code: 400,
-                        message: "NO_MAIN_TOGGLE"
-                    }
-                };
-            }
-
-            return device.toggleMainToggle().then(()=> {
-                return {
-                    type: "ok",
-                    data: { }
-                };
-            });
-        }
-
-        case 'devices.getFavoriteDeviceStates': 
-            return getFavoriteDeviceStates().then(states=> ({
-                type: "ok",
-                data: { states }
-            }));
-
-        case 'devices.toggleDeviceIsFavorite': {
-            const err= checkType(req, HMApi_Types.requests["devices.toggleDeviceIsFavorite"]);
-            if(err) { return { type: "error", error: err }; }
-
-            const res = toggleDeviceIsFavorite(req.roomId, req.id, req.isFavorite);
-            if(res === 'room_not_found') {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "room"
-                    }
-                };
-            }
-            if(res === 'device_not_found') {
-                return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "device"
-                    }
-                };
-            }
-            return {
-                type: "ok",
-                data: { }
-            };
-        }
-            
-        case 'devices.interactions.sendAction': {
-            const err = checkType(req, HMApi_Types.requests["devices.interactions.sendAction"]);
-            if (err) { return { type: "error", error: err }; }
-            
-            const res = sendDeviceInteractionAction(req.roomId, req.deviceId, req.interactionId, req.action);
-            if (res instanceof Promise) {
-                return res.then(() => ({ type: "ok", data: {} }));
-            } else {
-                switch (res) {
-                    case 'room_not_found':
-                        return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "room" } };
-                    case 'device_not_found':
-                        return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "device" } };
-                    case 'interaction_not_found':
-                        return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "interaction" } };
-                    case 'room_disabled':
-                        return { type: "error", error: { code: 500, message: "ROOM_DISABLED", error: roomControllerInstances[req.roomId].disabled as string } };
-                    case 'device_disabled':
-                        return { type: "error", error: { code: 500, message: "DEVICE_DISABLED", error: roomControllerInstances[req.roomId].devices[req.deviceId].disabled as string } };
-                    case 'invalid_action':
-                        return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "action" } };
-                    case 'value_out_of_range':
-                        return { type: "error", error: { code: 400, message: "PARAMETER_OUT_OF_RANGE", paramName: "action.value" } };
-                }
-            }
-        }
-            
-        case 'devices.interactions.initSliderLiveValue': {
-            const room = roomControllerInstances[req.roomId];
-            if (!room) {
-                return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "room" } };
-            }
-            if (room.disabled) {
-                return { type: "error", error: { code: 500, message: "ROOM_DISABLED", error: room.disabled } };
-            }
-            const device = room.devices[req.deviceId];
-            if (!device) {
-                return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "device" } };
-            }
-            if (device.disabled) {
-                return { type: "error", error: { code: 500, message: "DEVICE_DISABLED", error: device.disabled } };
-            }
-            const interaction = (device.constructor as DeviceTypeClass).interactions[req.interactionId];
-            if (!interaction) {
-                return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "interaction" } };
-            }
-            if (interaction.type !== 'slider') {
-                return { type: "error", error: { code: 400, message: "INTERACTION_TYPE_INVALID", expected: "slider" } };
-            }
-            return {
-                type: "ok",
-                data: {
-                    id: startLiveSlider(device, req.interactionId)
-                }
-            };
-        }
-            
-        case 'devices.interactions.endSliderLiveValue': {
-            if (endLiveSlider(req.id)) {
-                return { type: "ok", data: {} };
-            } else {
-                return { type: "error", error: { code: 404, message: "NOT_FOUND", object: "stream" } };
-            }
-        }
-
-        case 'plugins.getInstalledPlugins': {
-            return getInstalledPluginsInfo().then(plugins => ({
-                type: "ok",
-                data: { plugins }
-            }));
-        }
-
-        case 'plugins.togglePluginIsActivated': {
-            return (async () => {
-                if (!(await getInstalledPlugins()).includes(req.id)) {
-                    return {
-                        type: "error",
-                        error: {
-                            code: 404,
-                            message: "NOT_FOUND",
-                            object: "plugin"
-                        }
-                    };
-                }
-
-                setTimeout(() => {
-                    togglePluginIsActivated(req.id, req.isActivated);
-                }, 100);
-
-                return {
-                    type: "ok",
-                    data: {}
-                };
-            })();
-        }
-
-        case "automation.getRoutines": {
-            return {
-                type: "ok",
-                data: <HMApi.Response.Routines>{
-                    routines: routines.routines,
-                    order: routines.order
-                }
-            };
-        }
-            
-        case "automation.addRoutine": {
-            const err = checkType(req, HMApi_Types.requests["automation.addRoutine"]);
-            if (err) { return { type: "error", error: err }; }
-            
-            return addRoutine(req.routine).then(res =>
-                (res >= 0 ? {
-                    type: "ok",
-                    data: {
-                        id: res
-                    }
-                } : {
-                    type: "error",
-                    error: {
-                        code: 400,
-                        message: "ROUTINE_ALREADY_EXISTS"
-                    }
-                })
-            );
-        }
-            
-        case "automation.editRoutine": {
-            const err = checkType(req, HMApi_Types.requests["automation.editRoutine"]);
-            if (err) { return { type: "error", error: err }; }
-            
-            return editRoutine(req.routine).then(res =>
-                ((!res) ? {
-                    type: "ok",
-                    data: {}
-                } : res === "NOT_DISABLED" ? {
-                    type: "error",
-                    error: {
-                        code: 400,
-                        message: "ROUTINE_NOT_DISABLED"
-                    }
-                } : {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "routine"
-                    }
-                })
-            );
-        }
-            
-        case "automation.removeRoutine": {
-            const err = checkType(req, HMApi_Types.requests["automation.removeRoutine"]);
-            if (err) { return { type: "error", error: err }; }
-            
-            return deleteRoutine(req.id).then(res =>
-                ((!res) ? {
-                    type: "ok",
-                    data: {}
-                } : res === "NOT_DISABLED" ? {
-                    type: "error",
-                    error: {
-                        code: 400,
-                        message: "ROUTINE_NOT_DISABLED"
-                    }
-                } : {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "routine"
-                    }
-                })
-            );
-        }
-            
-        case "automation.changeRoutineOrder": {
-            const err = checkType(req, HMApi_Types.requests["automation.changeRoutineOrder"]);
-            if (err) { return { type: "error", error: err }; }
-            
-            return reorderRoutines(req.ids).then(res =>
-                (res ? {
-                    type: "ok",
-                    data: {}
-                } : {
-                    type: "error",
-                    error: {
-                        code: 400,
-                        message: "ROUTINES_NOT_EQUAL"
-                    }
-                })
-            );
-        }
-
-        case "automation.getGlobalTriggers": {
-            return {
-                type: "ok",
-                data: {
-                    triggers: Object.values(registeredGlobalTriggers).map(({ fields, id, name }) => ({ fields, id, name }))
-                }
-            };
-        }
-
-        case "automation.getGlobalActions": {
-            return {
-                type: "ok",
-                data: {
-                    actions: Object.values(registeredGlobalActions).map(({ fields, id, name }) => ({ fields, id, name }))
-                }
-            };
-        }
-            
-        case "automation.getRoutinesEnabled": {
-            return {
-                type: "ok",
-                data: <HMApi.Response.RoutinesEnabled>{
-                    enabled: routines.enabled
-                }
-            };
-        }
-
-        case "automation.setRoutinesEnabled": {
-            const err = checkType(req, HMApi_Types.requests["automation.setRoutinesEnabled"]);
-            if (err) { return { type: "error", error: err }; }
-
-            for (const id of req.routines) {
-                if (!(id in routines.routines)) return {
-                    type: "error",
-                    error: {
-                        code: 404,
-                        message: "NOT_FOUND",
-                        object: "routine"
-                    }
-                };
-                if (req.enabled) enableRoutine(id);
-                else disableRoutine(id);
-            }
-
-            return { type: "ok", data: {} };
-        }
-
-        case "automation.getManualTriggerRoutines": {
-            return {
-                type: "ok",
-                data: {
-                    routines: routines.order
-                        .map(id => routines.routines[id])
-                        .map(routine => (
-                            routine.triggers
-                                .filter(trigger => trigger.type === "manual")
-                                .map(trigger => ({
-                                    id: routine.id,
-                                    label: (trigger as HMApi.T.Automation.Trigger.Manual).label
-                                }))
-                        ))
-                        .flat()
-                }
-            };
-        }
-            
-        case "automation.triggerManualRoutine": {
-            const err = checkType(req, HMApi_Types.requests["automation.triggerManualRoutine"]);
-            if (err) { return { type: "error", error: err }; }
-
-            const routine = routines.routines[req.routine];
-            if (!routine) return {
-                type: "error",
-                error: {
-                    code: 404,
-                    message: "NOT_FOUND",
-                    object: "routine"
-                }
-            };
-            if (!routine.triggers.some(tr=> tr.type === "manual")) return {
-                type: "error",
-                error: {
-                    code: 400,
-                    message: "ROUTINE_NOT_MANUAL"
-                }
-            };
-            if(!routines.enabled[req.routine]) return {
-                type: "error",
-                error: {
-                    code: 400,
-                    message: "ROUTINE_NOT_ENABLED"
-                }
-            };
-
-            return runRoutine(req.routine).then(() => ({ type: "ok", data: {} }));
-        }
-
-        default:
-            return {
-                type: "error",
-                error: {
-                    code: 400,
-                    message: "INVALID_REQUEST_TYPE",
-                }
-            };
-    }
+    return handleRequestFunctions[req.type](req as any, { token, ip });
 }

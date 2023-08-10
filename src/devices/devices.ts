@@ -116,7 +116,7 @@ export async function getFavoriteDeviceStates(): Promise<HMApi.T.DeviceState[]> 
     })).then(states => states.filter(Boolean) as HMApi.T.DeviceState[]);
 }
 
-export function toggleDeviceIsFavorite(roomId: string, deviceId: string, isFavorite: boolean) {
+export async function toggleDeviceIsFavorite(roomId: string, deviceId: string, isFavorite: boolean) {
     if(!(roomId in getRooms())) {
         return 'room_not_found';
     }
@@ -130,7 +130,7 @@ export function toggleDeviceIsFavorite(roomId: string, deviceId: string, isFavor
     } else {
         favoriteDevices = favoriteDevices.filter(([r, d]) => !(r === roomId && d === deviceId));
     }
-    saveFavoriteDevices();
+    await saveFavoriteDevices();
 }
 
 export function sendDeviceInteractionAction(roomId: string, deviceId: string, interactionId: string, action: HMApi.T.DeviceInteraction.Action) {
