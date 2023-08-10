@@ -637,7 +637,7 @@ export const HMApi_Types: {
             type: "object",
             properties: {
                 "type": { type: "exactValue", value: "automation.removeRoutine" },
-                "id": { type: "string" }
+                "id": { type: "number" }
             }
         },
         "automation.changeRoutineOrder": {
@@ -646,7 +646,7 @@ export const HMApi_Types: {
                 "type": { type: "exactValue", value: "automation.changeRoutineOrder" },
                 "ids": {
                     type: "array",
-                    items: { type: "string" }
+                    items: { type: "number" }
                 }
             }
         },
