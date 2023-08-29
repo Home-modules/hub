@@ -1,6 +1,6 @@
 {
   "name": "@home_modules/hub",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Home_modules smart hub",
   "main": "index.js",
   "type": "module",
@@ -24,6 +24,7 @@
     "@serialport/parser-readline": "^10.3.0",
     "hmp-arduino": "^0.0.7-dev3",
     "hmp-test": "1.0.0",
+    "hmp-toggle-theme": "0.0.1",
     "pm2": "^5.2.0",
     "semver": "^7.3.7",
     "serialport": "^10.4.0",
