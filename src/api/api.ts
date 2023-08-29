@@ -248,6 +248,14 @@ export namespace HMApi {
                     for: "globalTrigger"|"globalAction",
                     /** The ID of the global trigger/action */
                     id: string
+                } | {
+                    for: "deviceAction",
+                    /** The controller type of the room in which the device is */
+                    controller: string,
+                    /** Device type */
+                    deviceType: string,
+                    /** Action ID */
+                    action: string,
                 });
             }
 
@@ -725,7 +733,9 @@ export namespace HMApi {
 
         export type DeviceType = {
             /** The device type information */
-            type: T.DeviceType
+            type: T.DeviceType,
+            /** The room controller type for the room the device is in */
+            roomController: string,
         }
 
         export type RoomStates = {
@@ -1108,7 +1118,7 @@ export namespace HMApi {
         R extends Request.Rooms.RestartRoom ? Error.NotFound<"room"> :
         R extends Request.Rooms.GetRoomControllerTypes ? never :
         R extends Request.Rooms.GetRoomStates ? never :
-        R extends Request.Plugins.Fields.GetSelectFieldLazyLoadItems ? Error.NotFound<"controller"|"deviceType"|"field"|"globalTrigger"|"globalAction"> | Error.FieldNotLazySelect | Error.PluginCustomError :
+        R extends Request.Plugins.Fields.GetSelectFieldLazyLoadItems ? Error.NotFound<"controller"|"deviceType"|"field"|"globalTrigger"|"globalAction"|"deviceAction"> | Error.FieldNotLazySelect | Error.PluginCustomError :
         R extends Request.Plugins.GetInstalledPlugins ? never :
         R extends Request.Plugins.TogglePluginIsActivated ? Error.NotFound<"plugin"> :
         R extends Request.Devices.GetDevices ? Error.NotFound<"room"> :
@@ -1257,6 +1267,10 @@ export namespace HMApi {
             forRoomController: `${string}:${string}` | `${string}:*` | '*',
             /** Whether the device has a main toggle */
             hasMainToggle: boolean,
+            /** The automation events/triggers that can be fired by the device */
+            events: Automation.DeviceEvent[],
+            /** The automation actions that can be performed with the device */
+            actions: Automation.DeviceAction[]
         };
 
         /**
@@ -1320,7 +1334,7 @@ export namespace HMApi {
             /** The device's name */
             name: string,
             /** The device's type */
-            type: Omit<DeviceType, 'settings'> & {
+            type: Omit<DeviceType, 'settings'|'events'|'actions'> & {
                 /** The interactions for the device */
                 interactions: Record<string, DeviceInteraction.Type>,
                 /** The interaction that is displayed on the device itself in addition to the context menu. An On/Off label should be shown if not set. */
@@ -2067,6 +2081,13 @@ export namespace HMApi {
                 name: string,
                 fields: T.SettingsField[]
             }
+
+            export type DeviceEvent = {
+                id: string,
+                name: string
+            }
+
+            export type DeviceAction = GlobalActionType;
         }
         
         //#region IconName

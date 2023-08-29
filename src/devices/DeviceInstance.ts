@@ -5,6 +5,7 @@ import { Log } from "../log.js";
 import { sendUpdate } from "../api-server/websocket.js";
 import { DeviceTypeClass, getDeviceState } from "./devices.js";
 import { saveDevices } from "./devicesFile.js";
+import { runRoutine } from "../automation/run-routine.js";
 
 
 export abstract class DeviceInstance {
@@ -32,6 +33,14 @@ export abstract class DeviceInstance {
     static defaultInteraction?: string;
     /** Default interaction(s) when `hasMainToggle==true` and `mainToggleState==false` */
     static defaultInteractionWhenOff?: string;
+    /** The events that can be fired by the device */
+    static events?: HMApi.T.Automation.DeviceEvent[];
+    /** The actions that can be performed for the device */
+    static actions?: ({
+        id: string;
+        name: string;
+        fields: SettingsFieldDef[];
+    })[];
 
     /** Device ID */
     id: string;
@@ -59,6 +68,7 @@ export abstract class DeviceInstance {
     interactionStates: Record<string, HMApi.T.DeviceInteraction.State | undefined> = {};
 
     #roomController: RoomControllerInstance;
+    triggersRoutines: Record<string, Record<number, boolean>> = {};
 
     constructor(public properties: HMApi.T.Device, roomController: RoomControllerInstance) {
         this.id = properties.id;
@@ -149,6 +159,12 @@ export abstract class DeviceInstance {
             state: await getDeviceState(this, this.constructor as DeviceTypeClass, state)
         });
     }
+
+    fireEvent(id: string) {
+        Object.entries(this.triggersRoutines[id] || {}).filter(([_, enabled]) => enabled).forEach(([routineId]) => runRoutine(parseInt(routineId)));
+    }
+
+    async performAction(id: string, settings: Record<string, string | number | boolean>) { return; }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     static validateSettings(settings: Record<string, string | number | boolean>): void | undefined | string | Promise<void | undefined | string> {

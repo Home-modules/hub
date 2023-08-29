@@ -15,16 +15,33 @@ export async function enableRoutine(id: number) {
     log.i("Enabling routine", id);
 
     routines.enabled[id] = true;
-    routine.triggers.forEach((trigger, index) => {
-        if (trigger.type !== "globalTrigger") return;
-        const type = registeredGlobalTriggers[trigger.name];
-        if (!type) return;
-        unlistenGlobalTriggers[id] ||= {};
-        unlistenGlobalTriggers[id][index] = type.listen(trigger.options, () => runRoutine(id));
-        log.i("Listened to global trigger", type.id, "for routine", id);
-    });
+    
+    listenRoutine(id);
 
     saveRoutines();
+}
+
+export function listenRoutine(id: number) {
+    const routine = routines.routines[id];
+    routine.triggers.forEach((trigger, index) => {
+        switch (trigger.type) {
+            case "globalTrigger": {
+                const type = registeredGlobalTriggers[trigger.name];
+                if (!type) return;
+                unlistenGlobalTriggers[id] ||= {};
+                unlistenGlobalTriggers[id][index] = type.listen(trigger.options, () => runRoutine(id));
+                log.i("Listened to global trigger", type.id, "for routine", id);
+                break;
+            }
+            case "deviceEvent": {
+                const device = roomControllerInstances[trigger.room]?.devices[trigger.device];
+                if (!device) return;
+                device.triggersRoutines[trigger.event] ||= {};
+                device.triggersRoutines[trigger.event][id] = true;
+                break;
+            }
+        }
+    });
 }
 
 export async function disableRoutine(id: number) {
@@ -34,13 +51,29 @@ export async function disableRoutine(id: number) {
     log.i("Disabling routine", id);
 
     routines.enabled[id] = false;
-    routine.triggers.forEach((trigger, index) => {
-        if (trigger.type !== "globalTrigger") return;
-        unlistenGlobalTriggers[id]?.[index]?.();
-        log.i("Stopped listening to global trigger", index, "for routine", id);
-    });
-    
+    unlistenRoutine(id);
+
     saveRoutines();
+}
+
+export function unlistenRoutine(id: number) {
+    const routine = routines.routines[id];
+    routine.triggers.forEach((trigger, index) => {
+        switch (trigger.type) {
+            case "globalTrigger": { 
+                unlistenGlobalTriggers[id]?.[index]?.();
+                log.i("Stopped listening to global trigger", index, "for routine", id);
+                break;
+            }
+            case "deviceEvent": {
+                const device = roomControllerInstances[trigger.room]?.devices[trigger.device];
+                if (!device) return;
+                device.triggersRoutines[trigger.event] ||= {};
+                device.triggersRoutines[trigger.event][id] = false;
+                break;
+            }
+        }
+    });
 }
 
 export async function runRoutine(id: number) {
@@ -80,6 +113,12 @@ async function executeAction(action: HMApi.T.Automation.Action): Promise<void> {
             const state = action.setTo === undefined ? (!device.mainToggleState) : action.setTo;
             log.i("Setting main toggle state for device ", action.room, ">", action.device, "to", state);
             if (state !== device.mainToggleState) await device.toggleMainToggle();
+            break;
+        }
+        case "deviceAction": {
+            const device = roomControllerInstances[action.room]?.devices[action.device];
+            if (!device) return;
+            device.performAction(action.action, action.options);
             break;
         }
     }

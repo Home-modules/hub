@@ -206,7 +206,18 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
                 (getFlatFields(registeredDeviceTypes[req.controller][req.deviceType].settingsFields).find(f => f.id == req.field)) :
                 (getFlatFields(registeredRoomControllers[req.controller].settingsFields).find(f => f.id == req.field));
         }
-        else {
+        else if (req.for === "deviceAction") {
+            const deviceTypes = registeredDeviceTypes[req.controller];
+            if (!deviceTypes)
+                return error404("controller");
+            const deviceType = deviceTypes[req.deviceType];
+            if (!deviceType)
+                return error404("deviceType");
+            const action = deviceType.actions?.find(a => a.id === req.action);
+            if (!action)
+                return error404("deviceAction");
+            field = getFlatFields(action.fields).find(f => f.id == req.field);
+        } else {
             const types = req.for === "globalAction" ? registeredGlobalActions : registeredGlobalTriggers;
             const type = types[req.id];
             if (!type) return error404(req.for);
@@ -241,8 +252,8 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
 
         return ok({
             types: Object.values(getDeviceTypes(req.controllerType))
-                .map(({ id, super_name, sub_name, icon, settingsFields, forRoomController, hasMainToggle }): HMApi.T.DeviceType => ({
-                    id, name: super_name, sub_name, settings: settingsFields, icon, forRoomController, hasMainToggle
+                .map(({ id, super_name, sub_name, icon, settingsFields, forRoomController, hasMainToggle, events=[], actions=[] }): HMApi.T.DeviceType => ({
+                    id, name: super_name, sub_name, settings: settingsFields, icon, forRoomController, hasMainToggle, events, actions
                 }))
         });
     },
@@ -255,15 +266,17 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
 
         const {
             id, super_name, sub_name, icon,
-            settingsFields, forRoomController, hasMainToggle
+            settingsFields, forRoomController, hasMainToggle, events=[], actions=[]
         } = getDeviceTypes(room.controllerType.type)[device.type];
 
         return ok({
             type: {
                 id, name: super_name, sub_name,
                 settings: settingsFields, icon,
-                forRoomController, hasMainToggle
-            }
+                forRoomController, hasMainToggle,
+                events, actions
+            },
+            roomController: room.controllerType.type
         });
     },
 
