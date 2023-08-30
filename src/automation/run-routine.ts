@@ -112,13 +112,20 @@ async function executeAction(action: HMApi.T.Automation.Action): Promise<void> {
             if (!device) return;
             const state = action.setTo === undefined ? (!device.mainToggleState) : action.setTo;
             log.i("Setting main toggle state for device ", action.room, ">", action.device, "to", state);
-            if (state !== device.mainToggleState) await device.toggleMainToggle();
+            if (device.disabled || device.roomController.disabled) {
+                log.w("Device was disabled, canceled");
+                return;
+            }
             break;
         }
         case "deviceAction": {
             const device = roomControllerInstances[action.room]?.devices[action.device];
             if (!device) return;
-            device.performAction(action.action, action.options);
+            log.i("Performing action ", action.action, " for device ", action.room, ">", action.device);
+            if (device.disabled || device.roomController.disabled) {
+                log.w("Device was disabled, canceled");
+                return;
+            }
             break;
         }
     }
