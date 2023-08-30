@@ -1,3 +1,4 @@
+import { delay } from "../misc.js";
 import { SettingsFieldDef } from "../plugins.js";
 
 type GlobalTriggerType = {
@@ -58,7 +59,7 @@ registerGlobalTrigger({
             default: 0
         }
     ]
-})
+});
 function listenTime(options: Record<string, string|number|boolean>, fire: ()=>void) {
     const hour = options.hour as number;
     const minute = options.minute as number;
@@ -87,3 +88,21 @@ function listenTime(options: Record<string, string|number|boolean>, fire: ()=>vo
         clearTimeout(timeout);
     };
 }
+
+registerGlobalAction({
+    id: "delay",
+    name: "Wait specified time",
+    fields: [
+        {
+            id: "time",
+            label: "Time",
+            description: "Time to wait in seconds. Note: action execution should be set to 'sequential' for this action to work.",
+            type: "number",
+            default: 1,
+            postfix: 's',
+        }
+    ],
+    perform(options) {
+        return delay(options.time as number * 1000);
+    },
+});
