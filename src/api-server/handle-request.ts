@@ -528,6 +528,7 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
     async "automation.getManualTriggerRoutines"() {
         return ok({
             routines: routines.order
+                .filter(id => routines.enabled[id])
                 .map(id => routines.routines[id])
                 .map(routine => (
                     routine.triggers
