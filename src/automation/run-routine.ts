@@ -116,6 +116,10 @@ async function executeAction(action: HMApi.T.Automation.Action): Promise<void> {
                 log.w("Device was disabled, canceled");
                 return;
             }
+            if (state !== device.mainToggleState) {
+                await device.toggleMainToggle();
+                await device.updateState(true);
+            }
             break;
         }
         case "deviceAction": {
@@ -126,6 +130,8 @@ async function executeAction(action: HMApi.T.Automation.Action): Promise<void> {
                 log.w("Device was disabled, canceled");
                 return;
             }
+            await device.performAction(action.action, action.options);
+            await device.updateState(true);
             break;
         }
     }
