@@ -13,6 +13,7 @@ import version from './version.js';
 import { handleApiRequest } from './api-server/api-server.js';
 import { createWSServer } from './api-server/websocket.js';
 import { settings } from './settings.js';
+import { initRoutines } from './automation/run-routine.js';
 
 const log = new Log('index.ts');
 console.log("Home_modules hub", version);
@@ -60,6 +61,8 @@ const serverPort = settings.port || (httpsOptions? 443 : 80);
 
     process.stdout.write("[3/3] Starting API server... ");
     log.i(`Init 3/3 Starting API server on port ${serverPort}...`);
+
+    initRoutines();
 
     const server = createServer(handleApiRequest).listen({
         port: serverPort,

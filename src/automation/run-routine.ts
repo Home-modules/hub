@@ -1,3 +1,4 @@
+import beforeShutdown from "../async-cleanup.js";
 import { HMApi, Log } from "../plugins.js";
 import { roomControllerInstances } from "../rooms/rooms.js";
 import { routines } from "./automation.js";
@@ -75,6 +76,14 @@ export function unlistenRoutine(id: number) {
         }
     });
 }
+
+export function initRoutines() {
+    Object.keys(routines.routines).map(id=>parseInt(id)).filter(id => routines.enabled[id]).forEach(listenRoutine);
+}
+export function disposeRoutines() {
+    Object.keys(routines.routines).map(id=>parseInt(id)).filter(id => routines.enabled[id]).forEach(unlistenRoutine);
+}
+beforeShutdown(async()=>disposeRoutines());
 
 export async function runRoutine(id: number) {
     const routine = routines.routines[id];
