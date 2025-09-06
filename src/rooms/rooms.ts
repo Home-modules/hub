@@ -1,9 +1,9 @@
-import { HMApi } from "../api/api.js";
-import { Log } from "../log.js";
-import { getSetting } from "../settings.js";
-import { RoomControllerInstance, NonAbstractClass } from "./RoomControllerInstance.js";
-import { autoRestartMaxTries } from "./autoRestart.js";
-import { loadRoomsFile, saveRooms } from "./roomsFile.js";
+import type { HMApi } from "../api/api.ts";
+import { Log } from "../log.ts";
+import { getSetting } from "../settings.ts";
+import { RoomControllerInstance, NonAbstractClass } from "./RoomControllerInstance.ts";
+import { autoRestartMaxTries } from "./autoRestart.ts";
+import { loadRoomsFile, saveRooms } from "./roomsFile.ts";
 export const log = new Log("rooms");
 
 export let rooms: { [id: string]: HMApi.T.Room } = {};

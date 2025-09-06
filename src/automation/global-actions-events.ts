@@ -1,5 +1,5 @@
-import { delay } from "../misc.js";
-import { SettingsFieldDef } from "../plugins.js";
+import { delay } from "../misc.ts";
+import { SettingsFieldDef } from "../plugins.ts";
 
 type GlobalTriggerType = {
     id: string,

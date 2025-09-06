@@ -1,14 +1,14 @@
-import { HMApi } from './api/api.js';
-import { DeviceTypeClass, registerDeviceType } from './devices/devices.js';
-import { DeviceInstance } from "./devices/DeviceInstance.js";
-import { Log } from './log.js';
-import { registerRoomController } from './rooms/rooms.js';
-import { RoomControllerInstance } from "./rooms/RoomControllerInstance.js";
-import { checkType, HMApi_Types } from './api/api_checkType.js';
-import hubVersion from './version.js';
-import { authorRegex } from './misc.js';
-import { shutdownHandler } from './async-cleanup.js';
-import { registerGlobalAction, registerGlobalTrigger } from "./automation/global-actions-events.js";
+import type { HMApi } from './api/api.ts';
+import { DeviceTypeClass, registerDeviceType } from './devices/devices.ts';
+import { DeviceInstance } from "./devices/DeviceInstance.ts";
+import { Log } from './log.ts';
+import { registerRoomController } from './rooms/rooms.ts';
+import { RoomControllerInstance } from "./rooms/RoomControllerInstance.ts";
+import { checkType, HMApi_Types } from './api/api_checkType.ts';
+import hubVersion from './version.ts';
+import { authorRegex } from './misc.ts';
+import { shutdownHandler } from './async-cleanup.ts';
+import { registerGlobalAction, registerGlobalTrigger } from "./automation/global-actions-events.ts";
 import semver from 'semver';
 import fs from 'fs';
 

@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { Log } from './log.js';
+import { Log } from './log.ts';
 
 const log = new Log('settings');
 

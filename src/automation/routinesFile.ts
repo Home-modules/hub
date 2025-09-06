@@ -1,7 +1,7 @@
 import fs from "fs";
-import { checkType, HMApi_Types } from "../api/api_checkType.js";
-import { routines, setRoutines } from "./automation.js";
-import { Log } from "../log.js";
+import { checkType, HMApi_Types } from "../api/api_checkType.ts";
+import { routines, setRoutines } from "./automation.ts";
+import { Log } from "../log.ts";
 const log = new Log("routines-file");
 
 export function loadRoutinesFile() {

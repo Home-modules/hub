@@ -1,7 +1,7 @@
-import { HMApi } from '../api/api.js';
+import type { HMApi } from '../api/api.ts';
 import crypto from 'crypto';
 import fs from 'fs';
-import { logoutWSConnection, WSConnections } from './websocket.js';
+import { logoutWSConnection, WSConnections } from './websocket.ts';
 
 const logins: { [username: string]: {
     /** The authentication token */

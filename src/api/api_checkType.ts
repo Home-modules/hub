@@ -1,9 +1,9 @@
-import { HMApi } from "./api.js";
+import type { HMApi } from "./api.ts";
 import semver from 'semver';
-import { authorRegex } from "../misc.js";
+import { authorRegex } from "../misc.ts";
 
 // This file contains the algorithm to compare an object to a schema (with a custom format)
-// It also has the schemas for types in [HMApi](./api.js)
+// It also has the schemas for types in [HMApi](./api.ts)
 // It looks like I reinvented the wheel, but TypeScript doesn't support dynamic type checking.
 
 /** Any value / type is valid */

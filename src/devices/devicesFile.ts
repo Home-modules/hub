@@ -1,5 +1,5 @@
-import { checkType, HMApi_Types } from "../api/api_checkType.js";
-import { log, devices, setDevices } from "./devices.js";
+import { checkType, HMApi_Types } from "../api/api_checkType.ts";
+import { log, devices, setDevices } from "./devices.ts";
 import fs from "fs";
 
 export function loadDevicesFile() {

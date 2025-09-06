@@ -1,9 +1,10 @@
-import beforeShutdown from "../async-cleanup.js";
-import { HMApi, Log } from "../plugins.js";
-import { roomControllerInstances } from "../rooms/rooms.js";
-import { routines } from "./automation.js";
-import { registeredGlobalActions, registeredGlobalTriggers } from "./global-actions-events.js";
-import { saveRoutines } from "./routinesFile.js";
+import beforeShutdown from "../async-cleanup.ts";
+import type { HMApi } from "../api/api.ts";
+import { Log } from "../log.ts";
+import { roomControllerInstances } from "../rooms/rooms.ts";
+import { routines } from "./automation.ts";
+import { registeredGlobalActions, registeredGlobalTriggers } from "./global-actions-events.ts";
+import { saveRoutines } from "./routinesFile.ts";
 
 const log = new Log("automation");
 

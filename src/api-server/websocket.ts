@@ -1,10 +1,10 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import http from 'http';
 import https from 'https';
-import { Log } from '../log.js';
-import { checkAuthToken, incrementRateLimit } from './auth.js';
-import { HMApi } from '../plugins.js';
-import { liveSliderStreams } from '../devices/devices.js';
+import { Log } from '../log.ts';
+import { checkAuthToken, incrementRateLimit } from './auth.ts';
+import type { HMApi } from '../plugins.ts';
+import { liveSliderStreams } from '../devices/devices.ts';
 
 const log = new Log('websocket');
 

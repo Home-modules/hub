@@ -1,5 +1,5 @@
-import { HMApi } from "../plugins.js";
-import { loadRoutinesFile } from "./routinesFile.js";
+import type { HMApi } from "../plugins.ts";
+import { loadRoutinesFile } from "./routinesFile.ts";
 
 export let routines = {
     routines: {} as Record<number, HMApi.T.Automation.Routine>,

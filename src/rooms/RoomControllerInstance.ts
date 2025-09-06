@@ -1,12 +1,12 @@
-import { HMApi } from "../api/api.js";
-import { SettingsFieldDef } from "../plugins.js";
-import { devices, getDeviceTypes } from "../devices/devices.js";
-import { saveDevices } from "../devices/devicesFile.js";
-import { DeviceInstance } from "../devices/DeviceInstance.js";
-import { Log } from "../log.js";
-import { getRoomState, log } from "./rooms.js";
-import { sendUpdate } from "../api-server/websocket.js";
-import { roomFailed, roomSucceeded } from "./autoRestart.js";
+import type { HMApi } from "../api/api.ts";
+import { SettingsFieldDef } from "../plugins.ts";
+import { devices, getDeviceTypes } from "../devices/devices.ts";
+import { saveDevices } from "../devices/devicesFile.ts";
+import { DeviceInstance } from "../devices/DeviceInstance.ts";
+import { Log } from "../log.ts";
+import { getRoomState, log } from "./rooms.ts";
+import { sendUpdate } from "../api-server/websocket.ts";
+import { roomFailed, roomSucceeded } from "./autoRestart.ts";
 
 
 export abstract class RoomControllerInstance {

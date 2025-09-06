@@ -1,6 +1,6 @@
-import { HMApi } from "../plugins.js";
-import { routines } from "./automation.js";
-import { saveRoutines } from "./routinesFile.js";
+import type { HMApi } from "../plugins.ts";
+import { routines } from "./automation.ts";
+import { saveRoutines } from "./routinesFile.ts";
 
 export async function addRoutine(routine: HMApi.T.Automation.Routine) {
     const id = ++routines.lastId;

@@ -1,8 +1,8 @@
 import http from 'http';
 import url from 'url';
-import { HMApi } from '../api/api.js';
-import { Log } from '../log.js';
-import handleRequest from './handle-request.js';
+import type { HMApi } from '../api/api.ts';
+import { Log } from '../log.ts';
+import handleRequest from './handle-request.ts';
 import serveHandler from 'serve-handler';
 
 const log = new Log('api-server');

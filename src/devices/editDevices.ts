@@ -1,9 +1,9 @@
-import { HMApi } from "../api/api.js";
-import { getRoom, roomControllerInstances } from "../rooms/rooms.js";
-import { DeviceInstance } from "./DeviceInstance.js";
-import { saveDevices } from "./devicesFile.js";
-import { saveFavoriteDevices } from "./favoriteDevices.js";
-import { devices, getDeviceTypes, favoriteDevices, setFavoriteDevices } from "./devices.js";
+import type { HMApi } from "../api/api.ts";
+import { getRoom, roomControllerInstances } from "../rooms/rooms.ts";
+import { DeviceInstance } from "./DeviceInstance.ts";
+import { saveDevices } from "./devicesFile.ts";
+import { saveFavoriteDevices } from "./favoriteDevices.ts";
+import { devices, getDeviceTypes, favoriteDevices, setFavoriteDevices } from "./devices.ts";
 
 
 export async function addDevice(roomId: string, device: HMApi.T.Device): Promise<true | "room_not_found" | "device_exists" | string> {

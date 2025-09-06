@@ -1,4 +1,4 @@
-import { Paths } from "./api-type-to-path-union.js";
+import { Paths } from "./api-type-to-path-union.ts";
 
 export namespace HMApi {
     export namespace Request {

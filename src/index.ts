@@ -4,16 +4,16 @@ if (!fs.existsSync("../data")) fs.mkdirSync("../data");
 
 import http from 'http';
 import https from 'https';
-import beforeShutdown, { shutdownHandler } from './async-cleanup.js';
-import { Log } from './log.js';
-import './plugins.js';
-import { initPlugins } from './plugins.js';
-import { initRoomsDevices, shutDownRoomsDevices } from './rooms/rooms.js';
-import version from './version.js';
-import { handleApiRequest } from './api-server/api-server.js';
-import { createWSServer } from './api-server/websocket.js';
-import { settings } from './settings.js';
-import { initRoutines } from './automation/run-routine.js';
+import beforeShutdown, { shutdownHandler } from './async-cleanup.ts';
+import { Log } from './log.ts';
+import './plugins.ts';
+import { initPlugins } from './plugins.ts';
+import { initRoomsDevices, shutDownRoomsDevices } from './rooms/rooms.ts';
+import version from './version.ts';
+import { handleApiRequest } from './api-server/api-server.ts';
+import { createWSServer } from './api-server/websocket.ts';
+import { settings } from './settings.ts';
+import { initRoutines } from './automation/run-routine.ts';
 
 const log = new Log('index.ts');
 console.log("Home_modules hub", version);

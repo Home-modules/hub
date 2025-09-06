@@ -1,18 +1,18 @@
-import { HMApi } from "../api/api.js";
-import { checkType, HMApi_Types } from "../api/api_checkType.js";
-import { shutdownHandler } from "../async-cleanup.js";
-import { changePassword, changeUsername, checkAuthToken, getSessions, getSessionsCount, incrementRateLimit, loginUser, logOutOtherSessions, logOutSession, terminateSession, usernameExists } from "./auth.js";
-import { DeviceTypeClass, endLiveSlider, getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, restartDevice, sendDeviceInteractionAction, startLiveSlider, toggleDeviceIsFavorite } from "../devices/devices.js";
-import { addDevice, deleteDevice, editDevice, reorderDevices } from "../devices/editDevices.js";
-import getFlatFields from "../flat-fields.js";
-import { getInstalledPlugins, getInstalledPluginsInfo, SettingsFieldDef, togglePluginIsActivated } from "../plugins.js";
-import { getRoomControllerTypes, getRooms, getRoomState, registeredRoomControllers, restartRoom, roomControllerInstances } from "../rooms/rooms.js";
-import { addRoom, deleteRoom, editRoom, reorderRooms } from "../rooms/editRooms.js";
-import version from "../version.js";
-import { routines } from "../automation/automation.js";
-import { addRoutine, deleteRoutine, editRoutine, reorderRoutines } from "../automation/editRoutines.js";
-import { registeredGlobalActions, registeredGlobalTriggers } from "../automation/global-actions-events.js";
-import { disableRoutine, enableRoutine, runRoutine } from "../automation/run-routine.js";
+import type { HMApi } from "../api/api.ts";
+import { checkType, HMApi_Types } from "../api/api_checkType.ts";
+import { shutdownHandler } from "../async-cleanup.ts";
+import { changePassword, changeUsername, checkAuthToken, getSessions, getSessionsCount, incrementRateLimit, loginUser, logOutOtherSessions, logOutSession, terminateSession, usernameExists } from "./auth.ts";
+import { DeviceTypeClass, endLiveSlider, getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, restartDevice, sendDeviceInteractionAction, startLiveSlider, toggleDeviceIsFavorite } from "../devices/devices.ts";
+import { addDevice, deleteDevice, editDevice, reorderDevices } from "../devices/editDevices.ts";
+import getFlatFields from "../flat-fields.ts";
+import { getInstalledPlugins, getInstalledPluginsInfo, SettingsFieldDef, togglePluginIsActivated } from "../plugins.ts";
+import { getRoomControllerTypes, getRooms, getRoomState, registeredRoomControllers, restartRoom, roomControllerInstances } from "../rooms/rooms.ts";
+import { addRoom, deleteRoom, editRoom, reorderRooms } from "../rooms/editRooms.ts";
+import version from "../version.ts";
+import { routines } from "../automation/automation.ts";
+import { addRoutine, deleteRoutine, editRoutine, reorderRoutines } from "../automation/editRoutines.ts";
+import { registeredGlobalActions, registeredGlobalTriggers } from "../automation/global-actions-events.ts";
+import { disableRoutine, enableRoutine, runRoutine } from "../automation/run-routine.ts";
 
 function ok<R extends HMApi.Request>(data: HMApi.Response<R>): HMApi.ResponseOrError<R> {
     return { type: "ok", data };

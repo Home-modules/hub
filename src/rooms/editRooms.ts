@@ -1,10 +1,10 @@
-import { HMApi } from "../api/api.js";
-import { devices, favoriteDevices } from "../devices/devices.js";
-import { editFavoriteDevices } from "../devices/favoriteDevices.js";
-import { saveDevices } from "../devices/devicesFile.js";
-import { RoomControllerInstance } from "./RoomControllerInstance.js";
-import { saveRooms } from "./roomsFile.js";
-import { rooms, registeredRoomControllers, roomControllerInstances, setRooms, setRoomControllerInstances } from "./rooms.js";
+import type { HMApi } from "../api/api.ts";
+import { devices, favoriteDevices } from "../devices/devices.ts";
+import { editFavoriteDevices } from "../devices/favoriteDevices.ts";
+import { saveDevices } from "../devices/devicesFile.ts";
+import { RoomControllerInstance } from "./RoomControllerInstance.ts";
+import { saveRooms } from "./roomsFile.ts";
+import { rooms, registeredRoomControllers, roomControllerInstances, setRooms, setRoomControllerInstances } from "./rooms.ts";
 
 
 

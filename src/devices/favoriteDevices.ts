@@ -1,5 +1,5 @@
-import { getRooms } from "../rooms/rooms.js";
-import { log, favoriteDevices, devices, setFavoriteDevices } from "./devices.js";
+import { getRooms } from "../rooms/rooms.ts";
+import { log, favoriteDevices, devices, setFavoriteDevices } from "./devices.ts";
 import fs from "fs";
 
 export function loadFavoriteDevices() {

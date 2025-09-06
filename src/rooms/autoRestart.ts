@@ -1,7 +1,7 @@
-import { sendUpdate } from "../api-server/websocket.js";
-import { delay } from "../misc.js";
-import { getSetting } from "../settings.js";
-import { getRoomState, restartRoom, roomControllerInstances } from "./rooms.js";
+import { sendUpdate } from "../api-server/websocket.ts";
+import { delay } from "../misc.ts";
+import { getSetting } from "../settings.ts";
+import { getRoomState, restartRoom, roomControllerInstances } from "./rooms.ts";
 
 const retries: Record<string, number> = {};
 export const autoRestartMaxTries = getSetting('autoRestartMaxTries', 5);

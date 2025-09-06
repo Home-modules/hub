@@ -1,11 +1,11 @@
-import { HMApi } from "../api/api.js";
-import { SettingsFieldDef } from "../plugins.js";
-import { RoomControllerInstance } from "../rooms/RoomControllerInstance.js";
-import { Log } from "../log.js";
-import { sendUpdate } from "../api-server/websocket.js";
-import { DeviceTypeClass, getDeviceState } from "./devices.js";
-import { saveDevices } from "./devicesFile.js";
-import { runRoutine } from "../automation/run-routine.js";
+import type { HMApi } from "../api/api.ts";
+import { SettingsFieldDef } from "../plugins.ts";
+import { RoomControllerInstance } from "../rooms/RoomControllerInstance.ts";
+import { Log } from "../log.ts";
+import { sendUpdate } from "../api-server/websocket.ts";
+import { DeviceTypeClass, getDeviceState } from "./devices.ts";
+import { saveDevices } from "./devicesFile.ts";
+import { runRoutine } from "../automation/run-routine.ts";
 
 
 export abstract class DeviceInstance {

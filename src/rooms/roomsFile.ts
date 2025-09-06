@@ -1,6 +1,6 @@
 import fs from "fs";
-import { checkType, HMApi_Types } from "../api/api_checkType.js";
-import { log, rooms, setRooms } from "./rooms.js";
+import { checkType, HMApi_Types } from "../api/api_checkType.ts";
+import { log, rooms, setRooms } from "./rooms.ts";
 
 export function loadRoomsFile() {
     if (!(() => {

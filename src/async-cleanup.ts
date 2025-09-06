@@ -10,7 +10,7 @@
  * I understand how it works.
  */
 
-import { Log } from "./log.js";
+import { Log } from "./log.ts";
 const log = new Log('async-cleanup.ts');
 
 type BeforeShutdownListener = (signalOrEvent?: string) => Promise<void>;

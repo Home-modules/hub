@@ -1,11 +1,11 @@
-import { HMApi } from "../api/api.js";
-import { getRoom, getRooms, roomControllerInstances } from "../rooms/rooms.js";
-import { NonAbstractClass } from "../rooms/RoomControllerInstance.js";
-import { Log } from "../log.js";
-import { HMApi_Types } from "../api/api_checkType.js";
-import { DeviceInstance } from "./DeviceInstance.js";
-import { loadDevicesFile } from "./devicesFile.js";
-import { loadFavoriteDevices, saveFavoriteDevices } from "./favoriteDevices.js";
+import type { HMApi } from "../api/api.ts";
+import { getRoom, getRooms, roomControllerInstances } from "../rooms/rooms.ts";
+import { NonAbstractClass } from "../rooms/RoomControllerInstance.ts";
+import { Log } from "../log.ts";
+import { HMApi_Types } from "../api/api_checkType.ts";
+import { DeviceInstance } from "./DeviceInstance.ts";
+import { loadDevicesFile } from "./devicesFile.ts";
+import { loadFavoriteDevices, saveFavoriteDevices } from "./favoriteDevices.ts";
 
 export const log = new Log("devices");
 

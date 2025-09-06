@@ -1,5 +1,5 @@
-import { HMApi } from "./api/api.js";
-import { SettingsFieldDef } from "./plugins.js";
+import type { HMApi } from "./api/api.ts";
+import { SettingsFieldDef } from "./plugins.ts";
 
 type SettingsFieldWithoutContainer = Exclude<SettingsFieldDef, HMApi.T.SettingsField.TypeContainer>;
 
