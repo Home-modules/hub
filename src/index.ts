@@ -1,6 +1,7 @@
 import fs from 'fs';
+import { dataPath, httpsCertPath, httpsKeyPath } from './misc.ts';
 
-if (!fs.existsSync("../data")) fs.mkdirSync("../data");
+if (!fs.existsSync(dataPath)) fs.mkdirSync(dataPath);
 
 import Path from 'path'
 import beforeShutdown from './async-cleanup.ts';
@@ -22,9 +23,9 @@ log.i(process.argv.join(' '));
 const allowHttps = !(settings.forceHTTP||false);
 if (!allowHttps) log.i("HTTPS is disabled. Will use HTTP even if private key and certificate are found.");
 const httpsOptions: Bun.TLSOptions | undefined =
-    (allowHttps && fs.existsSync("../data/key.pem") && fs.existsSync("../data/cert.pem")) ? {
-        key: fs.readFileSync("../data/key.pem"),
-        cert: fs.readFileSync("../data/cert.pem")
+    (allowHttps && fs.existsSync(httpsKeyPath) && fs.existsSync(httpsCertPath)) ? {
+        key: fs.readFileSync(httpsKeyPath),
+        cert: fs.readFileSync(httpsCertPath)
     } : undefined;
 if (httpsOptions) {
     log.i("Found TLS private key at data/key.pem and certificate at data/cert.pem");
@@ -41,7 +42,7 @@ function createServer() {
             "/": Response.redirect("/webapp/"),
             "/webapp/*": req => {
                 const url = new URL(req.url);
-                let filePath = Path.join("../data", url.pathname);
+                let filePath = Path.join(dataPath, url.pathname);
                 if (filePath.endsWith('/')) filePath += 'index.html'
                 
                 try {

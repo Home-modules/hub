@@ -1,12 +1,12 @@
 import type { HMApi } from './api/api.ts';
-import { DeviceTypeClass, registerDeviceType } from './devices/devices.ts';
+import { type DeviceTypeClass, registerDeviceType } from './devices/devices.ts';
 import { DeviceInstance } from "./devices/DeviceInstance.ts";
 import { Log } from './log.ts';
 import { registerRoomController } from './rooms/rooms.ts';
 import { RoomControllerInstance } from "./rooms/RoomControllerInstance.ts";
 import { checkType, HMApi_Types } from './api/api_checkType.ts';
 import hubVersion from './version.ts';
-import { authorRegex } from './misc.ts';
+import { authorRegex, pluginsFilePath } from './misc.ts';
 import { shutdownHandler } from './async-cleanup.ts';
 import { registerGlobalAction, registerGlobalTrigger } from "./automation/global-actions-events.ts";
 import semver from 'semver';
@@ -14,17 +14,17 @@ import fs from 'fs';
 
 const log = new Log('plugins');
 
-const pluginsRoot = '../node_modules';
+const pluginsRoot = './node_modules';
 
 let activatedPlugins: string[] = [ ];
 export async function initPlugins() {
     if (!(() => {
         const corruptError = "Warning: The file containing information about the list of activated plugins is corrupt. All plugins have been deactivated.";
-        if (!fs.existsSync('../data/plugins.json'))  {
+        if (!fs.existsSync(pluginsFilePath))  {
             log.w("data/plugins.json doesn't exist. Creating it...");
             return false;
         }
-        const json = fs.readFileSync('../data/plugins.json', 'utf8');
+        const json = fs.readFileSync(pluginsFilePath, 'utf8');
         if (!json) {
             console.error(corruptError);
             log.e("data/plugins.json exists but is empty. This was probably caused by a crash while saving the file. Recreating it...");
@@ -51,7 +51,7 @@ export async function initPlugins() {
 }
 
 async function savePlugins(plugins: string[]) {
-    return fs.promises.writeFile('../data/plugins.json', JSON.stringify(activatedPlugins = plugins));
+    return fs.promises.writeFile(pluginsFilePath, JSON.stringify(activatedPlugins = plugins));
 }
 
 const deviceTypesToRegister: DeviceTypeClass[] = [];
@@ -168,7 +168,7 @@ export async function getPluginInfo(id: string, isFullyInstalled = true): Promis
 }
 
 export async function getInstalledPlugins() {
-    return Object.keys(JSON.parse(await fs.promises.readFile('../package.json', 'utf-8')).dependencies).filter(p => p.startsWith('hmp-')).map(p => p.slice(4 /** 'hmp-'.length */));
+    return Object.keys(JSON.parse(await fs.promises.readFile('./package.json', 'utf-8')).dependencies).filter(p => p.startsWith('hmp-')).map(p => p.slice(4 /** 'hmp-'.length */));
 }
 
 export async function getInstalledPluginsInfo() {

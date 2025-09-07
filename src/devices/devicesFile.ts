@@ -1,4 +1,5 @@
 import { checkType, HMApi_Types } from "../api/api_checkType.ts";
+import { devicesFilePath } from "../misc.ts";
 import { log, devices, setDevices } from "./devices.ts";
 import fs from "fs";
 
@@ -6,12 +7,12 @@ export function loadDevicesFile() {
     if (!(() => {
         const corruptError = "Warning: The file containing information about the devices is corrupt. All devices have been lost.";
 
-        if (!fs.existsSync('../data/devices.json')) {
+        if (!fs.existsSync(devicesFilePath)) {
             log.w("data/devices.json doesn't exist. Creating it...");
             return false;
         }
 
-        const json = fs.readFileSync('../data/devices.json', 'utf8');
+        const json = fs.readFileSync(devicesFilePath, 'utf8');
         if (!json) {
             log.e("data/devices.json exists but is empty. This was probably caused by a crash while saving the file. Recreating it...");
             console.error(corruptError);
@@ -73,6 +74,6 @@ export function loadDevicesFile() {
 }
 
 export function saveDevices() {
-    fs.writeFile('../data/devices.json', JSON.stringify(devices), () => undefined);
+    fs.writeFile(devicesFilePath, JSON.stringify(devices), () => undefined);
     log.d("Saving devices");
 }

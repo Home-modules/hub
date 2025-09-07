@@ -1,9 +1,10 @@
 import fs from 'fs';
+import { logFilePath } from './misc.ts';
 
 const logEnabled = !process.argv.includes('--no-log');
 const debugEnabled = process.argv.includes('--debug');
 
-const logStream = logEnabled ? fs.createWriteStream('../data/log.log') : null;
+const logStream = logEnabled ? fs.createWriteStream(logFilePath) : null;
 
 function log(level: string, component: string, ...args: any[]) {
     if(logEnabled) {

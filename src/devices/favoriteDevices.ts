@@ -1,3 +1,4 @@
+import { favoriteDevicesFilePath } from "../misc.ts";
 import { getRooms } from "../rooms/rooms.ts";
 import { log, favoriteDevices, devices, setFavoriteDevices } from "./devices.ts";
 import fs from "fs";
@@ -5,11 +6,11 @@ import fs from "fs";
 export function loadFavoriteDevices() {
     if (!(() => {
         const corruptError = "Warning: The file containing information about the favorite devices is corrupt. The list has been cleared.";
-        if (!fs.existsSync('../data/favorite-devices.json')) {
+        if (!fs.existsSync(favoriteDevicesFilePath)) {
             log.w("data/favorite-devices.json does not exist. Creating it...");
             return false;
         }
-        const json = fs.readFileSync('../data/favorite-devices.json', 'utf8');
+        const json = fs.readFileSync(favoriteDevicesFilePath, 'utf8');
         if (!json) {
             console.error(corruptError);
         }
@@ -38,7 +39,7 @@ export function loadFavoriteDevices() {
 }
 
 export function saveFavoriteDevices() {
-    fs.writeFile('../data/favorite-devices.json', JSON.stringify(favoriteDevices), () => undefined);
+    fs.writeFile(favoriteDevicesFilePath, JSON.stringify(favoriteDevices), () => undefined);
     log.d("Saving favorite devices");
 }
 

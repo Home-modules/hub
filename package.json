@@ -5,8 +5,8 @@
   "main": "index.ts",
   "type": "module",
   "scripts": {
-    "start": "cd src && bun .",
-    "test": "cd src && node index.test.js"
+    "start": "bun src",
+    "test": "bun test"
   },
   "devDependencies": {
     "@types/bun": "^1.2.21",

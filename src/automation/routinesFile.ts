@@ -2,17 +2,18 @@ import fs from "fs";
 import { checkType, HMApi_Types } from "../api/api_checkType.ts";
 import { routines, setRoutines } from "./automation.ts";
 import { Log } from "../log.ts";
+import { automationFilePath } from "../misc.ts";
 const log = new Log("routines-file");
 
 export function loadRoutinesFile() {
     if (!(() => {
-        if (!fs.existsSync('../data/automation-routines.json')) {
+        if (!fs.existsSync(automationFilePath)) {
             log.w("data/automation-routines.json doesn't exist. Creating it...");
             return false;
         }
 
         const corruptError = "Warning: The file containing automation data is corrupt. The file will be recreated but all routines have been lost.";
-        const routinesJSON = fs.readFileSync('../data/automation-routines.json', 'utf8');
+        const routinesJSON = fs.readFileSync(automationFilePath, 'utf8');
         if (!routinesJSON) { // This can happen when the hub crashes while saving routines (it shouldn't). This leads to a corrupted file.
             log.e("data/automation-routines.json exists but is empty. This was probably caused by a crash while saving the file. Recreating it...");
             console.error(corruptError);
@@ -92,5 +93,5 @@ export function loadRoutinesFile() {
 
 export function saveRoutines() {
     log.i("Saving data/automation-routines.json...");
-    return fs.promises.writeFile('../data/automation-routines.json', JSON.stringify(routines));
+    return fs.promises.writeFile(automationFilePath, JSON.stringify(routines));
 }

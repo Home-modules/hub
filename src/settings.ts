@@ -1,5 +1,6 @@
 import fs from 'fs';
 import { Log } from './log.ts';
+import { settingsFilePath } from './misc.ts';
 
 const log = new Log('settings');
 
@@ -30,15 +31,15 @@ export type Settings = {
 export let settings: Settings;
 
 export function saveSettings() {
-    return fs.promises.writeFile("../data/settings.json", JSON.stringify(settings));
+    return fs.promises.writeFile(settingsFilePath, JSON.stringify(settings));
 }
 
 if (!(() => {
-    if (!fs.existsSync("../data/settings.json")) {
+    if (!fs.existsSync(settingsFilePath)) {
         log.i("settings.json does not exist and will be created.");
         return false;
     }
-    const file = fs.readFileSync("../data/settings.json", "utf-8");
+    const file = fs.readFileSync(settingsFilePath, "utf-8");
     if (file == "") {
         log.e("settings.json is empty. This was probably caused by a crash.");
         return false;

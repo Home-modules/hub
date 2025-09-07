@@ -1,16 +1,17 @@
 import fs from "fs";
 import { checkType, HMApi_Types } from "../api/api_checkType.ts";
 import { log, rooms, setRooms } from "./rooms.ts";
+import { roomsFilePath } from "../misc.ts";
 
 export function loadRoomsFile() {
     if (!(() => {
-        if (!fs.existsSync('../data/rooms.json')) {
+        if (!fs.existsSync(roomsFilePath)) {
             log.w("data/rooms.json doesn't exist. Creating it...");
             return false;
         }
 
         const corruptError = "Warning: The file containing information about rooms is corrupt. The file will be recreated but all rooms have been lost.";
-        const roomsJSON = fs.readFileSync('../data/rooms.json', 'utf8');
+        const roomsJSON = fs.readFileSync(roomsFilePath, 'utf8');
         if (!roomsJSON) { // This can happen when the hub crashes while saving rooms (it shouldn't), usually when a room controller is being initialized. This leads to a corrupted file.
             log.e("data/rooms.json exists but is empty. This was probably caused by a crash while saving the file. Recreating it...");
             console.error(corruptError);
@@ -58,5 +59,5 @@ export function loadRoomsFile() {
 
 export function saveRooms() {
     log.i("Saving data/rooms.json...");
-    fs.writeFile('../data/rooms.json', JSON.stringify(rooms), ()=>undefined);
+    fs.writeFile(roomsFilePath, JSON.stringify(rooms), ()=>undefined);
 }

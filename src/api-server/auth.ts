@@ -2,6 +2,7 @@ import type { HMApi } from '../api/api.ts';
 import crypto from 'crypto';
 import fs from 'fs';
 import { logoutWSConnection, WSConnections } from './websocket.ts';
+import { usersFilePath } from '../misc.ts';
 
 const logins: { [username: string]: {
     /** The authentication token */
@@ -22,12 +23,12 @@ export let users: { [username: string]: string } = {
     admin: crypto.createHash('sha256').update('admin').digest('hex')
 };
 
-if(fs.existsSync('../data/users.json')) {
-    users= JSON.parse(fs.readFileSync('../data/users.json', {encoding: 'utf-8'}));
+if(fs.existsSync(usersFilePath)) {
+    users= JSON.parse(fs.readFileSync(usersFilePath, {encoding: 'utf-8'}));
 } else saveUsers();
 
 function saveUsers() {
-    fs.writeFile('../data/users.json', JSON.stringify(users), ()=>undefined);
+    fs.writeFile(usersFilePath, JSON.stringify(users), ()=>undefined);
 }
 
 /**
