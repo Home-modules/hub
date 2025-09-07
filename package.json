@@ -9,15 +9,10 @@
     "test": "cd src && node index.test.js"
   },
   "devDependencies": {
+    "@types/bun": "^1.2.21",
     "@types/semver": "^7.3.12",
     "@types/serve-handler": "^6.1.1",
     "@types/ws": "^8.5.4",
-    "@typescript-eslint/eslint-plugin": "^5.10.2",
-    "@typescript-eslint/parser": "^5.10.2",
-    "bun-types": "^1.2.21",
-    "eslint": "^8.8.0",
-    "eslint-plugin-import": "^2.25.4",
-    "ts-node": "^10.9.1",
     "typescript": "^5.1.6"
   },
   "dependencies": {
@@ -25,10 +20,7 @@
     "hmp-arduino": "^0.0.7-dev3",
     "hmp-test": "1.0.0",
     "hmp-toggle-theme": "0.0.1",
-    "pm2": "^5.2.0",
     "semver": "^7.3.7",
-    "serialport": "^10.4.0",
-    "serve-handler": "^6.1.3",
-    "ws": "^8.11.0"
+    "serialport": "^10.4.0"
   }
 }

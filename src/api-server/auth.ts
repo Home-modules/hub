@@ -179,7 +179,7 @@ export function changeUsername(token: string, newUsername: string): string|false
     require24HoursSession(token);
 
     logins[username].filter(l => l.token !== tk).forEach(l => logoutWSConnection(username + ':' + l.token));
-    WSConnections.filter(c => c.token === token).forEach(c => c.token = `${newUsername}:${tk}`);
+    WSConnections.filter(c => c.data === token).forEach(c => c.data = `${newUsername}:${tk}`);
     users[newUsername]= users[username];
     delete users[username];
     saveUsers();

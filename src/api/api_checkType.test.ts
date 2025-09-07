@@ -1,334 +1,68 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { strictEqual, deepStrictEqual } from 'assert';
-import { checkType } from './api_checkType.js';
+import { checkType } from './api_checkType.ts';
+import { expect, test } from "bun:test";
 
-export default function runTests() {
-    const defaultError: ReturnType<typeof checkType>= {
-        code: 400,
-        message: "INVALID_PARAMETER",
-        paramName: '' as any
-    };
-    const defaultRangeError: ReturnType<typeof checkType>= {
-        code: 400,
-        message: "PARAMETER_OUT_OF_RANGE",
-        paramName: '' as any
-    };
+const defaultError: ReturnType<typeof checkType> = {
+    code: 400,
+    message: "INVALID_PARAMETER",
+    paramName: '' as any
+};
+const defaultRangeError: ReturnType<typeof checkType> = {
+    code: 400,
+    message: "PARAMETER_OUT_OF_RANGE",
+    paramName: '' as any
+};
 
-    strictEqual(checkType(
-        0,
-        {
-            type: 'any',
-        }
-    ), null);
+test("checkType tests", () => {
+    expect(checkType(0, { type: 'any' })).toBe(null);
+    expect(checkType(99999999999999999999999999999999999999, { type: 'any' })).toBe(null);
+    expect(checkType('', { type: 'any' })).toBe(null);
+    expect(checkType('abc'.repeat(999999), { type: 'any' })).toBe(null);
 
-    strictEqual(checkType(
-        // eslint-disable-next-line @typescript-eslint/no-loss-of-precision
-        99999999999999999999999999999999999999,
-        {
-            type: 'any',
-        }
-    ), null);
+    expect(checkType(0, { type: 'exactValue', value: 0 })).toBe(null);
+    expect(checkType(9, { type: 'exactValue', value: 0 })).toEqual(defaultError);
+    expect(checkType(undefined, { type: 'exactValue', value: null })).toEqual(defaultError);
 
-    strictEqual(checkType(
-        '',
-        {
-            type: 'any',
-        }
-    ), null);
+    expect(checkType('string', { type: 'string', minLength: 1, maxLength: 10 })).toBe(null);
+    expect(checkType(undefined, { type: 'string' })).toEqual(defaultError);
+    expect(checkType('string', { type: 'string', minLength: 6, maxLength: 6 })).toBe(null);
+    expect(checkType('str', { type: 'string', minLength: 4 })).toEqual(defaultRangeError);
+    expect(checkType('str', { type: 'string', maxLength: 2 })).toEqual(defaultRangeError);
 
-    strictEqual(checkType(
-        'abc'.repeat(999999),
-        {
-            type: 'any',
-        }
-    ), null);
+    expect(checkType(5, { type: 'number', min: 0, max: 10 })).toBe(null);
+    expect(checkType([], { type: 'number' })).toEqual(defaultError);
+    expect(checkType(5, { type: 'number', min: 10 })).toEqual(defaultRangeError);
+    expect(checkType(5, { type: 'number', max: 4 })).toEqual(defaultRangeError);
 
-    strictEqual(checkType(
-        0,
-        {
-            type: 'exactValue',
-            value: 0,
-        }
-    ), null);
+    expect(checkType(true, { type: 'boolean' })).toBe(null);
+    expect(checkType(false, { type: 'boolean' })).toBe(null);
+    expect(checkType(0, { type: 'boolean' })).toEqual(defaultError);
 
-    deepStrictEqual(checkType(
-        9,
-        {
-            type: 'exactValue',
-            value: 0
-        }
-    ), defaultError);
+    expect(checkType({}, { type: "object", properties: {} })).toBe(null);
+    expect(checkType(false, { type: "object", properties: {} })).toEqual(defaultError);
+    expect(checkType(undefined, { type: "object", properties: {} })).toEqual(defaultError);
 
-    deepStrictEqual(checkType(
-        undefined,
-        {
-            type: 'exactValue',
-            value: null
-        }
-    ), defaultError);
+    expect(checkType({ '5': 1 }, { type: 'object', properties: { '5': { type: 'number' } } })).toBe(null);
+    expect(checkType({ '5': 'hello' }, { type: 'object', properties: { '5': { type: 'exactValue', value: 'hello' } } })).toBe(null);
+    expect(checkType({ '.': 'hello' }, { type: 'object', properties: { '.': { type: 'exactValue', value: 'hello' } } })).toBe(null);
+    expect(checkType({ 'ooooooooooooooooooooooooooooooooooo': 'hello' }, { type: 'object', properties: { 'ooooooooooooooooooooooooooooooooooo': { type: 'exactValue', value: 'hello' } } })).toBe(null);
+    expect(checkType({ 'ooooooooooooooooooooooooooooooooooo': 'hello', 'g': '' }, { type: 'object', properties: { 'ooooooooooooooooooooooooooooooooooo': { type: 'exactValue', value: 'hello' } } })).toBe(null);
 
-    strictEqual(checkType(
-        'string',
-        {
-            type: 'string',
-            minLength: 1,
-            maxLength: 10,
-        }
-    ), null);
-
-    deepStrictEqual(checkType(
-        undefined,
-        {
-            type: 'string',
-        }
-    ), defaultError);
-
-    strictEqual(checkType(
-        'string',
-        {
-            type: 'string',
-            minLength: 6, // 'string' is 6 characters long
-            maxLength: 6,
-        }
-    ), null);
-
-    deepStrictEqual(checkType(
-        'str',
-        {
-            type: 'string',
-            minLength: 4
-        }
-    ), defaultRangeError);
-
-    deepStrictEqual(checkType(
-        'str',
-        {
-            type: 'string',
-            maxLength: 2
-        }
-    ), defaultRangeError);
-
-    strictEqual(checkType(
-        5,
-        {
-            type: 'number',
-            min: 0,
-            max: 10,
-        }
-    ), null);
-
-    deepStrictEqual(checkType(
-        [],
-        {
-            type: 'number'
-        }
-    ), defaultError);
-
-    deepStrictEqual(checkType(
-        5,
-        {
-            type: 'number',
-            min: 10
-        }
-    ), defaultRangeError);
-
-    deepStrictEqual(checkType(
-        5,
-        {
-            type: 'number',
-            max: 4
-        }
-    ), defaultRangeError);
-
-    strictEqual(checkType(
-        true,
-        {
-            type: 'boolean'
-        }
-    ), null);
-
-    strictEqual(checkType(
-        false,
-        {
-            type: 'boolean'
-        }
-    ), null);
-
-    deepStrictEqual(checkType(
-        0,
-        {
-            type: 'boolean'
-        }
-    ), defaultError);
-
-    strictEqual(checkType(
-        {},
-        {
-            type: "object",
-            properties: {}
-        }
-    ), null);
-
-    deepStrictEqual(checkType(
-        false,
-        {
-            type: "object",
-            properties: {}
-        }
-    ), defaultError);
-
-    deepStrictEqual(checkType(
-        undefined,
-        {
-            type: "object",
-            properties: {}
-        }
-    ), defaultError);
-
-    strictEqual(checkType(
-        {'5': 1},
-        {
-            type: 'object',
-            properties: {
-                '5': { type: 'number' }
-            }
-        }
-    ), null);
-
-    strictEqual(checkType(
-        {'5': 'hello'},
-        {
-            type: 'object',
-            properties: {
-                '5': { type: 'exactValue', value: 'hello' }
-            }
-        }
-    ), null);
-
-    strictEqual(checkType(
-        {'.': 'hello'},
-        {
-            type: 'object',
-            properties: {
-                '.': { type: 'exactValue', value: 'hello' }
-            }
-        }
-    ), null);
-
-    strictEqual(checkType(
-        {'ooooooooooooooooooooooooooooooooooo': 'hello'},
-        {
-            type: 'object',
-            properties: {
-                'ooooooooooooooooooooooooooooooooooo': { type: 'exactValue', value: 'hello' }
-            }
-        }
-    ), null);
-
-    strictEqual(checkType(
-        {'ooooooooooooooooooooooooooooooooooo': 'hello', 'g': ''},
-        {
-            type: 'object',
-            properties: {
-                'ooooooooooooooooooooooooooooooooooo': { type: 'exactValue', value: 'hello' }
-            }
-        }
-    ), null);
-
-    deepStrictEqual(checkType(
-        {'oooooooooooooooooooooooooooooooooo': 'hello', 'g': ''}, // Has one less 'o'
-        {
-            type: 'object',
-            properties: {
-                'ooooooooooooooooooooooooooooooooooo': { type: 'exactValue', value: 'hello' },
-                'g': { type: "string" }
-            }
-        }
-    ), {
+    expect(checkType({ 'oooooooooooooooooooooooooooooooooo': 'hello', 'g': '' }, { type: 'object', properties: { 'ooooooooooooooooooooooooooooooooooo': { type: 'exactValue', value: 'hello' }, 'g': { type: "string" } } })).toEqual({
         code: 400,
         message: 'MISSING_PARAMETER',
-        missingParameters: [ 'ooooooooooooooooooooooooooooooooooo' ]
+        missingParameters: ['ooooooooooooooooooooooooooooooooooo']
     });
 
-    strictEqual(checkType(
-        {'one': 'hello', 'two': ''},
-        {
-            type: 'object',
-            properties: {
-                'one': { type: 'exactValue', value: 'hello', optional: false },
-                'two': { type: 'string', optional: true }
-            }
-        }
-    ), null);
+    expect(checkType({ 'one': 'hello', 'two': '' }, { type: 'object', properties: { 'one': { type: 'exactValue', value: 'hello', optional: false }, 'two': { type: 'string', optional: true } } })).toBe(null);
+    expect(checkType({ 'one': 'hello' }, { type: 'object', properties: { 'one': { type: 'exactValue', value: 'hello', optional: false }, 'two': { type: 'string', optional: true } } })).toBe(null);
 
-    strictEqual(checkType(
-        {'one': 'hello'},
-        {
-            type: 'object',
-            properties: {
-                'one': { type: 'exactValue', value: 'hello', optional: false },
-                'two': { type: 'string', optional: true }
-            }
-        }
-    ), null);
-
-    deepStrictEqual(checkType(
-        { },
-        {
-            type: 'object',
-            properties: {
-                'two': { type: 'string', optional: true },
-                'one': { type: 'exactValue', value: 'hello', optional: false }
-            }
-        }
-    ), {
-        code: 400,
-        message: 'MISSING_PARAMETER',
-        missingParameters: [ 'one' ]
-    });
-
-    deepStrictEqual(checkType(
-        { },
-        {
-            type: 'object',
-            properties: {
-                'two': { type: 'string', optional: true },
-                'one': { type: 'exactValue', value: 'hello', optional: false }
-            }
-        }
-    ), {
+    expect(checkType({}, { type: 'object', properties: { 'two': { type: 'string', optional: true }, 'one': { type: 'exactValue', value: 'hello', optional: false } } })).toEqual({
         code: 400,
         message: 'MISSING_PARAMETER',
         missingParameters: ['one']
     });
 
-    strictEqual(checkType(
-        [],
-        {
-            type: 'array',
-            items: {
-                type: 'boolean'
-            }
-        }
-    ), null);
-
-    strictEqual(checkType(
-        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,],
-        {
-            type: 'array',
-            items: {
-                type: 'number'
-            }
-        }
-    ), null);
-
-    deepStrictEqual(checkType(
-        false,
-        {
-            type: 'array',
-            items: {
-                type: 'boolean'
-            }
-        }
-    ), defaultError);
-}
+    expect(checkType([], { type: 'array', items: { type: 'boolean' } })).toBe(null);
+    expect(checkType([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], { type: 'array', items: { type: 'number' } })).toBe(null);
+    expect(checkType(false, { type: 'array', items: { type: 'boolean' } })).toEqual(defaultError);
+});

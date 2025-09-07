@@ -2,16 +2,15 @@ import fs from 'fs';
 
 if (!fs.existsSync("../data")) fs.mkdirSync("../data");
 
-import http from 'http';
-import https from 'https';
-import beforeShutdown, { shutdownHandler } from './async-cleanup.ts';
+import Path from 'path'
+import beforeShutdown from './async-cleanup.ts';
 import { Log } from './log.ts';
 import './plugins.ts';
 import { initPlugins } from './plugins.ts';
 import { initRoomsDevices, shutDownRoomsDevices } from './rooms/rooms.ts';
 import version from './version.ts';
 import { handleApiRequest } from './api-server/api-server.ts';
-import { createWSServer } from './api-server/websocket.ts';
+import { WebSocketServer } from './api-server/websocket.ts';
 import { settings } from './settings.ts';
 import { initRoutines } from './automation/run-routine.ts';
 
@@ -22,28 +21,57 @@ log.i("Home_modules hub", version);
 log.i(process.argv.join(' '));
 const allowHttps = !(settings.forceHTTP||false);
 if (!allowHttps) log.i("HTTPS is disabled. Will use HTTP even if private key and certificate are found.");
-const httpsOptions: https.ServerOptions | null =
+const httpsOptions: Bun.TLSOptions | undefined =
     (allowHttps && fs.existsSync("../data/key.pem") && fs.existsSync("../data/cert.pem")) ? {
         key: fs.readFileSync("../data/key.pem"),
         cert: fs.readFileSync("../data/cert.pem")
-    } : null;
+    } : undefined;
 if (httpsOptions) {
-    log.i("Found SSL private key at data/key.pem and certificate at data/cert.pem");
+    log.i("Found TLS private key at data/key.pem and certificate at data/cert.pem");
 } else if(allowHttps) {
     log.w("data/key.pem and/or data/cert.pem was not found. Will fall back to HTTP for API and web app servers.");
 }
 
-function createServer(handler: (req: http.IncomingMessage, res: http.ServerResponse) => void) {
-    if (httpsOptions) {
-        return https.createServer(httpsOptions, handler);
-    } else {
-        return http.createServer(handler);
-    }
-}
-
 const serverPort = settings.port || (httpsOptions? 443 : 80);
 
-(async ()=> {
+function createServer() {
+    Bun.serve({
+        port: serverPort,
+        routes: {
+            "/": Response.redirect("/webapp/"),
+            "/webapp/*": req => {
+                const url = new URL(req.url);
+                let filePath = Path.join("../data", url.pathname);
+                if (filePath.endsWith('/')) filePath += 'index.html'
+                
+                try {
+                    // Check if the file exists
+                    const staticFile = Bun.file(filePath);
+                    if (staticFile.size > 0) {
+                        return new Response(staticFile, {
+                            headers: { "Content-Type": staticFile.type },
+                        });
+                    }
+                } catch (err) {
+                    // File not found or other error
+                }
+            
+                // Return 404 if file doesn't exist
+                return new Response("404 Not Found", { status: 404 });
+            },
+            "/request/*": handleApiRequest,
+            "/ws/": (req, server) => {
+                if (server.upgrade(req)) {
+                    return; // do not return a Response
+                }
+                return new Response("Upgrade failed", { status: 500 });
+            }
+        },
+        websocket: WebSocketServer,
+    })
+}
+
+export async function init () {
     log.i("Starting Home_modules hub");
     process.stdout.write('[1/3] Loading plugins... ');
     log.i("Init 1/3 Loading plugins...");
@@ -63,57 +91,16 @@ const serverPort = settings.port || (httpsOptions? 443 : 80);
     log.i(`Init 3/3 Starting API server on port ${serverPort}...`);
 
     initRoutines();
+    createServer()
+    console.log('✔');
+    log.i("Init 3/3 Starting API server... Done");
+    if (allowHttps && !httpsOptions) {
+        console.log("Warning: SSL certificate and/or private key not found. Falling back to HTTP.");
+    }
+    console.log('Home_modules hub is now running');
+    log.i("Init finished");
+}
 
-    const server = createServer(handleApiRequest).listen({
-        port: serverPort,
-    }, async () => {
-        createWSServer(server);
-        console.log('✔');
-        log.i("Init 3/3 Starting API server... Done");
-        if (allowHttps && !httpsOptions) {
-            console.log("Warning: SSL certificate and/or private key not found. Falling back to HTTP.");
-        }
-        console.log('Home_modules hub is now running');
-        log.i("Init finished");
-    }).on('error', error => {
-        console.log('❌');
-        log.e("Error starting API server:", error);
-        shutdownHandler('server-error');
-        throw error;
-    });
-
-    // async function startWebAppServer() {
-    //     return new Promise<void>(resolve => { // This promise will resolve even if server creation fails.
-    //         process.stdout.write("[4/4] Staring web app server... ");
-    //         log.i(`Init 3/4 Starting web app server on port ${webAppServerPort}...`);
-    //         if (!fs.existsSync('../data/webapp')) {
-    //             console.log('❌');
-    //             console.log('Web app server cancelled: Web app folder not found (this is NOT a fatal error)');
-    //             log.w("Web app server cancelled: 'data/webapp' not found");
-    //             resolve();
-    //             return;
-    //         }
-    //         createServer((req, res) => {
-    //             serveHandler(req, res, {
-    //                 directoryListing: false,
-    //                 public: "../data/webapp",
-    //                 rewrites: [{
-    //                     source: "/**",
-    //                     destination: "index.html"
-    //                 }]
-    //             });
-    //         }).listen({
-    //             port: webAppServerPort
-    //         }, () => {
-    //             console.log('✔');
-    //             log.i("Init 4/4 Starting web app server... Done");
-    //             resolve();
-    //         }).on('error', error => {
-    //             console.log('❌');
-    //             console.log('Web app server cancelled:', error);
-    //             log.e("Error starting web app server:", error);
-    //             resolve();
-    //         });
-    //     });
-    // }
-})();
+if (import.meta.main) { // This file is entry point
+    init();
+}
