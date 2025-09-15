@@ -2,10 +2,10 @@ import type { HMApi } from "../api/api.ts";
 import { checkType, HMApi_Types } from "../api/api_checkType.ts";
 import { shutdownHandler } from "../async-cleanup.ts";
 import { changePassword, changeUsername, checkAuthToken, getSessions, getSessionsCount, incrementRateLimit, loginUser, logOutOtherSessions, logOutSession, terminateSession, usernameExists } from "./auth.ts";
-import { DeviceTypeClass, endLiveSlider, getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, restartDevice, sendDeviceInteractionAction, startLiveSlider, toggleDeviceIsFavorite } from "../devices/devices.ts";
+import { type DeviceTypeClass, endLiveSlider, getDevices, getDeviceStates, getDeviceTypes, getFavoriteDeviceStates, registeredDeviceTypes, restartDevice, sendDeviceInteractionAction, startLiveSlider, toggleDeviceIsFavorite } from "../devices/devices.ts";
 import { addDevice, deleteDevice, editDevice, reorderDevices } from "../devices/editDevices.ts";
 import getFlatFields from "../flat-fields.ts";
-import { getInstalledPlugins, getInstalledPluginsInfo, SettingsFieldDef, togglePluginIsActivated } from "../plugins.ts";
+import { getInstalledPlugins, getInstalledPluginsInfo, type SettingsFieldDef, togglePluginIsActivated } from "../plugins.ts";
 import { getRoomControllerTypes, getRooms, getRoomState, registeredRoomControllers, restartRoom, roomControllerInstances } from "../rooms/rooms.ts";
 import { addRoom, deleteRoom, editRoom, reorderRooms } from "../rooms/editRooms.ts";
 import version from "../version.ts";
@@ -20,7 +20,9 @@ function ok<R extends HMApi.Request>(data: HMApi.Response<R>): HMApi.ResponseOrE
 function error<R extends HMApi.Request>(error: HMApi.Error<R>): HMApi.ResponseOrError<R> {
     return { type: "error", error };
 }
+// biome-ignore lint/suspicious/noExplicitAny: idk
 type ExtractError<R extends HMApi.Request, E extends HMApi.Error<R>> = R extends any ? E extends HMApi.Error<R> ? R : never : never;
+// biome-ignore lint/suspicious/noExplicitAny: idk
 type RequestWith404 = ExtractError<HMApi.Request, HMApi.Error.NotFound<any>>;
 type Get404Object<R extends HMApi.Request, E extends HMApi.Error<R>> = E extends HMApi.Error.NotFound<infer T> ? T : never
 function error404<R extends RequestWith404>(object: Get404Object<R, HMApi.Error<R>>) {
@@ -57,15 +59,13 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
         }
         catch (e) {
             if (e instanceof Error) {
-                if (e.message === "USER_NOT_FOUND") {
+                if (e.message === "USER_NOT_FOUND")
                     return error({ code: 401, message: "LOGIN_USER_NOT_FOUND" });
-                }
-                else if (e.message === "PASSWORD_INCORRECT") {
+                if (e.message === "PASSWORD_INCORRECT")
                     return error({ code: 401, message: "LOGIN_PASSWORD_INCORRECT" });
-                }
-                else throw e;
+                throw e;
             }
-            else throw e;
+            throw e;
         }
     },
 
@@ -80,7 +80,7 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
         } catch (e) {
             if (e === 'SESSION_TOO_NEW')
                 return error({ code: 403, message: "SESSION_TOO_NEW" });
-            else throw e;
+            throw e;
         }
     },
 
@@ -99,10 +99,9 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
         } catch (err) {
             if (err === 'SESSION_NOT_FOUND') 
                 return error404("session");
-            else if (err === 'SESSION_TOO_NEW') 
+            if (err === 'SESSION_TOO_NEW') 
                 return error({ code: 403, message: "SESSION_TOO_NEW" });
-            else 
-                throw err;
+            throw err;
         }
     },
 
@@ -113,10 +112,9 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
         } catch (err) {
             if (err === 'PASSWORD_INCORRECT') 
                 return error({ code: 401, message: "LOGIN_PASSWORD_INCORRECT" });
-            else if (err === 'SESSION_TOO_NEW') 
+            if (err === 'SESSION_TOO_NEW') 
                 return error({ code: 403, message: "SESSION_TOO_NEW" });
-            else
-                throw err;
+            throw err;
         }
     },
 
@@ -133,7 +131,7 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
         } catch (err) {
             if (err === 'SESSION_TOO_NEW') 
                 return error({ code: 403, message: "SESSION_TOO_NEW" });
-            else throw err;
+            throw err;
         }
     },
 
@@ -150,43 +148,38 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
         const res = await editRoom(req.room);
         if (res === true)
             return ok({});
-        else if (res) // Res is either 'true' or a string (in which case it is an error)
+        if (res) // Res is either 'true' or a string (in which case it is an error)
             return error({ code: 400, message: "CUSTOM_PLUGIN_ERROR", text: res });
-        else
-            return error404("room");
+        return error404("room");
     },
 
     async "rooms.addRoom"(req) {
         const res = await addRoom(req.room);
         if (res === true)
             return ok({});
-        else if (res) // Res is either 'true' or a string (in which case it is an error)
+        if (res) // Res is either 'true' or a string (in which case it is an error)
             return error({ code: 400, message: "CUSTOM_PLUGIN_ERROR", text: res });
-        else
-            return error({ code: 400, message: "ROOM_ALREADY_EXISTS" });
+        return error({ code: 400, message: "ROOM_ALREADY_EXISTS" });
     },
 
     async "rooms.removeRoom"(req) {
         const res = await deleteRoom(req.id);
         if (res)
             return ok({});
-        else
-            return error404("room");
+        return error404("room");
     },
 
     async "rooms.changeRoomOrder"(req) {
         if (reorderRooms(req.ids))
             return ok({});
-        else
-            return error({ code: 400, message: "ROOMS_NOT_EQUAL" });
+        return error({ code: 400, message: "ROOMS_NOT_EQUAL" });
     },
 
     async "rooms.restartRoom"(req) {
         const success = await restartRoom(req.id);
         if (success)
             return ok({});
-        else
-            return error404("room");
+        return error404("room");
     },
 
     async "rooms.controllers.getRoomControllerTypes"() {
@@ -199,12 +192,12 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
         if (req.for === "device" || req.for === "roomController") {
             if (!(req.controller in registeredRoomControllers))
                 return error404("controller");
-            if (req.for == 'device' && !(req.deviceType in registeredDeviceTypes[req.controller]))
+            if (req.for === 'device' && !(req.deviceType in registeredDeviceTypes[req.controller]))
                 return error404("deviceType");
 
-            field = req.for == 'device' ?
-                (getFlatFields(registeredDeviceTypes[req.controller][req.deviceType].settingsFields).find(f => f.id == req.field)) :
-                (getFlatFields(registeredRoomControllers[req.controller].settingsFields).find(f => f.id == req.field));
+            field = req.for === 'device' ?
+                (getFlatFields(registeredDeviceTypes[req.controller][req.deviceType].settingsFields).find(f => f.id === req.field)) :
+                (getFlatFields(registeredRoomControllers[req.controller].settingsFields).find(f => f.id === req.field));
         }
         else if (req.for === "deviceAction") {
             const deviceTypes = registeredDeviceTypes[req.controller];
@@ -216,7 +209,7 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
             const action = deviceType.actions?.find(a => a.id === req.action);
             if (!action)
                 return error404("deviceAction");
-            field = getFlatFields(action.fields).find(f => f.id == req.field);
+            field = getFlatFields(action.fields).find(f => f.id === req.field);
         } else {
             const types = req.for === "globalAction" ? registeredGlobalActions : registeredGlobalTriggers;
             const type = types[req.id];
@@ -226,15 +219,14 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
 
         if (!field) return error404("field");
 
-        if (field.type !== 'select' || field.options instanceof Array || !field.options.isLazy)
+        if (field.type !== 'select' || Array.isArray(field.options) || !field.options.isLazy)
             return error({ code: 400, message: "FIELD_NOT_LAZY_SELECT" });
 
         const result = await field.options.callback();
 
-        if (result instanceof Array)
+        if (Array.isArray(result))
             return ok({ items: result });
-        else
-            return error({ code: 400, message: "CUSTOM_PLUGIN_ERROR", text: result.text });
+        return error({ code: 400, message: "CUSTOM_PLUGIN_ERROR", text: result.text });
     },
 
 
@@ -284,34 +276,31 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
         const res = await addDevice(req.roomId, req.device);
         if (res === 'device_exists')
             return error({ code: 400, message: "DEVICE_ALREADY_EXISTS" });
-        else if (res === 'room_not_found')
+        if (res === 'room_not_found')
             return error404("room");
-        else if (typeof res === 'string')
+        if (typeof res === 'string')
             return error({ code: 400, message: "CUSTOM_PLUGIN_ERROR", text: res });
-        else
-            return ok({});
+        return ok({});
     },
 
     async "devices.editDevice"(req) {
         const res = await editDevice(req.roomId, req.device);
         if (res === 'device_not_found')
             return error404("device");
-        else if (res === 'room_not_found')
+        if (res === 'room_not_found')
             return error404("room");
-        else if (typeof res === 'string')
+        if (typeof res === 'string')
             return error({ code: 400, message: "CUSTOM_PLUGIN_ERROR", text: res });
-        else
-            return ok({});
+        return ok({});
     },
 
     async "devices.removeDevice"(req) {
         const res = await deleteDevice(req.roomId, req.id);
         if (res === 'device_not_found')
             return error404("device");
-        else if (res === 'room_not_found')
+        if (res === 'room_not_found')
             return error404("room");
-        else
-            return ok({});
+        return ok({});
     },
 
     async "devices.changeDeviceOrder"(req) {
@@ -327,15 +316,14 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
         const res = await restartDevice(req.roomId, req.id);
         if (res === 'device_not_found')
             return error404("device");
-        else if (res === 'room_not_found')
+        if (res === 'room_not_found')
             return error404("room");
-        else if (res === 'room_disabled')
+        if (res === 'room_disabled')
             return error({
                 code: 500, message: "ROOM_DISABLED",
                 error: roomControllerInstances[req.roomId].disabled as string
             });
-        else
-            return ok({});
+        return ok({});
     },
 
     
@@ -436,8 +424,7 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
     async "devices.interactions.endSliderLiveValue"(req) {
         if (endLiveSlider(req.id))
             return ok({});
-        else
-            return error404("stream");
+        return error404("stream");
     },
 
 
@@ -468,33 +455,31 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
         const res = await addRoutine(req.routine);
         if (res >= 0)
             return ok({ id: res });
-        else
-            return error({ code: 400, message: "ROUTINE_ALREADY_EXISTS" });
+        return error({ code: 400, message: "ROUTINE_ALREADY_EXISTS" });
     },
 
     async "automation.editRoutine"(req) {
         const res = await editRoutine(req.routine);
         if (!res)
             return ok({});
-        else if (res === "NOT_DISABLED")
+        if (res === "NOT_DISABLED")
             return error({ code: 400, message: "ROUTINE_NOT_DISABLED" });
-        else return error404("routine");
+        return error404("routine");
     },
 
     async "automation.removeRoutine"(req) {
         const res = await deleteRoutine(req.id);
         if (!res)
             return ok({});
-        else if (res === "NOT_DISABLED")
+        if (res === "NOT_DISABLED")
             return error({ code: 400, message: "ROUTINE_NOT_DISABLED" });
-        else return error404("routine");
+        return error404("routine");
     },
 
     async "automation.changeRoutineOrder"(req) {
         if (await reorderRoutines(req.ids))
             return ok({});
-        else
-            return error({ code: 400, message: "ROUTINES_NOT_EQUAL" });
+        return error({ code: 400, message: "ROUTINES_NOT_EQUAL" });
     },
 
     async "automation.getGlobalTriggers"() {
@@ -530,7 +515,7 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
             routines: routines.order
                 .filter(id => routines.enabled[id])
                 .map(id => routines.routines[id])
-                .map(routine => (
+                .flatMap(routine => (
                     routine.triggers
                         .filter(trigger => trigger.type === "manual")
                         .map(trigger => ({
@@ -538,7 +523,6 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
                             label: (trigger as HMApi.T.Automation.Trigger.Manual).label
                         }))
                 ))
-                .flat()
         });
     },
 
@@ -558,7 +542,7 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
 export default function handleRequest(token: string, req: HMApi.Request, ip: string): HMApi.ResponseOrError<HMApi.Request> | Promise<HMApi.ResponseOrError<HMApi.Request>> {
     if (req.type !== "account.login") {
         try {
-            const username = checkAuthToken(token)!;
+            const username = checkAuthToken(token);
             if (!username) {
                 return {
                     type: "error",
@@ -579,9 +563,7 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
                     }
                 };
             }
-            else {
-                throw e;
-            }
+            throw e;
         }
     }
 
@@ -591,5 +573,6 @@ export default function handleRequest(token: string, req: HMApi.Request, ip: str
     const err = checkType(req, HMApi_Types.requests[req.type]);
     if (err) return error(err);
 
+    // biome-ignore lint/suspicious/noExplicitAny: TS is stupid
     return handleRequestFunctions[req.type](req as any, { token, ip });
 }

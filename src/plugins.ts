@@ -10,7 +10,7 @@ import { authorRegex, pluginsFilePath } from './misc.ts';
 import { shutdownHandler } from './async-cleanup.ts';
 import { registerGlobalAction, registerGlobalTrigger } from "./automation/global-actions-events.ts";
 import semver from 'semver';
-import fs from 'fs';
+import fs from 'node:fs';
 
 const log = new Log('plugins');
 
@@ -38,7 +38,7 @@ export async function initPlugins() {
             log.e(e);
             return false;
         }
-        if (!(activatedPlugins instanceof Array)) {
+        if (!Array.isArray(activatedPlugins)) {
             console.error(corruptError);
             log.e("data/plugins.json is corrupt: the type is not an array. Recreating it...");
             return false;
@@ -51,7 +51,8 @@ export async function initPlugins() {
 }
 
 async function savePlugins(plugins: string[]) {
-    return fs.promises.writeFile(pluginsFilePath, JSON.stringify(activatedPlugins = plugins));
+    activatedPlugins = plugins
+    return fs.promises.writeFile(pluginsFilePath, JSON.stringify(activatedPlugins));
 }
 
 const deviceTypesToRegister: DeviceTypeClass[] = [];
@@ -60,7 +61,7 @@ async function registerPlugins() {
     log.i('Loading plugins:', activatedPlugins.join(', '));
     for (const name of activatedPlugins) {
         try {
-            await import('hmp-' + name);
+            await import(`hmp-${name}`);
         } catch (err) {
             log.e(`[fatal] Error loading plugin ${name}:`, err);
             console.error(`Fatal error: Plugin ${name} could not be loaded.`);
@@ -118,21 +119,21 @@ export async function getPluginInfo(id: string, isFullyInstalled = true): Promis
         return;
     }
 
-    if (info.name !== 'hmp-'+id) {
+    if (info.name !== `hmp-${id}`) {
         log.e("Invalid plugin:", `the 'name' field in ${pluginDir}/package.json is incorrect`);
         return;
     }
 
     const compatible = semver.satisfies(hubVersion, info.compatibleWithHub);
 
-    info.main ||= id + '.js';
+    info.main ||= `${id}.js`;
 
     if (!info.main.endsWith('.js')) {
         log.e("Invalid plugin: main file for", id, "is not a JS file. If the plugin is in TypeScript, you have to compile it and set `main` to point to a js file.");
         return;
     }
 
-    const mainFileTs = info.main.slice(0, -3) + '.ts';
+    const mainFileTs = `${info.main.slice(0, -3)}.ts`;
     const jsFileExists = await fs.promises.stat(`${pluginDir}/${info.main}`).catch(() => null);
     const tsFileExists = jsFileExists ? false : await fs.promises.stat(`${pluginDir}/${mainFileTs}`).catch(() => null);
 
@@ -141,8 +142,8 @@ export async function getPluginInfo(id: string, isFullyInstalled = true): Promis
         return;
     }
 
-    let author: string | undefined = undefined,
-        authorWebsite: string | undefined = undefined;
+    let author: string | undefined = undefined;
+    let authorWebsite: string | undefined = undefined;
     if (typeof info.author === 'string') {
         const regexRes = authorRegex.exec(info.author);
         if (regexRes) {
@@ -183,13 +184,13 @@ export async function getInstalledPluginsInfo() {
 }
 
 export async function togglePluginIsActivated(id: string, newActivatedState: boolean, shouldRestart = true) {
-    if (activatedPlugins.includes(id) == newActivatedState) return;
+    if (activatedPlugins.includes(id) === newActivatedState) return;
     await savePlugins(newActivatedState ? [...activatedPlugins, id] : activatedPlugins.filter(plugin => plugin !== id));
     shouldRestart && shutdownHandler('restart');
 }
 
 export {
-    HMApi,
+    type HMApi,
     Log,
     RoomControllerInstance,
     DeviceInstance,

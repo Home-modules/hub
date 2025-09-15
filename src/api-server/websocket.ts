@@ -41,37 +41,22 @@ export const WebSocketServer: Bun.WebSocketHandler<string | undefined> = {
 
             if (message.startsWith("SLIDER_VALUE ")) {
                 const [_, id, value] = message.split(' ');
-                const stream = liveSliderStreams[parseInt(id)];
+                const stream = liveSliderStreams[Number.parseInt(id)];
                 stream?.device.sendInteractionAction(stream.interactionId, {
                     type: "setSliderValue",
-                    value: parseFloat(value)
+                    value: Number.parseFloat(value)
                 });
             }
         }
     },
 }
 
-// export function createWSServer(httpServer: https.Server | http.Server) {
-//     log.d("Creating WebSocket server");
-//     const server = new WebSocketServer({
-//         server: httpServer
-//     });
-//     server.on('connection', ws => {
-//         ws.on('message', e => {
-//         });
-//         ws.on('close', () => {
-//             log.i("Closed WS connection with token", connectionObj.token);
-//             WSConnections.splice(WSConnections.indexOf(connectionObj), 1);
-//         });
-//     });
-// }
-
 export function logoutWSConnection(token: string) {
     log.i("Logging out WS connections with token", token);
-    WSConnections.filter(c => c.data === token).forEach(c => {
+    for (const c of WSConnections.filter(c => c.data === token)) {
         c.data = undefined;
         c.send("LOGGED_OUT");
-    });
+    }
 }
 
 export function sendUpdate(update: HMApi.Update, username = '*') {
@@ -81,5 +66,6 @@ export function sendUpdate(update: HMApi.Update, username = '*') {
             WSConnections.filter(c => c.data) :
             WSConnections.filter(c => c.data && c.data.split(':')[0] === username);
     log.d("Recipients:", recipients.map(r => r.data));
-    recipients.forEach(c => c.send("UPDATE " + JSON.stringify(update)));
+    for (const c of recipients)
+        c.send(`UPDATE ${JSON.stringify(update)}`)
 }

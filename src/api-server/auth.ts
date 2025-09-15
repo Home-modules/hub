@@ -1,6 +1,6 @@
 import type { HMApi } from '../api/api.ts';
-import crypto from 'crypto';
-import fs from 'fs';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
 import { logoutWSConnection, WSConnections } from './websocket.ts';
 import { usersFilePath } from '../misc.ts';
 
@@ -40,7 +40,7 @@ function saveUsers() {
  * @returns An auth token for the user
  */
 export function loginUser(username: string|undefined, password: string, device: string, ip: string): string {
-    username = Object.keys(users).find(u=> u.toLowerCase() == username?.toLowerCase());
+    username = Object.keys(users).find(u=> u.toLowerCase() === username?.toLowerCase());
     if(!(username && users[username])) {
         throw new Error('USER_NOT_FOUND');
     }
@@ -57,7 +57,7 @@ export function loginUser(username: string|undefined, password: string, device: 
         loginTime: new Date(),
         ip
     });
-    return username + ':' + tk;
+    return `${username}:${tk}`;
 }
 
 /**

@@ -2,7 +2,7 @@ import type { HMApi } from "../api/api.ts";
 import { devices, favoriteDevices } from "../devices/devices.ts";
 import { editFavoriteDevices } from "../devices/favoriteDevices.ts";
 import { saveDevices } from "../devices/devicesFile.ts";
-import { RoomControllerInstance } from "./RoomControllerInstance.ts";
+import type { RoomControllerInstance } from "./RoomControllerInstance.ts";
 import { saveRooms } from "./roomsFile.ts";
 import { rooms, registeredRoomControllers, roomControllerInstances, setRooms, setRoomControllerInstances } from "./rooms.ts";
 
@@ -71,16 +71,14 @@ export function reorderRooms(ids: string[]): boolean {
     }
 
     const newRooms: { [key: string]: HMApi.T.Room; } = {};
-    ids.forEach(id => {
+    for (const id of ids)
         newRooms[id] = rooms[id];
-    });
     setRooms(newRooms);
     saveRooms();
 
     const newInstances: { [key: string]: RoomControllerInstance; } = {};
-    ids.forEach(id => {
+    for (const id of ids)
         newInstances[id] = roomControllerInstances[id];
-    });
     setRoomControllerInstances(newInstances);
 
     return true;

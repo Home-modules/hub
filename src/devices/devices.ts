@@ -1,9 +1,9 @@
 import type { HMApi } from "../api/api.ts";
 import { getRoom, getRooms, roomControllerInstances } from "../rooms/rooms.ts";
-import { NonAbstractClass } from "../rooms/RoomControllerInstance.ts";
+import type { NonAbstractClass } from "../rooms/RoomControllerInstance.ts";
 import { Log } from "../log.ts";
 import { HMApi_Types } from "../api/api_checkType.ts";
-import { DeviceInstance } from "./DeviceInstance.ts";
+import type { DeviceInstance } from "./DeviceInstance.ts";
 import { loadDevicesFile } from "./devicesFile.ts";
 import { loadFavoriteDevices, saveFavoriteDevices } from "./favoriteDevices.ts";
 
@@ -40,10 +40,10 @@ export type DeviceTypeClass =  NonAbstractClass<typeof DeviceInstance>
 
 export function getDeviceTypes(controllerType: string) {
     const [superType] = controllerType.split(":");
-    return {...registeredDeviceTypes[controllerType], ...registeredDeviceTypes[superType + ":*"], ...registeredDeviceTypes['*']};
+    return {...registeredDeviceTypes[controllerType], ...registeredDeviceTypes[`${superType}:*`], ...registeredDeviceTypes['*']};
 }
 
-export async function restartDevice(roomId: string, id: string): Promise<'room_not_found'|'device_not_found'|'room_disabled'|void> {
+export async function restartDevice(roomId: string, id: string): Promise<'room_not_found'|'device_not_found'|'room_disabled'|undefined> {
     if(!getRooms()[roomId]) {
         return 'room_not_found';
     }
@@ -67,6 +67,7 @@ export async function restartDevice(roomId: string, id: string): Promise<'room_n
 export async function getDeviceStates(roomId: string): Promise<Record<string, HMApi.T.DeviceState>> {
     const controller = roomControllerInstances[roomId];
     const deviceTypes = getDeviceTypes(controller.type);
+    // biome-ignore lint/style/noNonNullAssertion: The only caller already checks that the room is present
     const instanceEntries = Object.keys(getDevices(roomId)!).map(key=> [key, controller.devices[key]] as const);
 
     return Object.fromEntries(

@@ -1,9 +1,10 @@
-import fs from 'fs';
+import fs from 'node:fs';
 import { dataPath, httpsCertPath, httpsKeyPath } from './misc.ts';
 
-if (!fs.existsSync(dataPath)) fs.mkdirSync(dataPath);
+// Need to do this before importing other files, since the other files assume the dir exists at top level
+if (!fs.existsSync(dataPath)) fs.mkdirSync(dataPath); 
 
-import Path from 'path'
+import Path from 'node:path'
 import beforeShutdown from './async-cleanup.ts';
 import { Log } from './log.ts';
 import './plugins.ts';

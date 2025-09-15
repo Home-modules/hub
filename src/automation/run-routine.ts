@@ -79,10 +79,10 @@ export function unlistenRoutine(id: number) {
 }
 
 export function initRoutines() {
-    Object.keys(routines.routines).map(id=>parseInt(id)).filter(id => routines.enabled[id]).forEach(listenRoutine);
+    Object.keys(routines.routines).map(id=>Number.parseInt(id)).filter(id => routines.enabled[id]).forEach(listenRoutine);
 }
 export function disposeRoutines() {
-    Object.keys(routines.routines).map(id=>parseInt(id)).filter(id => routines.enabled[id]).forEach(unlistenRoutine);
+    Object.keys(routines.routines).map(id=>Number.parseInt(id)).filter(id => routines.enabled[id]).forEach(unlistenRoutine);
 }
 beforeShutdown(async()=>disposeRoutines());
 

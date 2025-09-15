@@ -1,7 +1,7 @@
 import { favoriteDevicesFilePath } from "../misc.ts";
 import { getRooms } from "../rooms/rooms.ts";
 import { log, favoriteDevices, devices, setFavoriteDevices } from "./devices.ts";
-import fs from "fs";
+import fs from "node:fs";
 
 export function loadFavoriteDevices() {
     if (!(() => {

@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "node:fs";
 import { checkType, HMApi_Types } from "../api/api_checkType.ts";
 import { log, rooms, setRooms } from "./rooms.ts";
 import { roomsFilePath } from "../misc.ts";
@@ -28,7 +28,7 @@ export function loadRoomsFile() {
         }
 
         // Check format
-        if (!((typeof parsed === 'object') && !(parsed instanceof Array))) {
+        if (!((typeof parsed === 'object') && !Array.isArray(parsed))) {
             log.e("data/rooms.json is corrupt: the type is not an object. Recreating it...");
             console.error(corruptError);
             return false;

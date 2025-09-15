@@ -1,7 +1,7 @@
 import { checkType, HMApi_Types } from "../api/api_checkType.ts";
 import { devicesFilePath } from "../misc.ts";
 import { log, devices, setDevices } from "./devices.ts";
-import fs from "fs";
+import fs from "node:fs";
 
 export function loadDevicesFile() {
     if (!(() => {
@@ -29,7 +29,7 @@ export function loadDevicesFile() {
         }
 
         // Check format
-        if (!((typeof parsed === 'object') && !(parsed instanceof Array))) {
+        if (!((typeof parsed === 'object') && !Array.isArray(parsed))) {
             log.e("data/devices.json is corrupt: the type is not an object. Recreating it...");
             console.error(corruptError);
             return false;
@@ -38,7 +38,7 @@ export function loadDevicesFile() {
         const invalidObjects: string[] = [];
         let shouldSave = false;
         for (const [key, object] of Object.entries(parsed)) {
-            if (!((typeof object === 'object') && !(object instanceof Array))) {
+            if (!((typeof object === 'object') && !Array.isArray(object))) {
                 log.e(`data/devices.json -> ${key} is corrupt: the type is not an object. Recreating it...`);
                 console.error(`Warning: Part of the file containing information about the devices in room ${key} is invalid. All devices in the room have been lost.`);
                 invalidObjects.push(key);

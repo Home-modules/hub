@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'node:fs';
 import { Log } from './log.ts';
 import { settingsFilePath } from './misc.ts';
 
@@ -40,7 +40,7 @@ if (!(() => {
         return false;
     }
     const file = fs.readFileSync(settingsFilePath, "utf-8");
-    if (file == "") {
+    if (!file) {
         log.e("settings.json is empty. This was probably caused by a crash.");
         return false;
     }

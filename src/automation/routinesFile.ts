@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "node:fs";
 import { checkType, HMApi_Types } from "../api/api_checkType.ts";
 import { routines, setRoutines } from "./automation.ts";
 import { Log } from "../log.ts";
@@ -38,8 +38,8 @@ export function loadRoutinesFile() {
                     keys: {
                         type: "string",
                         customCheck(str) {
-                            const num = parseFloat(str);
-                            return !isNaN(num) && Number.isInteger(num);
+                            const num = Number.parseFloat(str);
+                            return !Number.isNaN(num) && Number.isInteger(num);
                         },
                     },
                     values: { type: "any" } // Checked later
@@ -50,8 +50,8 @@ export function loadRoutinesFile() {
                     keys: {
                         type: "string",
                         customCheck(str) {
-                            const num = parseFloat(str);
-                            return !isNaN(num) && Number.isInteger(num);
+                            const num = Number.parseFloat(str);
+                            return !Number.isNaN(num) && Number.isInteger(num);
                         },
                     },
                     values: { type: "boolean" }
@@ -70,13 +70,13 @@ export function loadRoutinesFile() {
         for (const [id, routine] of Object.entries(parsed.routines)) {
             
             let err: ReturnType<typeof checkType> | string = checkType(routine, HMApi_Types.objects.Routine);
-            if (parseInt(id) !== routine.id) {
+            if (Number.parseInt(id) !== routine.id) {
                 err = 'room.id is not equal to its key.';
             }
             if (err) {
                 console.error(`Warning: Part of the file containing information about the room ${routine.name} (${id}) is corrupt. The room will be deleted.`);
                 log.e(`data/automation-routines.json -> room ${id} is invalid:`, err);
-                invalidRoutines.push(parseInt(id));
+                invalidRoutines.push(Number.parseInt(id));
             }
         }
         for (const id of invalidRoutines) {

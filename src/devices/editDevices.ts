@@ -1,6 +1,6 @@
 import type { HMApi } from "../api/api.ts";
 import { getRoom, roomControllerInstances } from "../rooms/rooms.ts";
-import { DeviceInstance } from "./DeviceInstance.ts";
+import type { DeviceInstance } from "./DeviceInstance.ts";
 import { saveDevices } from "./devicesFile.ts";
 import { saveFavoriteDevices } from "./favoriteDevices.ts";
 import { devices, getDeviceTypes, favoriteDevices, setFavoriteDevices } from "./devices.ts";
@@ -84,16 +84,14 @@ export function reorderDevices(roomId: string, ids: string[]): 'room_not_found' 
     }
 
     const newDevices: { [key: string]: HMApi.T.Device; } = {};
-    ids.forEach(id => {
+    for (const id of ids)
         newDevices[id] = devices[roomId][id];
-    });
     devices[roomId] = newDevices;
     saveDevices();
 
     const newInstances: { [key: string]: DeviceInstance; } = {};
-    ids.forEach(id => {
+    for (const id of ids)
         newInstances[id] = roomControllerInstances[roomId].devices[id];
-    });
     roomControllerInstances[roomId].devices = newInstances;
 
     return true;

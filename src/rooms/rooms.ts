@@ -1,7 +1,7 @@
 import type { HMApi } from "../api/api.ts";
 import { Log } from "../log.ts";
 import { getSetting } from "../settings.ts";
-import { RoomControllerInstance, NonAbstractClass } from "./RoomControllerInstance.ts";
+import type { RoomControllerInstance, NonAbstractClass } from "./RoomControllerInstance.ts";
 import { autoRestartMaxTries } from "./autoRestart.ts";
 import { loadRoomsFile, saveRooms } from "./roomsFile.ts";
 export const log = new Log("rooms");

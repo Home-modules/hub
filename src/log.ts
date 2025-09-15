@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'node:fs';
 import { logFilePath } from './misc.ts';
 
 const logEnabled = !process.argv.includes('--no-log');
@@ -6,7 +6,10 @@ const debugEnabled = process.argv.includes('--debug');
 
 const logStream = logEnabled ? fs.createWriteStream(logFilePath) : null;
 
-function log(level: string, component: string, ...args: any[]) {
+// biome-ignore lint/suspicious/noExplicitAny: Accepts anything
+type any_ = any
+
+function log(level: string, component: string, ...args: any_[]) {
     if(logEnabled) {
         if(level==='debug' && !debugEnabled) {
             return;
@@ -16,20 +19,20 @@ function log(level: string, component: string, ...args: any[]) {
             args.map(arg => 
                 (typeof arg === 'string')? arg : ((arg instanceof Error) ? String(arg) : JSON.stringify(arg, undefined, 2) )
             ).join(' ')
-                .split('\n').map((l, i)=> i==0? l : ' '.repeat(info.length)+l).join('\n')
+                .split('\n').map((l, i)=> i===0? l : ' '.repeat(info.length)+l).join('\n')
         }\n`);
     }
 }
 
 export class Log {
     constructor(public component: string) { }
-    i(...args: any[]) { log('info', this.component, ...args); }
-    d(...args: any[]) { log('debug', this.component, ...args); }
-    w(...args: any[]) { log('warn', this.component, ...args); }
-    e(...args: any[]) { log('error', this.component, ...args); }
+    i(...args: any_[]) { log('info', this.component, ...args); }
+    d(...args: any_[]) { log('debug', this.component, ...args); }
+    w(...args: any_[]) { log('warn', this.component, ...args); }
+    e(...args: any_[]) { log('error', this.component, ...args); }
 
-    static i(component = '', ...args: any[]) { log('info', component, ...args); }
-    static d(component = '', ...args: any[]) { log('debug', component, ...args); }
-    static w(component = '', ...args: any[]) { log('warn', component, ...args); }
-    static e(component = '', ...args: any[]) { log('error', component, ...args); }
+    static i(component = '', ...args: any_[]) { log('info', component, ...args); }
+    static d(component = '', ...args: any_[]) { log('debug', component, ...args); }
+    static w(component = '', ...args: any_[]) { log('warn', component, ...args); }
+    static e(component = '', ...args: any_[]) { log('error', component, ...args); }
 }

@@ -1,8 +1,8 @@
 import type { HMApi } from "../api/api.ts";
-import { SettingsFieldDef } from "../plugins.ts";
+import type { SettingsFieldDef } from "../plugins.ts";
 import { devices, getDeviceTypes } from "../devices/devices.ts";
 import { saveDevices } from "../devices/devicesFile.ts";
-import { DeviceInstance } from "../devices/DeviceInstance.ts";
+import type { DeviceInstance } from "../devices/DeviceInstance.ts";
 import { Log } from "../log.ts";
 import { getRoomState, log } from "./rooms.ts";
 import { sendUpdate } from "../api-server/websocket.ts";
@@ -90,9 +90,10 @@ export abstract class RoomControllerInstance {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    static validateSettings(settings: Record<string, string | number | boolean>): void | undefined | string | Promise<void | undefined | string> {
+    static validateSettings(settings: Record<string, string | number | boolean>): undefined | string | Promise<undefined | string> {
         return undefined;
     }
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: idk
 export type NonAbstractClass<T extends abstract new (...args: any) => any> = Omit<T, 'prototype'> & (new (...args: ConstructorParameters<T>) => InstanceType<T>);

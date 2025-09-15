@@ -1,5 +1,5 @@
 import type { HMApi } from "./api/api.ts";
-import { SettingsFieldDef } from "./plugins.ts";
+import type { SettingsFieldDef } from "./plugins.ts";
 
 type SettingsFieldWithoutContainer = Exclude<SettingsFieldDef, HMApi.T.SettingsField.TypeContainer>;
 
@@ -7,12 +7,11 @@ export default function getFlatFields(fields: SettingsFieldDef[]): SettingsField
     const result: SettingsFieldWithoutContainer[] = [];
 
     for(const field of fields) {
-        if(field.type === 'container') {
-            getFlatFields(field.children).forEach(f => result.push(f));
-        }
-        else {
+        if(field.type === 'container')
+            for(const child of getFlatFields(field.children))
+                result.push(child)
+        else
             result.push(field);
-        }
     }
 
     return result;

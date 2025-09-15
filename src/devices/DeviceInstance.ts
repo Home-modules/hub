@@ -1,9 +1,9 @@
 import type { HMApi } from "../api/api.ts";
-import { SettingsFieldDef } from "../plugins.ts";
-import { RoomControllerInstance } from "../rooms/RoomControllerInstance.ts";
+import type { SettingsFieldDef } from "../plugins.ts";
+import type { RoomControllerInstance } from "../rooms/RoomControllerInstance.ts";
 import { Log } from "../log.ts";
 import { sendUpdate } from "../api-server/websocket.ts";
-import { DeviceTypeClass, getDeviceState } from "./devices.ts";
+import { type DeviceTypeClass, getDeviceState } from "./devices.ts";
 import { saveDevices } from "./devicesFile.ts";
 import { runRoutine } from "../automation/run-routine.ts";
 
@@ -161,13 +161,13 @@ export abstract class DeviceInstance {
     }
 
     fireEvent(id: string) {
-        Object.entries(this.triggersRoutines[id] || {}).filter(([_, enabled]) => enabled).forEach(([routineId]) => runRoutine(parseInt(routineId)));
+        Object.entries(this.triggersRoutines[id] || {}).filter(([_, enabled]) => enabled).forEach(([routineId]) => runRoutine(Number.parseInt(routineId)));
     }
 
     async performAction(id: string, settings: Record<string, string | number | boolean>) { return; }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    static validateSettings(settings: Record<string, string | number | boolean>): void | undefined | string | Promise<void | undefined | string> {
+    static validateSettings(settings: Record<string, string | number | boolean>): undefined | string | Promise<undefined | string> {
         return undefined;
     }
 }
