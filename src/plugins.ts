@@ -96,7 +96,7 @@ export type PluginInfo = {
 }
 
 /** Returns plugin info, or undefined if the plugin is invalid */
-export async function getPluginInfo(id: string, isFullyInstalled = true): Promise<undefined | HMApi.T.Plugin> {
+export async function getPluginInfo(id: string): Promise<undefined | HMApi.T.Plugin> {
     const pluginDir = `${pluginsRoot}/hmp-${id}`;
     
     const infoJSON = await fs.promises.readFile(`${pluginDir}/package.json`, 'utf-8').catch(() => null);
@@ -128,16 +128,14 @@ export async function getPluginInfo(id: string, isFullyInstalled = true): Promis
 
     info.main ||= `${id}.js`;
 
-    if (!info.main.endsWith('.js')) {
-        log.e("Invalid plugin: main file for", id, "is not a JS file. If the plugin is in TypeScript, you have to compile it and set `main` to point to a js file.");
+    if (!(info.main.endsWith('.js') || info.main.endsWith('.ts'))) {
+        log.e("Invalid plugin: main file for", id, "is neither a JS nor a TS file.");
         return;
     }
 
-    const mainFileTs = `${info.main.slice(0, -3)}.ts`;
-    const jsFileExists = await fs.promises.stat(`${pluginDir}/${info.main}`).catch(() => null);
-    const tsFileExists = jsFileExists ? false : await fs.promises.stat(`${pluginDir}/${mainFileTs}`).catch(() => null);
+    const entryPointExists = await fs.promises.stat(`${pluginDir}/${info.main}`).catch(() => null);
 
-    if (!(isFullyInstalled ? jsFileExists : (jsFileExists || tsFileExists))) {
+    if (!entryPointExists) {
         log.e("Invalid plugin: plugin", id, `entry point file (${pluginDir}/${info.main}) not found.`);
         return;
     }
