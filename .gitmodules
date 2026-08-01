@@ -1,3 +1,0 @@
-[submodule "data/plugins/builtin"]
-	path = data/plugins/builtin
-	url = https://github.com/Home-modules/hub-builtin-plugin.git
