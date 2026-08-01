@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@serialport/parser-readline": "^10.3.0",
-    "hmp-arduino": "^0.0.7-dev3",
+    "hmp-arduino": "^0.0.8",
     "hmp-test": "1.0.0",
     "hmp-toggle-theme": "0.0.2",
     "semver": "^7.3.7",
