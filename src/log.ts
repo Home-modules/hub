@@ -36,3 +36,5 @@ export class Log {
     static w(component = '', ...args: any_[]) { log('warn', component, ...args); }
     static e(component = '', ...args: any_[]) { log('error', component, ...args); }
 }
+
+if(debugEnabled) Log.i("Log", "Debug enabled")
