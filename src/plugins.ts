@@ -64,7 +64,7 @@ async function registerPlugins() {
             await import(`hmp-${name}`);
         } catch (err) {
             log.e(`[fatal] Error loading plugin ${name}:`, err);
-            console.error(`Fatal error: Plugin ${name} could not be loaded.`);
+            console.error(`Fatal error: Plugin ${name} could not be loaded: `, err);
             await shutdownHandler('error');
         }
         log.d("Plugin loaded");
