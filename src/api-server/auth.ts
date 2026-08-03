@@ -19,9 +19,11 @@ const logins: { [username: string]: {
     ip: string,
 }[] } = {};
 
-export let users: { [username: string]: string } = {
-    admin: crypto.createHash('sha256').update('admin').digest('hex')
-};
+export type User = {
+    password_hash: string
+}
+
+export let users: { [username: string]: User } = { }
 
 if(fs.existsSync(usersFilePath)) {
     users= JSON.parse(fs.readFileSync(usersFilePath, {encoding: 'utf-8'}));
@@ -29,6 +31,13 @@ if(fs.existsSync(usersFilePath)) {
 
 function saveUsers() {
     fs.writeFile(usersFilePath, JSON.stringify(users), ()=>undefined);
+}
+
+export async function createUser(username: string, password: string) {
+    users[username] = {
+        password_hash: await Bun.password.hash(password)
+    };
+    saveUsers()
 }
 
 /**
@@ -39,12 +48,12 @@ function saveUsers() {
  * @param ip The IP address of the user
  * @returns An auth token for the user
  */
-export function loginUser(username: string|undefined, password: string, device: string, ip: string): string {
+export async function loginUser(username: string|undefined, password: string, device: string, ip: string): Promise<string> {
     username = Object.keys(users).find(u=> u.toLowerCase() === username?.toLowerCase());
     if(!(username && users[username])) {
         throw new Error('USER_NOT_FOUND');
     }
-    if(users[username] !== crypto.createHash('sha256').update(password).digest('hex')) {
+    if(!await Bun.password.verify(password, users[username].password_hash)) {
         throw new Error('PASSWORD_INCORRECT');
     }
     const tk= crypto.randomBytes(32).toString('hex');
@@ -153,15 +162,15 @@ export function getSessionsCount(token: string): number {
  * @param newP The new password
  * @returns True if oldP is valid and password was changed
  */
-export function changePassword(token: string, oldP: string, newP: string) {
+export async function changePassword(token: string, oldP: string, newP: string) {
     const [username] = token.split(':');
 
-    if(users[username] !== crypto.createHash('sha256').update(oldP).digest('hex')) {
+    if(!await Bun.password.verify(oldP, users[username].password_hash)) {
         throw 'PASSWORD_INCORRECT';
     }
     require24HoursSession(token);
 
-    users[username]= crypto.createHash('sha256').update(newP).digest('hex');
+    users[username].password_hash = await Bun.password.hash(newP);
     saveUsers();
 }
 
@@ -241,11 +250,6 @@ export function terminateSession(token: string, sessionId: string) {
 /** @throws 'SESSION_TOO_NEW' */
 function require24HoursSession(token: string) {
     const [username, tk] = token.split(':');
-
-    // If the username and password are both 'admin', skip the check. This is a special case for the first login.
-    if(username.toLowerCase() === 'admin' && users[username] === crypto.createHash('sha256').update('admin').digest('hex')) {
-        return;
-    }
     
     const session = logins[username]?.find(t => t.token === tk);
     if (session && session.loginTime.getTime() + 1000 * 60 * 60 * 24 > new Date().getTime()) { // Check if 24 hours have passed since the login time

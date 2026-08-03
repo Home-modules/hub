@@ -54,7 +54,7 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
 
     async "account.login"(req, {ip}) {
         try {
-            const token = loginUser(req.username, req.password, req.device, ip);
+            const token = await loginUser(req.username, req.password, req.device, ip);
             return ok({ token });
         }
         catch (e) {
@@ -107,7 +107,7 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
 
     async "account.changePassword"(req, { token }) {
         try {
-            changePassword(token, req.oldPassword, req.newPassword);
+            await changePassword(token, req.oldPassword, req.newPassword);
             return ok({});
         } catch (err) {
             if (err === 'PASSWORD_INCORRECT') 

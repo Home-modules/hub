@@ -42,6 +42,7 @@ if (!(() => {
     const file = fs.readFileSync(settingsFilePath, "utf-8");
     if (!file) {
         log.e("settings.json is empty. This was probably caused by a crash.");
+        console.log("The settings file is corrupt. Using default settings. Check logs for details.");
         return false;
     }
     try {
@@ -49,6 +50,7 @@ if (!(() => {
     } catch (e) {
         log.e("settings.json has invalid JSON.");
         log.e(e);
+        console.log("The settings file is corrupt. Using default settings. Check logs for details.");
         return false;
     }
 
@@ -57,7 +59,6 @@ if (!(() => {
     settings = {};
     saveSettings();
     log.i("Using default settings");
-    console.log("The settings file is corrupt. Using default settings. Check logs for details.");
 }
 
 export function getSetting<T extends (keyof Settings)>(id: T, def: Settings[T]): Exclude<Settings[T], undefined> {
