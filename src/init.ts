@@ -34,7 +34,7 @@ if (httpsOptions) {
     log.w("data/key.pem and/or data/cert.pem was not found. Will fall back to HTTP for API and web app servers.");
 }
 
-const serverPort = settings.port || (httpsOptions? 443 : 80);
+const serverPort = settings.port || 7030;
 
 function createServer() {
     Bun.serve({
