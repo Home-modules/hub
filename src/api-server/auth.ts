@@ -140,7 +140,6 @@ export function logOutSession(token: string): boolean {
  */
 export function logOutOtherSessions(token: string): number {
     const [username, tk] = token.split(':');
-    require24HoursSession(token);
     if(logins[username]) {
         const n = logins[username].length - 1;
         logins[username].filter(l => l.token !== tk).forEach(l => logoutWSConnection(username+':'+l.token));
@@ -168,7 +167,6 @@ export async function changePassword(token: string, oldP: string, newP: string) 
     if(!await Bun.password.verify(oldP, users[username].password_hash)) {
         throw 'PASSWORD_INCORRECT';
     }
-    require24HoursSession(token);
 
     users[username].password_hash = await Bun.password.hash(newP);
     saveUsers();
@@ -185,8 +183,6 @@ export function changeUsername(token: string, newUsername: string): string|false
     if((!users[username]) || usernameExists(token, newUsername)) {
         return false;
     }
-
-    require24HoursSession(token);
 
     logins[username].filter(l => l.token !== tk).forEach(l => logoutWSConnection(username + ':' + l.token));
     WSConnections.filter(c => c.data === token).forEach(c => c.data = `${newUsername}:${tk}`);
@@ -234,8 +230,6 @@ export function getSessions(token: string): HMApi.T.Session[] {
 export function terminateSession(token: string, sessionId: string) {
     const [username] = token.split(':');
 
-    require24HoursSession(token);
-
     for(const login of logins[username]) {
         const id = crypto.createHash('sha256').update(login.token).digest('hex');
         if(id === sessionId) {
@@ -245,15 +239,5 @@ export function terminateSession(token: string, sessionId: string) {
         }
     }
     throw 'SESSION_NOT_FOUND';
-}
-
-/** @throws 'SESSION_TOO_NEW' */
-function require24HoursSession(token: string) {
-    const [username, tk] = token.split(':');
-    
-    const session = logins[username]?.find(t => t.token === tk);
-    if (session && session.loginTime.getTime() + 1000 * 60 * 60 * 24 > new Date().getTime()) { // Check if 24 hours have passed since the login time
-        throw 'SESSION_TOO_NEW';
-    }
 }
 

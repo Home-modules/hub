@@ -52,9 +52,6 @@ export namespace HMApi {
 
             /** 
              * Terminates all sessions for this account except the one from which the request was made. 
-             * 
-             * ---
-             * @throws `SESSION_TOO_NEW` if the current session is less than 24 hours old.
              */
             export type LogoutOtherSessions = {
                 type: "account.logoutOtherSessions";
@@ -76,9 +73,6 @@ export namespace HMApi {
 
             /**
              * Terminates a specific session.
-             * 
-             * ---
-             * @throws `SESSION_TOO_NEW` if the current session is less than 24 hours old.
              */
             export type LogoutSession = {
                 type: "account.logoutSession",
@@ -91,7 +85,6 @@ export namespace HMApi {
              * 
              * ---
              * @throws LOGIN_PASSWORD_INCORRECT if the current password is incorrect.
-             * @throws `SESSION_TOO_NEW` if the current session is less than 24 hours old.
              */
             export type ChangePassword = {
                 type: "account.changePassword",
@@ -108,7 +101,6 @@ export namespace HMApi {
              * ---
              * @throws USERNAME_ALREADY_TAKEN if the username is already taken.
              * @throws USERNAME_TOO_SHORT if the username is shorter than 3 characters.
-             * @throws `SESSION_TOO_NEW` if the current session is less than 24 hours old.
              */
             export type ChangeUsername = {
                 type: "account.changeUsername",
@@ -924,14 +916,6 @@ export namespace HMApi {
         };
 
         /**
-         * The session is not old enough to perform sensitive operations. The session must be at least 24 hours old.
-         */
-        export type SessionTooNew = {
-            code: 403,
-            message: "SESSION_TOO_NEW"
-        };
-
-        /**
          * The requested item/resource was not found.
          */
         export type NotFound<O extends string> = {
@@ -1103,12 +1087,12 @@ export namespace HMApi {
         R extends Request.Restart ? never :
         R extends Request.Account.Login ? Error.LoginPasswordIncorrect | Error.LoginUserNotFound :
         R extends Request.Account.Logout ? never :
-        R extends Request.Account.LogoutOtherSessions ? Error.SessionTooNew :
+        R extends Request.Account.LogoutOtherSessions ? never :
         R extends Request.Account.GetSessionsCount ? never :
         R extends Request.Account.GetSessions ? never :
-        R extends Request.Account.LogoutSession ? Error.NotFound<"session"> | Error.SessionTooNew :
-        R extends Request.Account.ChangePassword ? Error.LoginPasswordIncorrect | Error.SessionTooNew :
-        R extends Request.Account.ChangeUsername ? Error.UsernameAlreadyTaken | Error.UsernameTooShort | Error.SessionTooNew :
+        R extends Request.Account.LogoutSession ? Error.NotFound<"session"> :
+        R extends Request.Account.ChangePassword ? Error.LoginPasswordIncorrect :
+        R extends Request.Account.ChangeUsername ? Error.UsernameAlreadyTaken | Error.UsernameTooShort :
         R extends Request.Account.CheckUsernameAvailable ? never :
         R extends Request.Rooms.GetRooms ? never :
         R extends Request.Rooms.EditRoom ? Error.NotFound<"room"> | Error.PluginCustomError :

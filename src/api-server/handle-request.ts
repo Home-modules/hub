@@ -75,13 +75,7 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
     },
 
     async "account.logoutOtherSessions"(_, { token }) {
-        try {
-            return ok({ sessions: logOutOtherSessions(token) });
-        } catch (e) {
-            if (e === 'SESSION_TOO_NEW')
-                return error({ code: 403, message: "SESSION_TOO_NEW" });
-            throw e;
-        }
+        return ok({ sessions: logOutOtherSessions(token) });
     },
 
     async "account.getSessionsCount"(_, { token }) {
@@ -99,8 +93,6 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
         } catch (err) {
             if (err === 'SESSION_NOT_FOUND') 
                 return error404("session");
-            if (err === 'SESSION_TOO_NEW') 
-                return error({ code: 403, message: "SESSION_TOO_NEW" });
             throw err;
         }
     },
@@ -112,8 +104,6 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
         } catch (err) {
             if (err === 'PASSWORD_INCORRECT') 
                 return error({ code: 401, message: "LOGIN_PASSWORD_INCORRECT" });
-            if (err === 'SESSION_TOO_NEW') 
-                return error({ code: 403, message: "SESSION_TOO_NEW" });
             throw err;
         }
     },
@@ -122,17 +112,11 @@ const handleRequestFunctions: {[K in HMApi.Request['type']]: RequestHandler<Extr
         if (req.username.length < 3)
             return error({ code: 400, message: "USERNAME_TOO_SHORT" });
         
-        try {
-            const newTk = changeUsername(token, req.username);
-            if (!newTk) {
-                return error({ code: 400, message: "USERNAME_ALREADY_TAKEN" });
-            }
-            return ok({ token: newTk });
-        } catch (err) {
-            if (err === 'SESSION_TOO_NEW') 
-                return error({ code: 403, message: "SESSION_TOO_NEW" });
-            throw err;
+        const newTk = changeUsername(token, req.username);
+        if (!newTk) {
+            return error({ code: 400, message: "USERNAME_ALREADY_TAKEN" });
         }
+        return ok({ token: newTk });
     },
 
     async "account.checkUsernameAvailable"(req, { token }){
